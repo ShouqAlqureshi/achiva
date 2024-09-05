@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "206634315030",
+    "project_id": "achiva444",
+    "storage_bucket": "achiva444.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:206634315030:android:ab13365cb977b1d48f3437",
+        "android_client_info": {
+          "package_name": "com.example.achiva"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBuxX4hXh2g2LPebGdGPJAo_QIIwTUnUNk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
