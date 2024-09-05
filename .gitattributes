@@ -1,0 +1,7 @@
+* text=auto
+*.cc text eol=lf
+*.h text eol=lf
+*.swift text eol=lf
+*.cmake text eol=lf
+*.lock text eol=lf
+*.metadata text eol=lf
