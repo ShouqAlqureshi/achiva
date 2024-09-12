@@ -1,2 +1,7 @@
-# achiva 🚀
-A gamified life management app that turns personal and professional goals into quests and challenges. Users earn points, level up, and unlock achievements as they complete tasks and reach milestones.
+# Achiva
+
+A new Flutter project.
+
+## Getting Started
+
+FlutterFlow projects are built to run on the Flutter _stable_ release.
