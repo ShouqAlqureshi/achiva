@@ -20,7 +20,7 @@ void main() async {
       colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       useMaterial3: true,
     ),
-    home: const NewUserInfoView(),
+    home: const PhoneNumAuthView(),
     routes: {
       '/otp': (context) => const VerfyCodeView(),
       '/home': (context) => const HomeScreen(),
