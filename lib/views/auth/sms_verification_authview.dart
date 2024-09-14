@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:developer';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -57,13 +59,16 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
                         final cred = PhoneAuthProvider.credential(
                             verificationId: verificationId,
                             smsCode: otpController.text);
-                        await FirebaseAuth.instance.signInWithCredential(cred);
-                        Navigator.pushNamed(context, "/home");
-                        // if (cred) {
-                        //   // return ProfileInfo();
-                        // } else {
-                        //   // return MyHomePage();
-                        // }
+                        final usercred = await FirebaseAuth.instance
+                            .signInWithCredential(cred);
+                        bool isNewUser_ =
+                            usercred.additionalUserInfo!.isNewUser;
+
+                        if (isNewUser_) {
+                          Navigator.pushNamed(context, "/newuser");
+                        } else {
+                          Navigator.pushNamed(context, "/home");
+                        }
                       } catch (e) {
                         log(e.toString());
                         showErrorDialog(context, e.toString());

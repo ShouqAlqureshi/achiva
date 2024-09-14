@@ -52,7 +52,7 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
               onPressed: () {
                 Navigator.of(context).pushNamed('/home');
               },
-              child: const Text('skip'),
+              child: const Text('Continue'),
             ),
           ],
         ),
