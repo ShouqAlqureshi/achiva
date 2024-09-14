@@ -12,6 +12,7 @@ class PhoneNumAuthView extends StatefulWidget {
 
 class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
   late final TextEditingController _phonenumber;
+  // ignore: unused_field
   String _verificationId = '';
   @override
   void initState() {
