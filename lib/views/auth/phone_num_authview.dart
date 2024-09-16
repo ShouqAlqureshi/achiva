@@ -1,3 +1,4 @@
+import 'package:achiva/exceptions/auth_exceptions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'dart:developer' as devtool show log;
@@ -41,6 +42,7 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
             ),
             const SizedBox(height: 40),
             TextField(
+              autofocus: true,
               controller: _phonenumber,
               enableSuggestions: false,
               autocorrect: false,
@@ -63,44 +65,73 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                       setState(() {
                         isloading = true;
                       });
-                      FirebaseAuth.instance.verifyPhoneNumber(
-                        phoneNumber: _phonenumber.text,
-                        verificationCompleted: (phoneAuthCredential) async {
-                          await FirebaseAuth.instance
-                              .signInWithCredential(phoneAuthCredential);
-                        },
-                        verificationFailed: (FirebaseAuthException error) {
-                          devtool.log(error.toString());
-                          if (error.code == 'invalid-phone-number') {
-                            showErrorDialog(context,
-                                'The provided phone number is not valid.');
-                          }
-                        },
-                        codeSent: (verificationId, forceResendingToken) async {
-                          setState(() {
-                            isloading = false;
-                          });
-                          setState(() {
-                            _verificationId = verificationId;
-                          });
-                          Navigator.pushNamed(
-                            context,
-                            '/otp',
-                            arguments: verificationId,
-                          );
-                          setState(() {
-                            _verificationId = verificationId;
-                          });
-                        },
-                        timeout: const Duration(seconds: 60),
-                        codeAutoRetrievalTimeout: (verificationId) {
-                          devtool.log("auto retrireval timeout");
-                          setState(() {
-                            _verificationId = verificationId;
-                          });
-                        },
-                      );
-                    },
+                      try {
+                        if (_phonenumber.text.isEmpty) {
+                          throw EmptyFieldException();
+                        }
+
+                        // Basic format check (you might want to use a more sophisticated regex)
+                        if (!_phonenumber.text.startsWith('+') ||
+                            _phonenumber.text.length < 8) {
+                          throw InvalidPhoneNumberException(
+                              'Phone number must start with + and be at least 8 characters long');
+                        }
+                        FirebaseAuth.instance.verifyPhoneNumber(
+                          phoneNumber: _phonenumber.text,
+                          verificationCompleted: (phoneAuthCredential) async {
+                            await FirebaseAuth.instance
+                                .signInWithCredential(phoneAuthCredential);
+                            final user = FirebaseAuth.instance.currentUser;
+                            if (user == null) {
+                              throw UserNotLoggedInAuthException();
+                            }
+                          },
+                          verificationFailed:
+                              (FirebaseAuthException error) async {
+                            throw InvalidPhoneNumberException(
+                                error.message ?? 'Unknown error occurred');
+                          },
+                          codeSent:
+                              (verificationId, forceResendingToken) async {
+                            setState(() {
+                              _verificationId = verificationId;
+                            });
+                            Navigator.pushNamed(
+                              context,
+                              '/otp',
+                              arguments: verificationId,
+                            );
+                          },
+                          timeout: const Duration(seconds: 60),
+                          codeAutoRetrievalTimeout: (verificationId) {
+                            devtool.log("auto retrireval timeout");
+                            setState(() {
+                              _verificationId = verificationId;
+                            });
+                          },
+                        );
+                        setState(() {
+                          isloading = false;
+                        });
+                      } on EmptyFieldException {
+                        await showErrorDialog(
+                          context,
+                          "Your phone number field is empty.\nPlease enter your phone number in the format: [+][country code][user number]",
+                        );
+                      } on InvalidPhoneNumberException catch (e) {
+                        await showErrorDialog(
+                          context,
+                          'Invalid phone number: ${e.message}\nformat: [+][country code][user number]',
+                        );
+                      } catch (e) {
+                        await showErrorDialog(
+                            context, 'An unexpected error occurred: $e');
+                      } finally {
+                        setState(() {
+                          isloading = false;
+                        });
+                      }
+                    }, //on pressed
                     child: const Text("Continue"),
                   )
           ],

@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:developer';
+import 'package:achiva/exceptions/auth_exceptions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -51,26 +52,36 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
                       setState(() {
                         isLoading = true;
                       });
-
                       try {
-                        final verificationId = ModalRoute.of(context)!
-                            .settings
-                            .arguments as String;
-                        final cred = PhoneAuthProvider.credential(
-                            verificationId: verificationId,
-                            smsCode: otpController.text);
-                        final usercred = await FirebaseAuth.instance
-                            .signInWithCredential(cred);
-                        bool isNewUser_ =
-                            usercred.additionalUserInfo!.isNewUser;
+                        try {
+                          final verificationId = ModalRoute.of(context)!
+                              .settings
+                              .arguments as String;
+                          final cred = PhoneAuthProvider.credential(
+                              verificationId: verificationId,
+                              smsCode: otpController.text);
+                          final usercred = await FirebaseAuth.instance
+                              .signInWithCredential(cred);
+                          bool isNewUser_ =
+                              usercred.additionalUserInfo!.isNewUser;
 
-                        if (isNewUser_) {
-                          Navigator.pushNamed(context, "/newuser");
-                        } else {
-                          Navigator.pushNamed(context, "/home");
+                          if (isNewUser_) {
+                            Navigator.pushNamed(context, "/newuser");
+                          } else {
+                            Navigator.pushNamed(context, "/home");
+                          }
+                        } on FirebaseAuthException catch (e) {
+                          log(e.toString());
+                          if (e.code == "invalid-verification-code") {
+                            throw InvalidVerificationCodeException(
+                                "\nPlease check and enter the correct verification code again.");
+                          } else {
+                            throw GenricException();
+                          }
                         }
-                      } catch (e) {
-                        log(e.toString());
+                      } on InvalidVerificationCodeException catch (e) {
+                        showErrorDialog(context, e.toString());
+                      } on GenricException catch (e) {
                         showErrorDialog(context, e.toString());
                       }
                       setState(() {
