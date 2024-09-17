@@ -70,11 +70,10 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                           throw EmptyFieldException();
                         }
 
-                        // Basic format check (you might want to use a more sophisticated regex)
-                        if (!_phonenumber.text.startsWith('+') ||
-                            _phonenumber.text.length < 8) {
+                        if (!RegExp(r'^\+[0-9]{10,14}$')
+                            .hasMatch(_phonenumber.text)) {
                           throw InvalidPhoneNumberException(
-                              'Phone number must start with + and be at least 8 characters long');
+                              'Phone number must be between 10 and 12 digits long');
                         }
                         FirebaseAuth.instance.verifyPhoneNumber(
                           phoneNumber: _phonenumber.text,
@@ -88,8 +87,10 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                           },
                           verificationFailed:
                               (FirebaseAuthException error) async {
-                            throw InvalidPhoneNumberException(
-                                error.message ?? 'Unknown error occurred');
+                            await showErrorDialog(
+                              context,
+                              'Oops..\nCheck your Phone number formate:\n ${error.message}',
+                            );
                           },
                           codeSent:
                               (verificationId, forceResendingToken) async {
@@ -116,16 +117,16 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                       } on EmptyFieldException {
                         await showErrorDialog(
                           context,
-                          "Your phone number field is empty.\nPlease enter your phone number in the format: [+][country code][user number]",
+                          "Oops..\nYour phone number field is empty.\nPlease enter your phone number in the format:[+][country code][user number]",
                         );
                       } on InvalidPhoneNumberException catch (e) {
                         await showErrorDialog(
                           context,
-                          'Invalid phone number: ${e.message}\nformat: [+][country code][user number]',
+                          'Oops..\n${e.message}\nformat:[+][country code][user number]',
                         );
                       } catch (e) {
-                        await showErrorDialog(
-                            context, 'An unexpected error occurred: $e');
+                        await showErrorDialog(context,
+                            'Oops..\nAn unexpected error occurred: $e');
                       } finally {
                         setState(() {
                           isloading = false;

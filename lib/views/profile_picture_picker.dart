@@ -1,5 +1,6 @@
 import 'dart:io';
-
+import 'dart:developer' show log;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -7,7 +8,7 @@ class ProfilePicturePicker extends StatefulWidget {
   const ProfilePicturePicker({super.key});
 
   @override
-  _ProfilePicturePickerState createState() => _ProfilePicturePickerState();
+  State<ProfilePicturePicker> createState() => _ProfilePicturePickerState();
 }
 
 class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
@@ -50,6 +51,13 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
+                final usercollection =
+                    FirebaseFirestore.instance.collection("Users");
+                final datatosave = ModalRoute.of(context)!.settings.arguments
+                    as Map<String, dynamic>;
+                datatosave.addAll({"photo": _imageFile!.path});
+                log(datatosave.toString());
+                usercollection.add(datatosave);
                 Navigator.of(context).pushNamed('/home');
               },
               child: const Text('Continue'),

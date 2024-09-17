@@ -8,21 +8,23 @@ class NewUserInfoView extends StatefulWidget {
 }
 
 class _NewUserInfoViewState extends State<NewUserInfoView> {
-  String fn = "";
-  String ln = "";
   String gender = "";
-  String photo = "";
   late final TextEditingController email;
-
+  late final TextEditingController fn;
+  late final TextEditingController ln;
   @override
   void initState() {
     super.initState();
     email = TextEditingController();
+    fn = TextEditingController();
+    ln = TextEditingController();
   }
 
   @override
   void dispose() {
     email.dispose();
+    fn.dispose();
+    ln.dispose();
     super.dispose();
   }
 
@@ -43,6 +45,7 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
               Padding(
                 padding: const EdgeInsets.all(30),
                 child: TextField(
+                  controller: fn,
                   decoration: InputDecoration(
                     fillColor: Colors.grey.withOpacity(0.25),
                     filled: true,
@@ -61,6 +64,7 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
               Padding(
                 padding: const EdgeInsets.all(30),
                 child: TextField(
+                  controller: ln,
                   decoration: InputDecoration(
                     fillColor: Colors.grey.withOpacity(0.25),
                     filled: true,
@@ -139,7 +143,16 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
               ),
               ElevatedButton(
                 onPressed: () async {
-                  Navigator.of(context).pushNamed('/profilepicturepicker');
+                  final datatosave = ModalRoute.of(context)!.settings.arguments
+                      as Map<String, dynamic>;
+                  datatosave.addAll({
+                    "fname": fn.text,
+                    "lname": ln.text,
+                    "email": email.text,
+                    "gender": gender,
+                  });
+                  Navigator.of(context).pushNamed('/profilepicturepicker',
+                      arguments: datatosave);
                 },
                 child: const Text("Continue"),
               ),
