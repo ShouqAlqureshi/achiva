@@ -64,9 +64,13 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
                               .signInWithCredential(cred);
                           bool isNewUser_ =
                               usercred.additionalUserInfo!.isNewUser;
-
+                          final userphonenumber = usercred.user?.phoneNumber;
+                          final datatosave = <String, dynamic>{
+                            "phoneNumber": userphonenumber
+                          };
                           if (isNewUser_) {
-                            Navigator.pushNamed(context, "/newuser");
+                            Navigator.pushNamed(context, "/newuser",
+                                arguments: datatosave);
                           } else {
                             Navigator.pushNamed(context, "/home");
                           }
@@ -74,13 +78,19 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
                           log(e.toString());
                           if (e.code == "invalid-verification-code") {
                             throw InvalidVerificationCodeException(
-                                "\nPlease check and enter the correct verification code again.");
+                                "Oops..\nPlease check and enter the correct verification code again.");
+                          } else if (otpController.text.isEmpty) {
+                            throw InvalidVerificationCodeException(
+                                "Oops..\nthe field is empty,\nplease write your sms code.");
+                          } else if (otpController.text.length < 6) {
+                            throw InvalidVerificationCodeException(
+                                "Oops..\nthe field is less than 6 digit,\nplease write the 6 digit sms code sent to you.");
                           } else {
                             throw GenricException();
                           }
                         }
                       } on InvalidVerificationCodeException catch (e) {
-                        showErrorDialog(context, e.toString());
+                        showErrorDialog(context, e.message);
                       } on GenricException catch (e) {
                         showErrorDialog(context, e.toString());
                       }
