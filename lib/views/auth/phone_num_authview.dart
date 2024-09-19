@@ -31,16 +31,17 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor:Colors.grey.shade900,
       appBar: AppBar(
-        title: Image.asset(
-          'lib/images/logo-with-name.png',
-          fit: BoxFit.contain,
-          height: 250,
-        ),
-        toolbarHeight: 150,
-        backgroundColor: null,
-        centerTitle: true,
-      ),
+          title: Image.asset(
+            'lib/images/logo-with-name.png',
+            fit: BoxFit.contain,
+            height: 250,
+          ),
+          toolbarHeight: 150,
+          // backgroundColor: null,
+          centerTitle: true,
+          backgroundColor: Colors.grey.shade900),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 30),
