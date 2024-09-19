@@ -8,7 +8,10 @@ Future<void> showErrorDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text("an error has accured"),
+          title: const Text(
+            "Oops..",
+            textAlign: TextAlign.center,
+          ),
           content: Text(text),
           actions: [
             TextButton(

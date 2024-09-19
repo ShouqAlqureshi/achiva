@@ -37,7 +37,10 @@ class HomeScreen extends StatelessWidget {
           }, itemBuilder: (context) {
             return const [
               PopupMenuItem<MenuAction>(
-                  value: MenuAction.logout, child: Text("Log out")),
+                value: MenuAction.logout,
+                height: 10,
+                child: Center(child: Icon(Icons.exit_to_app)),
+              ),
             ];
           }),
         ],
