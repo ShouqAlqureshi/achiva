@@ -3,7 +3,7 @@ import 'package:achiva/exceptions/auth_exceptions.dart';
 import 'package:achiva/utilities/show_error_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
+import 'package:achiva/views/add_goal_page.dart';
 import '../utilities/show_log_out_dialog.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -42,10 +42,24 @@ class HomeScreen extends StatelessWidget {
           }),
         ],
       ),
-      body: const Center(
-        child: Text(
-          "Welcome buddy",
-          style: TextStyle(fontSize: 20),
+      body: Center(
+               child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            const Text(
+              'Welcome to Achiva!',
+              style: TextStyle(fontSize: 24),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AddGoalPage()), // Navigate to AddGoalPage
+                );
+              },
+              child: const Text('Add a Goal'),
+            ),
+          ],
         ),
       ),
     );
