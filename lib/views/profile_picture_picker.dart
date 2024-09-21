@@ -53,9 +53,10 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
               onPressed: () {
                 final usercollection =
                     FirebaseFirestore.instance.collection("Users");
+                String newUserId = usercollection.doc().id;
                 final datatosave = ModalRoute.of(context)!.settings.arguments
                     as Map<String, dynamic>;
-                datatosave.addAll({"photo": _imageFile!.path});
+                datatosave.addAll({"photo": _imageFile!.path, 'id': newUserId});
                 log(datatosave.toString());
                 usercollection.add(datatosave);
                 Navigator.of(context).pushNamed('/home');

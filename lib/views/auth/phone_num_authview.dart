@@ -1,4 +1,5 @@
 import 'package:achiva/exceptions/auth_exceptions.dart';
+import 'package:achiva/views/auth/validators.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'dart:developer' as devtool show log;
@@ -27,11 +28,13 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
     super.dispose();
   }
 
+  Validators validation = Validators();
+
   bool isloading = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:Colors.grey.shade900,
+      backgroundColor: Colors.grey.shade900,
       appBar: AppBar(
           title: Image.asset(
             'lib/images/logo-with-name.png',
@@ -90,8 +93,8 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                               throw EmptyFieldException();
                             }
 
-                            if (!RegExp(r'^\+[0-9]{10,14}$')
-                                .hasMatch(_phonenumber.text)) {
+                            if (validation
+                                .isNotValidPhoneNumber(_phonenumber.text)) {
                               throw InvalidPhoneNumberException(
                                   'Phone number must be between 10 and 12 digits long');
                             }

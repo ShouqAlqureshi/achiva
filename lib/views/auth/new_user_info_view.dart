@@ -1,4 +1,7 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
+import 'package:achiva/views/auth/validators.dart';
 
 class NewUserInfoView extends StatefulWidget {
   const NewUserInfoView({super.key});
@@ -16,7 +19,7 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
   bool isLastNameTouched = false;
   bool isEmailTouched = false;
   bool isFormSubmitted = false;
-
+  Validators validation = Validators();
   @override
   void initState() {
     super.initState();
@@ -31,20 +34,6 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
     fn.dispose();
     ln.dispose();
     super.dispose();
-  }
-
-  bool isValidEmail(String email) {
-    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
-  }
-
-  String? validateEmail(String? value) {
-    if (value == null || value.isEmpty) {
-      return "Email is required";
-    }
-    if (!isValidEmail(value)) {
-      return "Please enter a valid email address";
-    }
-    return null;
   }
 
   @override
@@ -189,20 +178,22 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                       borderSide: BorderSide.none,
                     ),
                     errorText: (isEmailTouched || isFormSubmitted)
-                        ? validateEmail(email.text)
+                        ? validation.validateEmail(email.text)
                         : null,
                   ),
                 ),
               ),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   setState(() {
                     isFormSubmitted = true;
                   });
+                  bool isUnique = await validation.isEmailUnique(email.text);
                   if (fn.text.isNotEmpty &&
                       ln.text.isNotEmpty &&
                       gender.isNotEmpty &&
-                      validateEmail(email.text) == null) {
+                      isUnique &&
+                      validation.validateEmail(email.text) == null) {
                     final datatosave = ModalRoute.of(context)!
                         .settings
                         .arguments as Map<String, dynamic>;
