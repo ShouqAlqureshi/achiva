@@ -16,7 +16,6 @@ packages:
       sha256: "5fdcea390499dd26c808a3c662df5f4208d6bbc0643072eee94f1476249e2818"
       url: "https://pub.dev"
     source: hosted
-<<<<<<< HEAD
     version: "1.3.42"
   _macros:
     dependency: transitive
@@ -39,11 +38,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.5.0"
-=======
-    version: "1.3.43"
-<<<<<<< HEAD
->>>>>>> d9ff711 (add goal and task pages)
-=======
+
   _macros:
     dependency: transitive
     description: dart
@@ -203,11 +198,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.10.0"
-=======
-    version: "4.3.1"
-<<<<<<< HEAD
->>>>>>> d9ff711 (add goal and task pages)
-=======
   code_builder:
     dependency: transitive
     description:
@@ -216,7 +206,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.10.0"
->>>>>>> 50c4bf4 (new user email validation and uniqness, refactoring function to validators class , unit testing validators)
   collection:
     dependency: transitive
     description:
@@ -392,7 +381,7 @@ packages:
       sha256: fc0877403b37f31178741409fb79b93abf526e9c59db27ebcbb4b7678d9beb6a
       url: "https://pub.dev"
     source: hosted
-<<<<<<< HEAD
+
     version: "0.2.5+14"
   fixnum:
     dependency: transitive
@@ -402,11 +391,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.0"
-=======
-    version: "0.2.6+1"
-<<<<<<< HEAD
->>>>>>> d9ff711 (add goal and task pages)
-=======
+
   fixnum:
     dependency: transitive
     description:
@@ -415,7 +400,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.0"
->>>>>>> 50c4bf4 (new user email validation and uniqness, refactoring function to validators class , unit testing validators)
   flutter:
     dependency: "direct main"
     description: flutter
