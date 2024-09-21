@@ -21,10 +21,13 @@ class Validators {
   }
   
 
-Future<bool> isEmailUnique(String email) async {
+Future<bool> isEmailUnique(String email, [FirebaseFirestore? firestore]) async {
   try {
+    // Use the provided firestore instance or the default one
+    firestore ??= FirebaseFirestore.instance;
+
     // Reference to the Users collection
-    CollectionReference users = FirebaseFirestore.instance.collection('Users');
+    CollectionReference users = firestore.collection('Users');
 
     // Query the collection for documents where 'email' field matches the given email
     QuerySnapshot querySnapshot = await users
