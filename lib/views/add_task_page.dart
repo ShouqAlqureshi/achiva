@@ -53,7 +53,8 @@ class _AddTaskPageState extends State<AddTaskPage> {
       final String? userPhoneNumber = user.phoneNumber;
 
       if (userPhoneNumber == null) {
-        throw Exception("Phone number is not available for the logged-in user.");
+        throw Exception(
+            "Phone number is not available for the logged-in user.");
       }
 
       // Query the Firestore 'Users' collection for a user with the same phone number
@@ -95,10 +96,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
 
       // Add each task to the 'tasks' sub-collection under the created goal
       for (String task in _tasks) {
-        await goalsCollectionRef
-            .doc(widget.goalName)
-            .collection('tasks')
-            .add({
+        await goalsCollectionRef.doc(widget.goalName).collection('tasks').add({
           'task': task,
         });
       }
@@ -139,7 +137,26 @@ class _AddTaskPageState extends State<AddTaskPage> {
                 itemCount: _tasks.length,
                 itemBuilder: (context, index) {
                   return ListTile(
-                    title: Text(_tasks[index]),
+                    title: Container(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 12.0, horizontal: 24.0),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: const Color.fromARGB(255, 107, 33, 243),
+                          width: 2.0,
+                        ),
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      child: Text(
+                        _tasks[index],
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16.0,
+                          color: Color.fromARGB(255, 107, 33, 243),
+                        ),
+                      ),
+                    ),
                   );
                 },
               ),
