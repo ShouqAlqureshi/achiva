@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 Future<bool> showLogOutDialog(BuildContext context) {
@@ -7,7 +6,7 @@ Future<bool> showLogOutDialog(BuildContext context) {
       builder: (context) {
         // ignore: prefer_const_constructors
         return AlertDialog(
-          title: const Text("Log out"),
+          title: const Icon(Icons.exit_to_app),
           content: const Text("Are you sure you want to log out ?"),
           actions: [
             TextButton(

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:achiva/models/goal.dart';
 import '../models/models.dart';
 
+
 class FirestoreService {
   final CollectionReference goalCollection =
       FirebaseFirestore.instance.collection('goals');
@@ -21,6 +22,7 @@ class FirestoreService {
     }
     return null; // Return null if there's an error or no data found
   }
+
 
 
   Future<void> addGoal(Goal goal) {
@@ -50,3 +52,4 @@ class FirestoreService {
 
 
   
+
