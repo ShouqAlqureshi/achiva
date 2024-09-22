@@ -1,4 +1,6 @@
 // User Model
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class User {
   String username;
   String fname;
@@ -12,7 +14,6 @@ class User {
   int noGoals;
   int noFriends;
   List<Friend> friends;
-  List<Goal> goals;
 
   User({
     required this.username,
@@ -27,8 +28,26 @@ class User {
     required this.noGoals,
     required this.noFriends,
     required this.friends,
-    required this.goals,
   });
+  factory User.fromDocument(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    
+    return User(
+      username: data['username'] ?? '', // Map the username field
+      fname: data['firstName'] ?? '', // If the field is missing, default to an empty string
+      lname: data['lastName'] ?? '',
+      email: data['email'] ?? '',
+      gender: data['gender'] ?? '',
+      photo: data['photo'] ?? '', // URL or path to the user's photo
+      phoneNumber: data['phoneNumber'] ?? '',
+      streak: data['streak'] ?? 0, // Default to 0 if the field is missing
+      productivity: data['productivity'] ?? 0, // Default to 0 if the field is missing
+      noGoals: data['noGoals'] ?? 0, // Default to 0 if the field is missing
+      noFriends: data['noFriends'] ?? 0, // Default to 0 if the field is missing
+      friends: data['friends'] ?? 0, // Assuming Friend has a fromDocument method
+    );
+  }
+
 }
 
 // Friend Model
@@ -39,24 +58,6 @@ class Friend {
   Friend({required this.friendsUsername, required this.status});
 }
 
-// Goal Model
-class Goal {
-  String name;
-  String date;
-  int noTasks;
-  String visibility;
-  int progress;
-  List<Task> tasks;
-
-  Goal({
-    required this.name,
-    required this.date,
-    required this.noTasks,
-    required this.visibility,
-    required this.progress,
-    required this.tasks,
-  });
-}
 
 // Task Model
 class Task {
