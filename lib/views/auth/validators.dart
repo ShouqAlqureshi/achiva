@@ -52,4 +52,14 @@ class Validators {
     }
     return null;
   }
+
+  String? validateCode(String? value) {
+    if (value == null || value.isEmpty) {
+      return "Code field is required";
+    }
+    if (value.length < 6) {
+      return "code must be 6 digits";
+    }
+    return null;
+  }
 }

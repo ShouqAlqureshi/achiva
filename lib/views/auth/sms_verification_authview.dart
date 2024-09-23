@@ -2,6 +2,7 @@
 
 import 'dart:developer';
 import 'package:achiva/exceptions/auth_exceptions.dart';
+import 'package:achiva/views/auth/validators.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -16,9 +17,10 @@ class VerfyCodeView extends StatefulWidget {
 
 class _VerfyCodeViewState extends State<VerfyCodeView> {
   final otpController = TextEditingController();
-
+  Validators validation = Validators();
   bool isLoading = false;
-
+  bool isFormSubmitted = false;
+  bool isPhonenumTouched = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -49,15 +51,32 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
               ),
               const SizedBox(height: 40),
               TextField(
+                onChanged: (value) {
+                  setState(() {
+                    isPhonenumTouched = true;
+                  });
+                },
                 controller: otpController,
                 keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
-                    fillColor: Colors.white.withOpacity(0.25),
-                    filled: true,
-                    hintText: "Enter OTP",
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none)),
+                  fillColor: Colors.white.withOpacity(0.25),
+                  filled: true,
+                  hintText: "Enter OTP",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: (isPhonenumTouched || isFormSubmitted) &&
+                            (validation
+                                    .validateCode(otpController.text)
+                                    ?.isNotEmpty ??
+                                false)
+                        ? const BorderSide(
+                            color: Color.fromARGB(255, 195, 24, 12))
+                        : BorderSide.none,
+                  ),
+                  errorText: (isPhonenumTouched || isFormSubmitted)
+                      ? validation.validateCode(otpController.text)
+                      : null,
+                ),
               ),
               const SizedBox(height: 20),
               isLoading
@@ -66,49 +85,57 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
                       onPressed: () async {
                         setState(() {
                           isLoading = true;
+                          isFormSubmitted = true;
                         });
-                        try {
+                        if (validation
+                                .validateCode(otpController.text)
+                                ?.isEmpty ??
+                            true) {
                           try {
-                            final verificationId = ModalRoute.of(context)!
-                                .settings
-                                .arguments as String;
-                            final cred = PhoneAuthProvider.credential(
-                                verificationId: verificationId,
-                                smsCode: otpController.text);
-                            final usercred = await FirebaseAuth.instance
-                                .signInWithCredential(cred);
-                            bool isNewUser_ =
-                                usercred.additionalUserInfo!.isNewUser;
-                            final userphonenumber = usercred.user?.phoneNumber;
-                            final datatosave = <String, dynamic>{
-                              "phoneNumber": userphonenumber
-                            };
-                            if (isNewUser_) {
-                              Navigator.pushNamed(context, "/newuser",
-                                  arguments: datatosave);
-                            } else {
-                              Navigator.pushNamed(context, "/home");
+                            try {
+                              final verificationId = ModalRoute.of(context)!
+                                  .settings
+                                  .arguments as String;
+                              final cred = PhoneAuthProvider.credential(
+                                  verificationId: verificationId,
+                                  smsCode: otpController.text);
+                              final usercred = await FirebaseAuth.instance
+                                  .signInWithCredential(cred);
+                              bool isNewUser_ =
+                                  usercred.additionalUserInfo!.isNewUser;
+                              final userphonenumber =
+                                  usercred.user?.phoneNumber;
+                              final datatosave = <String, dynamic>{
+                                "phoneNumber": userphonenumber
+                              };
+                              if (isNewUser_) {
+                                Navigator.pushNamed(context, "/newuser",
+                                    arguments: datatosave);
+                              } else {
+                                Navigator.pushNamed(context, "/home");
+                              }
+                            } on FirebaseAuthException catch (e) {
+                              log(e.toString());
+                              if (e.code == "invalid-verification-code") {
+                                throw InvalidVerificationCodeException(
+                                    "Please check and enter the correct verification code again.");
+                              } else {
+                                throw GenricException();
+                              }
                             }
-                          } on FirebaseAuthException catch (e) {
-                            log(e.toString());
-                            if (e.code == "invalid-verification-code") {
-                              throw InvalidVerificationCodeException(
-                                  "Please check and enter the correct verification code again.");
-                            } else if (otpController.text.isEmpty) {
-                              throw InvalidVerificationCodeException(
-                                  "the field is empty,\nplease write your sms code.");
-                            } else if (otpController.text.length < 6) {
-                              throw InvalidVerificationCodeException(
-                                  "the field is less than 6 digit,\nplease write the 6 digit sms code sent to you.");
-                            } else {
-                              throw GenricException();
-                            }
+                          } on InvalidVerificationCodeException catch (e) {
+                            showErrorDialog(context, e.message);
+                          } on GenricException catch (e) {
+                            showErrorDialog(context, e.toString());
                           }
-                        } on InvalidVerificationCodeException catch (e) {
-                          showErrorDialog(context, e.message);
-                        } on GenricException catch (e) {
-                          showErrorDialog(context, e.toString());
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please fill Code field correctly'),
+                            ),
+                          );
                         }
+
                         setState(() {
                           isLoading = false;
                         });
