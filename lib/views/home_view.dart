@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../models/models.dart' as app_models;
-import 'package:achiva/views/add_goal_page.dart';
+import 'package:achiva/views/addition_views/add_goal_page.dart';
 import '../utilities/show_log_out_dialog.dart';
 import 'package:achiva/widgets/bottom_navigation_bar.dart';
 import 'package:achiva/utilities/colors.dart';

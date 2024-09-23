@@ -84,9 +84,10 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(30),
                       borderSide: (isPhonenumTouched || isFormSubmitted) &&
-                              validation
-                                  .validatePhoneNum(_phonenumber.text)!
-                                  .isNotEmpty
+                              (validation
+                                      .validatePhoneNum(_phonenumber.text)
+                                      ?.isNotEmpty ??
+                                  false)
                           ? const BorderSide(
                               color: Color.fromARGB(255, 195, 24, 12))
                           : BorderSide.none,
@@ -105,9 +106,7 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                             isloading = true;
                             isFormSubmitted = true;
                           });
-                          if (validation
-                              .validateEmail(_phonenumber.text)!
-                              .isEmpty) {
+                          if (validation.validatePhoneNum(_phonenumber.text)?.isEmpty ?? true) {
                             try {
                               FirebaseAuth.instance.verifyPhoneNumber(
                                 phoneNumber: _phonenumber.text,

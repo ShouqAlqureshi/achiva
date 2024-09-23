@@ -4,7 +4,7 @@ import 'package:achiva/views/profile/profile_screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import '../views/add_goal_page.dart';
+import '../views/addition_views/add_goal_page.dart';
 
 class BottomNavigationBarWidget extends StatefulWidget {
   const BottomNavigationBarWidget({super.key});
