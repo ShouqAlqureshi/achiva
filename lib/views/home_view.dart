@@ -4,14 +4,13 @@ import 'package:achiva/utilities/show_error_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import '../models/models.dart'as app_models;
+import '../models/models.dart' as app_models;
 import 'package:achiva/views/add_goal_page.dart';
 import '../utilities/show_log_out_dialog.dart';
 import 'package:achiva/widgets/bottom_navigation_bar.dart';
 import 'package:achiva/utilities/colors.dart';
 import '../utilities/filestore_services.dart';
 import 'package:achiva/models/goal.dart';
-
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,6 +25,7 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
   final FirestoreService _firestoreService = FirestoreService();
   String? userId;
   String firstName = '';
+
   @override
   void initState() {
     super.initState();
@@ -38,7 +38,8 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Future<void> _loadUserProfile(String userId) async {
     try {
-    app_models.User? userProfile = await _firestoreService.getUserProfile(userId);
+      app_models.User? userProfile =
+          await _firestoreService.getUserProfile(userId);
       if (userProfile != null) {
         setState(() {
           firstName = userProfile.fname; // Set first name
@@ -48,7 +49,7 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
       print('Error loading user profile: $e');
     }
   }
-  
+
   @override
   void dispose() {
     _pageViewController.dispose();
@@ -83,7 +84,8 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                   final shouldLogout = await showLogOutDialog(context);
                   if (shouldLogout) {
                     await FirebaseAuth.instance.signOut();
-                    Navigator.of(context).pushNamedAndRemoveUntil('/phoneauth', (_) => false);
+                    Navigator.of(context)
+                        .pushNamedAndRemoveUntil('/phoneauth', (_) => false);
                   }
                 } on UserNotLoggedInAuthException catch (_) {
                   showErrorDialog(context, "User is not logged in");
@@ -112,7 +114,7 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                   padding: const EdgeInsets.all(20.0),
                   child: Column(
                     children: [
-                       Text(
+                      Text(
                         'Welcome back to Achiva ${firstName}!',
                         style: const TextStyle(
                           color: WellBeingColors.darkBlueGrey,
@@ -149,14 +151,17 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                             ),
                             const SizedBox(height: 10),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 5),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 5),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   reportStats('2 Tasks', 'Today'),
                                   Container(
                                     decoration: BoxDecoration(
-                                      color: WellBeingColors.mediumGrey.withOpacity(0.3),
+                                      color: WellBeingColors.mediumGrey
+                                          .withOpacity(0.3),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     height: 40,
@@ -165,7 +170,8 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                                   reportStats('13 Tasks', 'This Week'),
                                   Container(
                                     decoration: BoxDecoration(
-                                      color: WellBeingColors.mediumGrey.withOpacity(0.3),
+                                      color: WellBeingColors.mediumGrey
+                                          .withOpacity(0.3),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     height: 40,
@@ -186,39 +192,52 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                   child: Container(
                     color: Colors.white,
                     child: StreamBuilder<List<Goal>>(
-                        stream: userId != null ? _firestoreService.getUserGoals(userId!) : Stream.value([]),
-                        builder: (context, snapshot) {
+                      stream: userId != null
+                          ? _firestoreService.getUserGoals(userId!)
+                          : Stream.value([]),
+                      builder: (context, snapshot) {
                         print('User ID: $userId'); // Log the user ID
-                       if (snapshot.connectionState == ConnectionState.waiting) {
-      print('Waiting for data...');
-      return Center(child: CircularProgressIndicator());
-    } else if (snapshot.hasError) {
-      print('Error: ${snapshot.error}');
-      return Center(child: Text('Error: ${snapshot.error}'));
-    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-      print('No goals found.');
-      return Center(child: Text('No Goals Found'));
-    }
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          print('Waiting for data...');
+                          return const Center(child: CircularProgressIndicator());
+                        } else if (snapshot.hasError) {
+                          print('Error: ${snapshot.error}');
+                          return Center(
+                              child: Text('Error: ${snapshot.error}'));
+                        } else if (!snapshot.hasData ||
+                            snapshot.data!.isEmpty) {
+                          print('No goals found.');
+                          return const Center(child: Text('No Goals Found'));
+                        }
 
-    final goals = snapshot.data!;
-    print('Goals received: ${goals.length}'); 
+                        final goals = snapshot.data!;
+                        print('Goals received: ${goals.length}');
                         return PageView.builder(
-                          controller: PageController(initialPage: 0, viewportFraction: .85),
+                          controller: PageController(
+                              initialPage: 0, viewportFraction: .85),
                           onPageChanged: _handlePageViewChanged,
                           itemCount: goals.length,
                           itemBuilder: (context, index) {
                             final goal = goals[index];
-                            double progress = 20; // Assuming Goal has a progress field
+                            double progress =
+                                20; // Assuming Goal has a progress field
                             final isDone = progress >= 100;
 
                             return AnimatedContainer(
                               duration: const Duration(milliseconds: 300),
-                              margin: const EdgeInsets.symmetric(horizontal: 15),
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 15),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
                               height: MediaQuery.of(context).size.width / 2,
-                              width: ((MediaQuery.of(context).size.width - 40) / 2) - 9,
+                              width: ((MediaQuery.of(context).size.width - 40) /
+                                      2) -
+                                  9,
                               decoration: BoxDecoration(
-                                color: progress < 100 ? WellBeingColors.veryDarkMaroon : Colors.white,
+                                color: progress < 100
+                                    ? WellBeingColors.veryDarkMaroon
+                                    : Colors.white,
                                 boxShadow: const [
                                   BoxShadow(
                                     color: Colors.grey,
@@ -272,12 +291,15 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                                               child: SizedBox(
                                                 height: 50,
                                                 width: 50,
-                                                child: CircularProgressIndicator(
+                                                child:
+                                                    CircularProgressIndicator(
                                                   value: progress / 100,
                                                   strokeWidth: 8,
                                                   backgroundColor: Colors.white,
                                                   strokeCap: StrokeCap.round,
-                                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<
+                                                          Color>(
                                                     WellBeingColors.lightMaroon,
                                                   ),
                                                 ),
@@ -293,7 +315,8 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                                                 child: Text(
                                                   '${progress.round()}%',
                                                   style: TextStyle(
-                                                    color: Colors.white.withOpacity(0.7),
+                                                    color: Colors.white
+                                                        .withOpacity(0.7),
                                                     fontSize: 12,
                                                     fontWeight: FontWeight.bold,
                                                   ),
@@ -304,12 +327,15 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                                         ),
                                         const SizedBox(width: 10),
                                         Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text(
                                               goal.name, // Display goal title
                                               style: TextStyle(
-                                                color: isDone ? Colors.black : Colors.white,
+                                                color: isDone
+                                                    ? Colors.black
+                                                    : Colors.white,
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.bold,
                                               ),
@@ -320,7 +346,9 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                                                   ? 'Completed 100%'
                                                   : '${(100 - progress).round()}% remaining',
                                               style: TextStyle(
-                                                color: isDone ? Colors.grey[800]! : Colors.white,
+                                                color: isDone
+                                                    ? Colors.grey[800]!
+                                                    : Colors.white,
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.w200,
                                               ),
@@ -342,19 +370,17 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
               ],
             ),
           ),
-            const Positioned(
-          bottom: 5,
-          height: 100,
-          left: 25,
-          right: 25,
-          child: BottomNavigationBarWidget(),
-
-        ),
-      ],
-    ),
-  );
-}
-
+          const Positioned(
+            bottom: 5,
+            height: 100,
+            left: 25,
+            right: 25,
+            child: BottomNavigationBarWidget(),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _handlePageViewChanged(int currentPageIndex) {
     _tabController.index = currentPageIndex;
@@ -362,26 +388,24 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 }
 
-
-
-  Widget reportStats(String title, String value) {
-    return Column(
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: WellBeingColors.darkBlueGrey,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+Widget reportStats(String title, String value) {
+  return Column(
+    children: [
+      Text(
+        title,
+        style: const TextStyle(
+          color: WellBeingColors.darkBlueGrey,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
         ),
-        Text(
-          value,
-          style: TextStyle(
-            color: WellBeingColors.mediumGrey,
-            fontSize: 13,
-          ),
+      ),
+      Text(
+        value,
+        style: TextStyle(
+          color: WellBeingColors.mediumGrey,
+          fontSize: 13,
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
