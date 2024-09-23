@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:developer' show log;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -13,6 +15,7 @@ class ProfilePicturePicker extends StatefulWidget {
 
 class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
   XFile? _imageFile;
+  String? imageLink;
 
   final ImagePicker _picker = ImagePicker();
 
@@ -50,15 +53,31 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {
-                final usercollection =
-                    FirebaseFirestore.instance.collection("Users");
-                String newUserId = usercollection.doc().id;
+              onPressed: () async {
+                final usercollection = FirebaseFirestore.instance
+                    .collection("Users")
+                    .doc(FirebaseAuth.instance.currentUser!.uid);
+                //String newUserId = usercollection.doc().id;
                 final datatosave = ModalRoute.of(context)!.settings.arguments
                     as Map<String, dynamic>;
-                datatosave.addAll({"photo": _imageFile!.path, 'id': newUserId});
-                log(datatosave.toString());
-                usercollection.add(datatosave);
+                await FirebaseStorage.instance
+                    .ref()
+                    .child(
+                        "Users/${Uri.file(_imageFile!.path).pathSegments.last}")
+                    .putFile(File(_imageFile!.path))
+                    .then((val) async {
+                  val.ref.getDownloadURL().then((urlOfImageUploaded) async {
+                    debugPrint(urlOfImageUploaded);
+                    datatosave.addAll({
+                      "photo": urlOfImageUploaded,
+                      'id': FirebaseAuth.instance.currentUser!.uid /*newUserId*/
+                    });
+                    log(datatosave.toString());
+                    usercollection.set(datatosave);
+
+                  });
+                });
+
                 Navigator.of(context).pushNamed('/home');
               },
               child: const Text('Continue'),
