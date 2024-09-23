@@ -343,7 +343,7 @@ packages:
     source: hosted
     version: "5.13.1"
   firebase_core:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: firebase_core
       sha256: c7de9354eb2cd8bfe8059e1112174c9a58beda7051807207306bc48283277cfb

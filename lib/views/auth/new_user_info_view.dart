@@ -66,7 +66,11 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                     prefixIcon: const Icon(Icons.abc),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none),
+                        borderSide: (isFirstNameTouched || isFormSubmitted) &&
+                                fn.text.isEmpty
+                            ? const BorderSide(
+                                color: Color.fromARGB(255, 195, 24, 12))
+                            : BorderSide.none),
                     errorText: (isFirstNameTouched || isFormSubmitted) &&
                             fn.text.isEmpty
                         ? "First name is required"
@@ -94,7 +98,11 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                     prefixIcon: const Icon(Icons.abc),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none),
+                        borderSide: (isLastNameTouched || isFormSubmitted) &&
+                                ln.text.isEmpty
+                            ? const BorderSide(
+                                color: Color.fromARGB(255, 195, 24, 12))
+                            : BorderSide.none),
                     errorText: (isLastNameTouched || isFormSubmitted) &&
                             ln.text.isEmpty
                         ? "Last name is required"
@@ -175,7 +183,11 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                     prefixIcon: const Icon(Icons.email),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide.none,
+                      borderSide: (isEmailTouched || isFormSubmitted) &&
+                              validation.validateEmail(email.text)!.isEmpty
+                          ? BorderSide.none
+                          : const BorderSide(
+                              color: Color.fromARGB(255, 195, 24, 12)),
                     ),
                     errorText: (isEmailTouched || isFormSubmitted)
                         ? validation.validateEmail(email.text)

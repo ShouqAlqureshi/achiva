@@ -29,7 +29,8 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
   }
 
   Validators validation = Validators();
-
+  bool isFormSubmitted = false;
+  bool isPhonenumTouched = false;
   bool isloading = false;
   @override
   Widget build(BuildContext context) {
@@ -65,6 +66,11 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                 ),
                 const SizedBox(height: 30),
                 TextField(
+                  onChanged: (value) {
+                    setState(() {
+                      isPhonenumTouched = true;
+                    });
+                  },
                   autofocus: true,
                   controller: _phonenumber,
                   enableSuggestions: false,
@@ -76,86 +82,91 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                     hintText: "enter your Phone number here",
                     prefixIcon: const Icon(Icons.phone),
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none),
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: (isPhonenumTouched || isFormSubmitted) &&
+                              validation
+                                  .validatePhoneNum(_phonenumber.text)!
+                                  .isNotEmpty
+                          ? const BorderSide(
+                              color: Color.fromARGB(255, 195, 24, 12))
+                          : BorderSide.none,
+                    ),
+                    errorText: (isPhonenumTouched || isFormSubmitted)
+                        ? validation.validatePhoneNum(_phonenumber.text)
+                        : null,
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 15),
                 isloading
                     ? const CircularProgressIndicator()
                     : ElevatedButton(
                         onPressed: () async {
                           setState(() {
                             isloading = true;
+                            isFormSubmitted = true;
                           });
-                          try {
-                            if (_phonenumber.text.isEmpty) {
-                              throw EmptyFieldException();
+                          if (validation
+                              .validateEmail(_phonenumber.text)!
+                              .isEmpty) {
+                            try {
+                              FirebaseAuth.instance.verifyPhoneNumber(
+                                phoneNumber: _phonenumber.text,
+                                verificationCompleted:
+                                    (phoneAuthCredential) async {
+                                  await FirebaseAuth.instance
+                                      .signInWithCredential(
+                                          phoneAuthCredential);
+                                  final user =
+                                      FirebaseAuth.instance.currentUser;
+                                  if (user == null) {
+                                    throw UserNotLoggedInAuthException();
+                                  }
+                                },
+                                verificationFailed:
+                                    (FirebaseAuthException error) async {
+                                  await showErrorDialog(
+                                    context,
+                                    'Check your Phone number formate:\n ${error.message}',
+                                  );
+                                },
+                                codeSent: (verificationId,
+                                    forceResendingToken) async {
+                                  setState(() {
+                                    _verificationId = verificationId;
+                                  });
+                                  Navigator.pushNamed(
+                                    context,
+                                    '/otp',
+                                    arguments: verificationId,
+                                  );
+                                },
+                                timeout: const Duration(seconds: 60),
+                                codeAutoRetrievalTimeout: (verificationId) {
+                                  devtool.log("auto retrireval timeout");
+                                  setState(() {
+                                    _verificationId = verificationId;
+                                  });
+                                },
+                              );
+                              setState(() {
+                                isloading = false;
+                              });
+                            } catch (e) {
+                              await showErrorDialog(
+                                  context, 'An unexpected error occurred: $e');
                             }
-
-                            if (validation
-                                .isNotValidPhoneNumber(_phonenumber.text)) {
-                              throw InvalidPhoneNumberException(
-                                  'Phone number must be between 10 and 12 digits long');
-                            }
-                            FirebaseAuth.instance.verifyPhoneNumber(
-                              phoneNumber: _phonenumber.text,
-                              verificationCompleted:
-                                  (phoneAuthCredential) async {
-                                await FirebaseAuth.instance
-                                    .signInWithCredential(phoneAuthCredential);
-                                final user = FirebaseAuth.instance.currentUser;
-                                if (user == null) {
-                                  throw UserNotLoggedInAuthException();
-                                }
-                              },
-                              verificationFailed:
-                                  (FirebaseAuthException error) async {
-                                await showErrorDialog(
-                                  context,
-                                  'Check your Phone number formate:\n ${error.message}',
-                                );
-                              },
-                              codeSent:
-                                  (verificationId, forceResendingToken) async {
-                                setState(() {
-                                  _verificationId = verificationId;
-                                });
-                                Navigator.pushNamed(
-                                  context,
-                                  '/otp',
-                                  arguments: verificationId,
-                                );
-                              },
-                              timeout: const Duration(seconds: 60),
-                              codeAutoRetrievalTimeout: (verificationId) {
-                                devtool.log("auto retrireval timeout");
-                                setState(() {
-                                  _verificationId = verificationId;
-                                });
-                              },
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    'Please fill phone number field correctly'),
+                              ),
                             );
-                            setState(() {
-                              isloading = false;
-                            });
-                          } on EmptyFieldException {
-                            await showErrorDialog(
-                              context,
-                              "Your phone number field is empty.\nPlease enter your phone number in the format:[+][country code][user number]",
-                            );
-                          } on InvalidPhoneNumberException catch (e) {
-                            await showErrorDialog(
-                              context,
-                              '${e.message}\nformat:[+][country code][user number]',
-                            );
-                          } catch (e) {
-                            await showErrorDialog(
-                                context, 'An unexpected error occurred: $e');
-                          } finally {
-                            setState(() {
-                              isloading = false;
-                            });
                           }
+
+                          setState(() {
+                            isloading = false;
+                          });
                         }, //on pressed
                         child: const Text("Continue"),
                       )
