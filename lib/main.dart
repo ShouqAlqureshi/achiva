@@ -17,12 +17,13 @@ void main() async {
   runApp(BlocProvider(
     create: (context) => LayoutCubit(),
     child: MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Achiva',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const PhoneNumAuthView(),
+      home: const ProfilePicturePicker(),
       routes: {
         '/otp': (context) => const VerfyCodeView(),
         '/home': (context) => const HomeScreen(),

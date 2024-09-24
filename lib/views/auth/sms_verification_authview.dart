@@ -24,6 +24,7 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade900,
       appBar: AppBar(
         title: Image.asset(
           'lib/images/logo-with-name.png',
@@ -31,7 +32,7 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
           height: 250,
         ),
         toolbarHeight: 150,
-        backgroundColor: null,
+        backgroundColor:Colors.grey.shade900,
         centerTitle: true,
       ),
       body: Padding(

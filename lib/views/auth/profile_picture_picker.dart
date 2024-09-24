@@ -31,6 +31,7 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade900,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -48,11 +49,13 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
                   ),
             const SizedBox(height: 40),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
               onPressed: () => _showImageSourceDialog(context),
               child: const Text('Add Profile Picture'),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
               onPressed: () async {
                 final usercollection = FirebaseFirestore.instance
                     .collection("Users")
@@ -74,7 +77,6 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
                     });
                     log(datatosave.toString());
                     usercollection.set(datatosave);
-
                   });
                 });
 

@@ -39,6 +39,7 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade900,
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 30),
@@ -48,7 +49,7 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
               const SizedBox(height: 150),
               const Text(
                 "Enter your first name",
-                style: TextStyle(fontSize: 20),
+                style: TextStyle(fontSize: 20, color: Colors.white),
               ),
               Padding(
                 padding: const EdgeInsets.all(30),
@@ -60,7 +61,7 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                     });
                   },
                   decoration: InputDecoration(
-                    fillColor: Colors.grey.withOpacity(0.25),
+                    fillColor: Colors.white.withOpacity(0.25),
                     filled: true,
                     hintText: "First Name ",
                     prefixIcon: const Icon(Icons.abc),
@@ -80,7 +81,7 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
               ),
               const Text(
                 "Enter your last name",
-                style: TextStyle(fontSize: 20),
+                style: TextStyle(fontSize: 20, color: Colors.white),
               ),
               Padding(
                 padding: const EdgeInsets.all(30),
@@ -92,7 +93,7 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                     });
                   },
                   decoration: InputDecoration(
-                    fillColor: Colors.grey.withOpacity(0.25),
+                    fillColor: Colors.white.withOpacity(0.25),
                     filled: true,
                     hintText: "Last Name",
                     prefixIcon: const Icon(Icons.abc),
@@ -112,7 +113,7 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
               ),
               const Text(
                 "Enter your Gender",
-                style: TextStyle(fontSize: 20),
+                style: TextStyle(fontSize: 20, color: Colors.white),
               ),
               Padding(
                 padding: const EdgeInsets.all(15),
@@ -162,7 +163,7 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                 ),
               const Text(
                 "Enter your Email",
-                style: TextStyle(fontSize: 20),
+                style: TextStyle(fontSize: 20, color: Colors.white),
               ),
               Padding(
                 padding: const EdgeInsets.all(30),
@@ -177,7 +178,7 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                     });
                   },
                   decoration: InputDecoration(
-                    fillColor: Colors.grey.withOpacity(0.25),
+                    fillColor: Colors.white.withOpacity(0.25),
                     filled: true,
                     hintText: "Email ex: xxx@gmail.com",
                     prefixIcon: const Icon(Icons.email),
@@ -196,6 +197,7 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                 ),
               ),
               ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
                 onPressed: () async {
                   setState(() {
                     isFormSubmitted = true;
