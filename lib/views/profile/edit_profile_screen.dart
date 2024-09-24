@@ -1,4 +1,8 @@
+import 'dart:developer';
+
 import 'package:achiva/core/constants/extensions.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -51,6 +55,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     widget.layoutCubit.chosenGender = null;
     widget.layoutCubit.userImage = null;
     super.dispose();
+  }
+
+  List<String> emails = [];
+
+  Future<bool> checkIfEmailExists(String email) async {
+    try {
+      // This method fetches the sign-in methods for the provided email.
+//      List<String> signInMethods = await FirebaseAuth.instance.fetchSignInMethodsForEmail(email);
+      var response = await FirebaseFirestore.instance.collection("Users").get();
+      for (var email in response.docs) {
+        emails.add(email.data()["email"]);
+      }
+      if (emails.contains(email)) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      print('Error: $e');
+      return false;
+    }
   }
 
   @override
@@ -179,13 +204,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               },
               builder: (context, state) => BtnWidget(
                 minWidth: double.infinity,
-                onTap: () {
-                 if (_fnameController.text.isNotEmpty &&
+                onTap: () async {
+                  if (_fnameController.text.isNotEmpty &&
                       _lnameController.text.isNotEmpty &&
                       _emailController.text.isNotEmpty &&
                       widget.layoutCubit.chosenGender == null) {
                     showSnackBarWidget(
                         message: "Please, Choose your gender",
+                        successOrNot: false,
+                        context: context);
+                  } else if (await checkIfEmailExists(_emailController.text) &&
+                      _emailController.text != widget.layoutCubit.user!.email) {
+                    showSnackBarWidget(
+                        message: "Email already exist",
                         successOrNot: false,
                         context: context);
                   } else {

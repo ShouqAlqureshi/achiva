@@ -1,4 +1,3 @@
-
 import 'package:achiva/core/constants/extensions.dart';
 import 'package:achiva/core/constants/strings.dart';
 import 'package:flutter/material.dart';
@@ -15,13 +14,17 @@ import '../profile/layout_controller/layout_states.dart';
 class CheckOtpOfPhoneUpdatedScreen extends StatefulWidget {
   final LayoutCubit layoutCubit;
   final String phoneNumber;
-  const CheckOtpOfPhoneUpdatedScreen({super.key, required this.layoutCubit, required this.phoneNumber});
+
+  const CheckOtpOfPhoneUpdatedScreen(
+      {super.key, required this.layoutCubit, required this.phoneNumber});
 
   @override
-  State<CheckOtpOfPhoneUpdatedScreen> createState() => _CheckOtpOfPhoneUpdatedScreenState();
+  State<CheckOtpOfPhoneUpdatedScreen> createState() =>
+      _CheckOtpOfPhoneUpdatedScreenState();
 }
 
-class _CheckOtpOfPhoneUpdatedScreenState extends State<CheckOtpOfPhoneUpdatedScreen> {
+class _CheckOtpOfPhoneUpdatedScreenState
+    extends State<CheckOtpOfPhoneUpdatedScreen> {
   final TextEditingController _pinCodeController = TextEditingController();
 
   @override
@@ -40,10 +43,20 @@ class _CheckOtpOfPhoneUpdatedScreenState extends State<CheckOtpOfPhoneUpdatedScr
         padding: AppConstants.kScaffoldPadding,
         child: ListView(
           padding: EdgeInsets.zero,
-          children:
-          [
-            Text("Verification Code",style: TextStyle(fontSize: 36,fontWeight: FontWeight.bold,color: AppColors.kBlack)),
-            Text("Please type the verification code sent to ${widget.phoneNumber}",style: TextStyle(fontSize: 24,fontWeight: FontWeight.w600,height: 1.6,color: AppColors.kLightGrey),),
+          children: [
+            Text("Verification Code",
+                style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.kBlack)),
+            Text(
+              "Please type the verification code sent to ${widget.phoneNumber}",
+              style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
+                  height: 1.6,
+                  color: AppColors.kLightGrey),
+            ),
             24.vrSpace,
             PinCodeTextField(
               length: 6,
@@ -63,56 +76,78 @@ class _CheckOtpOfPhoneUpdatedScreenState extends State<CheckOtpOfPhoneUpdatedScr
               backgroundColor: Colors.transparent,
               enableActiveFill: true,
               controller: _pinCodeController,
-              onCompleted: (v)
-              {
-                widget.layoutCubit.changeUserPhoneNumber(phoneNumber: widget.phoneNumber,pinCode: _pinCodeController.text.trim());
+              onCompleted: (v) {
+                widget.layoutCubit.changeUserPhoneNumber(
+                    phoneNumber: widget.phoneNumber,
+                    pinCode: _pinCodeController.text.trim());
               },
               appContext: context,
             ),
             12.vrSpace,
-            BlocConsumer<LayoutCubit,LayoutStates>(
-              listener: (context,state)
-              {
-                if( state is ChangeUserPhoneNumberWithFailureState )
-                {
-                  showSnackBarWidget(message: state.message, successOrNot: false, context: context);
+            BlocConsumer<LayoutCubit, LayoutStates>(
+              listener: (context, state) {
+                if (state is ChangeUserPhoneNumberWithFailureState) {
+                  showSnackBarWidget(
+                      message: state.message,
+                      successOrNot: false,
+                      context: context);
                 }
-                if( state is ChangeUserPhoneNumberSuccessfullyState )
-                {
-                  showSnackBarWidget(message: "Phone Number changed, Sign in with the new one !", successOrNot: true, context: context);
-                  widget.layoutCubit.signOut(notToEmitToState: true,context: context);
-                  Navigator.pushNamedAndRemoveUntil(context, AppStrings.kLoginScreenName, (_)=> true);
+                if (state is ChangeUserPhoneNumberSuccessfullyState) {
+                  showSnackBarWidget(
+                      message:
+                          "Your phone number is changed successfully, Sign in with the new one !",
+                      successOrNot: true,
+                      context: context);
+                  widget.layoutCubit
+                      .signOut(notToEmitToState: true, context: context);
+                  Navigator.pushNamedAndRemoveUntil(
+                      context, AppStrings.kLoginScreenName, (_) => true);
                 }
               },
-              builder: (context,state) => BtnWidget(
+              builder: (context, state) => BtnWidget(
                 minWidth: double.infinity,
-                onTap: ()
-                {
-                  if( _pinCodeController.text.isEmpty )
-                  {
-                    showSnackBarWidget(message: "Please, Enter Otp code, try again !", successOrNot: false, context: context);
-                  }
-                  else
-                  {
-                    widget.layoutCubit.changeUserPhoneNumber(phoneNumber: widget.phoneNumber,pinCode: _pinCodeController.text.trim());
+                onTap: () {
+                  if (_pinCodeController.text.isEmpty) {
+                    showSnackBarWidget(
+                        message: "Please, Enter Otp code, try again !",
+                        successOrNot: false,
+                        context: context);
+                  } else {
+                    widget.layoutCubit.changeUserPhoneNumber(
+                        phoneNumber: widget.phoneNumber,
+                        pinCode: _pinCodeController.text.trim());
                   }
                 },
-                title: state is ChangeUserPhoneNumberLoadingState ? "Change Phone Number loading" : "Continue",
+                title: state is ChangeUserPhoneNumberLoadingState
+                    ? "Change Phone Number loading"
+                    : "Continue",
               ),
             ),
             16.vrSpace,
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children:
-              [
-                Text("Didn't receive Otp code ?",style: TextStyle(fontSize: 16,fontWeight: FontWeight.w500,color: AppColors.kDarkGrey),),
+              children: [
+                Text(
+                  "Didn't receive Otp code ?",
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.kDarkGrey),
+                ),
                 6.hrSpace,
                 InkWell(
-                  onTap: ()  
-                  {
-                    widget.layoutCubit.verifyPhoneNum(phoneNumber: widget.phoneNumber, usedWithCurrentPhoneOrNewOne: false);
+                  onTap: () {
+                    widget.layoutCubit.verifyPhoneNum(
+                        phoneNumber: widget.phoneNumber,
+                        usedWithCurrentPhoneOrNewOne: false);
                   },
-                  child: Text("Resent it",style: TextStyle(fontSize: 16,fontWeight: FontWeight.w500,color: AppColors.kMain),),
+                  child: Text(
+                    "Resent it",
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.kMain),
+                  ),
                 )
               ],
             )
@@ -121,6 +156,4 @@ class _CheckOtpOfPhoneUpdatedScreenState extends State<CheckOtpOfPhoneUpdatedScr
       ),
     );
   }
-
 }
-

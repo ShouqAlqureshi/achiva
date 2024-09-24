@@ -91,7 +91,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   widget.layoutCubit
                       .signOut(notToEmitToState: false, context: context);
                 },
-                title: "Sign Out",
+                title: "Log Out",
                 leadingIconData: Icons.login_outlined,
               ),
             ),

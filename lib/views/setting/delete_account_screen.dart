@@ -1,4 +1,3 @@
-
 import 'package:achiva/core/Constants/constants.dart';
 import 'package:achiva/core/constants/extensions.dart';
 import 'package:achiva/core/constants/strings.dart';
@@ -29,7 +28,8 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final LayoutCubit layoutCubit = LayoutCubit.getInstance(context)..sendOtpForPhoneForDeletingAccount();
+    final LayoutCubit layoutCubit = LayoutCubit.getInstance(context)
+      ..sendOtpForPhoneForDeletingAccount();
     return Scaffold(
       appBar: AppBar(
         title: const Text("Delete User account"),
@@ -37,8 +37,19 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
       body: ListView(
         padding: AppConstants.kScaffoldPadding.copyWith(bottom: 24),
         children: [
-          Text("Verification Code",style: TextStyle(fontSize: 36,fontWeight: FontWeight.bold,color: AppColors.kBlack)),
-          Text("Please type the verification code sent to ${layoutCubit.user!.phoneNumber}",style: TextStyle(fontSize: 24,fontWeight: FontWeight.w600,height: 1.6,color: AppColors.kLightGrey),),
+          Text("Verification Code",
+              style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.kBlack)),
+          Text(
+            "Please type the verification code sent to ${layoutCubit.user!.phoneNumber}",
+            style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                height: 1.6,
+                color: AppColors.kLightGrey),
+          ),
           24.vrSpace,
           PinCodeTextField(
             length: 6,
@@ -58,64 +69,93 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
             backgroundColor: Colors.transparent,
             enableActiveFill: true,
             controller: _pinCodeController,
-            onCompleted: (v)
-            {
-              layoutCubit.deleteAccount(pinCode: _pinCodeController.text.trim());
+            onCompleted: (v) {
+              layoutCubit.deleteAccount(
+                  pinCode: _pinCodeController.text.trim());
             },
             appContext: context,
           ),
           12.vrSpace,
-          BlocConsumer<LayoutCubit,LayoutStates>(
-            listenWhen: (past,current) => current is OtpSentToPhoneWhileDeletingPhoneNumberWithFailureState || current is OtpSentToPhoneWhileDeletingPhoneNumberSuccessfullyState || current is DeleteAccountWithFailureState || current is DeleteAccountSuccessfullyState || current is DeleteAccountLoadingState,
-            listener: (context,state)
-            {
-              if( state is OtpSentToPhoneWhileDeletingPhoneNumberSuccessfullyState )
-              {
-                showSnackBarWidget(message: "Otp code sent to your Phone successfully !", successOrNot: true, context: context);
+          BlocConsumer<LayoutCubit, LayoutStates>(
+            listenWhen: (past, current) =>
+                current is OtpSentToPhoneWhileDeletingPhoneNumberWithFailureState ||
+                current
+                    is OtpSentToPhoneWhileDeletingPhoneNumberSuccessfullyState ||
+                current is DeleteAccountWithFailureState ||
+                current is DeleteAccountSuccessfullyState ||
+                current is DeleteAccountLoadingState,
+            listener: (context, state) {
+              if (state
+                  is OtpSentToPhoneWhileDeletingPhoneNumberSuccessfullyState) {
+                showSnackBarWidget(
+                    message: "Otp code sent to your Phone successfully !",
+                    successOrNot: true,
+                    context: context);
               }
-              if( state is OtpSentToPhoneWhileDeletingPhoneNumberWithFailureState )
-              {
-                showSnackBarWidget(message: state.message, successOrNot: false, context: context);
+              if (state
+                  is OtpSentToPhoneWhileDeletingPhoneNumberWithFailureState) {
+                showSnackBarWidget(
+                    message: state.message,
+                    successOrNot: false,
+                    context: context);
               }
-              if( state is DeleteAccountWithFailureState )
-              {
-                showSnackBarWidget(message: state.message, successOrNot: false, context: context);
+              if (state is DeleteAccountWithFailureState) {
+                showSnackBarWidget(
+                    message: state.message,
+                    successOrNot: false,
+                    context: context);
               }
-              if( state is DeleteAccountSuccessfullyState )
-              {
-                showSnackBarWidget(message: "Account Deleted Successfully", successOrNot: true, context: context);
-                Navigator.pushNamedAndRemoveUntil(context, AppStrings.kLoginScreenName, (_)=> true);
+              if (state is DeleteAccountSuccessfullyState) {
+                showSnackBarWidget(
+                    message: "Your account was deleted successfully",
+                    successOrNot: true,
+                    context: context);
+                Navigator.pushNamedAndRemoveUntil(
+                    context, AppStrings.kLoginScreenName, (_) => true);
               }
             },
-            builder: (context,state) => BtnWidget(
+            builder: (context, state) => BtnWidget(
               minWidth: double.infinity,
-              onTap: ()
-              {
-                if( _pinCodeController.text.isNotEmpty )
-                {
-                  layoutCubit.deleteAccount(pinCode: _pinCodeController.text.trim());
-                }
-                else
-                {
-                  showSnackBarWidget(message: "Firstly, type your password to be able to delete account!", successOrNot: false, context: context);
+              onTap: () {
+                if (_pinCodeController.text.isNotEmpty) {
+                  layoutCubit.deleteAccount(
+                      pinCode: _pinCodeController.text.trim());
+                } else {
+                  showSnackBarWidget(
+                      message:
+                          "Firstly, type your password to be able to delete account!",
+                      successOrNot: false,
+                      context: context);
                 }
               },
-              title: state is DeleteAccountLoadingState ? "Delete user account loading" : "Delete account",
+              title: state is DeleteAccountLoadingState
+                  ? "Delete user account loading"
+                  : "Delete account",
             ),
           ),
           16.vrSpace,
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children:
-            [
-              Text("Didn't receive Otp code ?",style: TextStyle(fontSize: 16,fontWeight: FontWeight.w500,color: AppColors.kDarkGrey),),
+            children: [
+              Text(
+                "Didn't receive Otp code ?",
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.kDarkGrey),
+              ),
               6.hrSpace,
               InkWell(
-                onTap: ()
-                {
+                onTap: () {
                   layoutCubit.sendOtpForPhoneForDeletingAccount();
                 },
-                child: Text("Resent it",style: TextStyle(fontSize: 16,fontWeight: FontWeight.w500,color: AppColors.kMain),),
+                child: Text(
+                  "Resent it",
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.kMain),
+                ),
               )
             ],
           )
