@@ -15,6 +15,7 @@ import '../../../core/network/cache_network.dart';
 import '../../../core/network/check_internet_connection.dart';
 import '../../../models/goal_model.dart';
 import '../../../models/user_model.dart';
+import '../../auth/phone_num_authview.dart';
 import 'layout_states.dart';
 
 class LayoutCubit extends Cubit<LayoutStates> {
@@ -128,15 +129,16 @@ class LayoutCubit extends Cubit<LayoutStates> {
         urlOfUpdatedUserImage = await uploadImageToStorage();
       }
       UserModel model = UserModel(
-          id: userID,
-          fname: fname,
-          lname: lname,
-          email: email,
-          gender: gender,
-          photo: urlOfUpdatedUserImage ?? user!.photo,
-          phoneNumber: user!.phoneNumber,
- /*         streak: user!.streak,
-          productivity: user!.productivity*/);
+        id: userID,
+        fname: fname,
+        lname: lname,
+        email: email,
+        gender: gender,
+        photo: urlOfUpdatedUserImage ?? user!.photo,
+        phoneNumber: user!.phoneNumber,
+        /*         streak: user!.streak,
+          productivity: user!.productivity*/
+      );
       await FirebaseFirestore.instance
           .collection(AppStrings.kUsersCollectionName)
           .doc(userID)
@@ -256,7 +258,7 @@ class LayoutCubit extends Cubit<LayoutStates> {
     }
   }
 
-  Future<void> deleteAccount({required String pinCode}) async {
+  Future<void> deleteAccount({required String pinCode,context}) async {
     try {
       emit(DeleteAccountLoadingState());
       PhoneAuthCredential credential = PhoneAuthProvider.credential(
@@ -270,7 +272,7 @@ class LayoutCubit extends Cubit<LayoutStates> {
             .collection(AppStrings.kUsersCollectionName)
             .doc(userID)
             .delete();
-        await signOut(notToEmitToState: true);
+        await signOut(notToEmitToState: true,context: context);
         emit(DeleteAccountSuccessfullyState());
       }
     } on FirebaseException catch (e) {
@@ -279,9 +281,13 @@ class LayoutCubit extends Cubit<LayoutStates> {
     }
   }
 
-  Future<void> signOut({required bool notToEmitToState}) async {
+  Future<void> signOut(
+      {required bool notToEmitToState, required BuildContext context}) async {
+    Navigator.pushReplacement(
+        context, MaterialPageRoute(builder: (_) => const PhoneNumAuthView()));
     await CacheHelper.clearCache();
     AppConstants.kUserID = null;
+
     myGoals.clear();
     user = null;
     if (notToEmitToState == false) {

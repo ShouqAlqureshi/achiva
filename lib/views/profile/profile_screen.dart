@@ -39,7 +39,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Profile"),
-        leading: const SizedBox(),
+       // leading: const SizedBox(),
         actions: [
           BlocBuilder<LayoutCubit, LayoutStates>(builder: (context, state) {
             if (layoutCubit.user != null) {

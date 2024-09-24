@@ -80,7 +80,7 @@ class _CheckOtpOfPhoneUpdatedScreenState extends State<CheckOtpOfPhoneUpdatedScr
                 if( state is ChangeUserPhoneNumberSuccessfullyState )
                 {
                   showSnackBarWidget(message: "Phone Number changed, Sign in with the new one !", successOrNot: true, context: context);
-                  widget.layoutCubit.signOut(notToEmitToState: true);
+                  widget.layoutCubit.signOut(notToEmitToState: true,context: context);
                   Navigator.pushNamedAndRemoveUntil(context, AppStrings.kLoginScreenName, (_)=> true);
                 }
               },

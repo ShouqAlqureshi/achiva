@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/Constants/constants.dart';
@@ -8,6 +7,7 @@ import '../profile/layout_controller/layout_cubit.dart';
 import '../profile/layout_controller/layout_states.dart';
 import '../profile/widgets/profile_widgets/listTileWidget.dart';
 import 'check_otp_of_current_phone_screen.dart';
+import 'delete_account_screen.dart';
 
 class AppSettingsScreen extends StatefulWidget {
   final LayoutCubit layoutCubit;
@@ -71,8 +71,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 leadingIconData: Icons.phone),
             ListTileWidget(
               onTap: () {
-                Navigator.pushNamed(
-                    context, AppStrings.kDeleteAccountScreenName);
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => DeleteAccountScreen()));
               },
               title: "Delete Account",
               leadingIconData: Icons.delete,
@@ -88,7 +88,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
               },
               child: ListTileWidget(
                 onTap: () {
-                  widget.layoutCubit.signOut(notToEmitToState: false);
+                  widget.layoutCubit
+                      .signOut(notToEmitToState: false, context: context);
                 },
                 title: "Sign Out",
                 leadingIconData: Icons.login_outlined,

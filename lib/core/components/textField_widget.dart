@@ -9,13 +9,24 @@ class TextFieldWidget extends StatelessWidget {
   final TextInputAction? textInputAction;
   final IconData prefixIconData;
   final bool? secureTxt;
-  const TextFieldWidget({super.key, required this.controller, required this.hint, this.textInputType, required this.prefixIconData, this.secureTxt, this.textInputAction});
+  final String? Function(String?)? validator;
+
+  const TextFieldWidget(
+      {super.key,
+      required this.controller,
+      required this.hint,
+      this.textInputType,
+      required this.prefixIconData,
+      this.secureTxt,
+      this.textInputAction,
+      this.validator});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      child: TextField(
+      child: TextFormField(
+        validator: validator,
         controller: controller,
         enableSuggestions: false,
         autocorrect: false,
@@ -29,8 +40,7 @@ class TextFieldWidget extends StatelessWidget {
           prefixIcon: Icon(prefixIconData),
           border: OutlineInputBorder(
               borderRadius: AppConstants.kMainRadius,
-              borderSide: BorderSide.none
-          ),
+              borderSide: BorderSide.none),
         ),
       ),
     );
