@@ -6,12 +6,12 @@ import 'package:achiva/views/profile_picture_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:achiva/views/add_goal_page.dart'; // Add this line to import the AddGoalPage
 
 void main() async {
-  WidgetsFlutterBinding
-      .ensureInitialized(); 
+  WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
+  options: DefaultFirebaseOptions.currentPlatform,
   );
   runApp(MaterialApp(
     title: 'Achiva',
@@ -19,7 +19,7 @@ void main() async {
       colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       useMaterial3: true,
     ),
-    home: const PhoneNumAuthView(),
+    home: const HomeScreen(),
     routes: {
       '/otp': (context) => const VerfyCodeView(),
       '/home': (context) => const HomeScreen(),
