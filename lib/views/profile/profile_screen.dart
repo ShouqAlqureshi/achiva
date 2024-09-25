@@ -37,7 +37,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ..showFriendNotGoalsOnProfile = true;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.white,
         title: const Text("Profile"),
        // leading: const SizedBox(),
         actions: [
@@ -106,10 +108,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: AppColors.kDarkGrey,
                       fontWeight: FontWeight.w500)),
               Container(
+
                 padding: AppConstants.kContainerPadding,
                 margin: const EdgeInsets.symmetric(vertical: 16),
                 decoration: BoxDecoration(
-                    color: const Color(0xff75c0bc),
+                    color: const Color.fromARGB(255, 53, 29, 94),
                     borderRadius: AppConstants.kMainRadius),
                 child: const Row(
                   children: [
@@ -142,7 +145,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
                               color: layoutCubit.showFriendNotGoalsOnProfile
-                                  ? const Color(0xff75c0bc).withOpacity(0.25)
+                                  ? const Color.fromARGB(255, 53, 29, 94).withOpacity(0.15)
                                   : AppColors.kLightGrey.withOpacity(0.1),
                               borderRadius: AppConstants.kMainRadius),
                           child: const Text(
@@ -165,7 +168,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           decoration: BoxDecoration(
                               color: layoutCubit.showFriendNotGoalsOnProfile ==
                                       false
-                                  ? const Color(0xff75c0bc).withOpacity(0.25)
+                                  ? const Color.fromARGB(255, 53, 29, 94).withOpacity(0.15)
                                   : AppColors.kLightGrey.withOpacity(0.1),
                               borderRadius: AppConstants.kMainRadius),
                           child: const Text(
@@ -206,3 +209,4 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
+
