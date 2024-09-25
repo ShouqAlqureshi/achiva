@@ -100,5 +100,35 @@ void main() {
             reason: "shooqalsu@gmail.com should not be unique");
       });
     });
+        group('validatePhoneNum tests', () {
+      test('Empty phone number returns error message', () {
+        expect(logic.validatePhoneNum(''), "Phone number required");
+        expect(logic.validatePhoneNum(null), "Phone number required");
+      });
+
+      test('Invalid phone number format returns error message', () {
+        expect(logic.validatePhoneNum('553175533'),
+            "Invalid phone number ex.+966531567889");
+      });
+
+      test('Valid phone number returns null error massage', () {
+        expect(logic.validatePhoneNum('+966531833221'), null);
+      });
+    });
+        group('validateCode tests', () {
+      test('Empty Code field returns error message', () {
+        expect(logic.validateCode(''), "Code field is required");
+        expect(logic.validateCode(null), "Code field is required");
+      });
+
+      test('Invalid Code format returns error message', () {
+        expect(logic.validateCode('1234'),
+            "code must be 6 digits");
+      });
+
+      test('Valid Code returns null error massage', () {
+        expect(logic.validateCode('123456'), null);
+      });
+    });
   });
 }
