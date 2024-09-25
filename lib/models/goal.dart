@@ -26,3 +26,4 @@ class Goal {
         tasks: List<String>.from(json['tasks']),
       );
 }
+

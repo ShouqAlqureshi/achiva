@@ -8,14 +8,25 @@ Future<void> showErrorDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text("an error has accured"),
-          content: Text(text),
+          backgroundColor: const Color.fromARGB(255, 54, 52, 58),
+          title: const Text(
+            "Oops..",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white),
+          ),
+          content: Text(
+            text,
+            style: const TextStyle(color: Colors.white),
+          ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text("Ok"),
+              child: const Text(
+                "Ok",
+                style: TextStyle(color: Colors.white),
+              ),
             )
           ],
         );

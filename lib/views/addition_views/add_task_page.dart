@@ -3,7 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 
+<<<<<<< HEAD:lib/views/add_task_page.dart
 //this is without the card
+=======
+
+
+>>>>>>> 6c139f0faa75141c64d1e5b9e3d48e0a92abd69a:lib/views/addition_views/add_task_page.dart
 class AddTaskPage extends StatefulWidget {
   final String goalName;
   final DateTime goalDate;
