@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
 
-class GenderSelectionView extends StatelessWidget {
+class GenderSelectionView extends StatefulWidget {
   const GenderSelectionView({super.key});
+
+  @override
+  _GenderSelectionViewState createState() => _GenderSelectionViewState();
+}
+
+class _GenderSelectionViewState extends State<GenderSelectionView> {
+  String? _selectedGender;
+  String? _errorText;
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +43,13 @@ class GenderSelectionView extends StatelessWidget {
                   _buildGenderOption(context, 'Male', Icons.male, userData),
                 ],
               ),
+              const SizedBox(height: 20),
+              if (_errorText != null) // Display error if gender not selected
+                Text(
+                  _errorText!,
+                  style: const TextStyle(color: Colors.red, fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
               const Spacer(),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -46,8 +61,15 @@ class GenderSelectionView extends StatelessWidget {
                   ),
                 ),
                 onPressed: () {
-                  // This button is now just for visual consistency with the image
-                  // The actual navigation happens in _buildGenderOption
+                  if (_selectedGender == null) {
+                    setState(() {
+                      _errorText = 'Please select a gender.';
+                    });
+                  } else {
+                    userData['gender'] = _selectedGender;
+                    Navigator.of(context).pushNamed('/profilepicturepicker',
+                        arguments: userData);
+                  }
                 },
                 child: const Text('CONTINUE', style: TextStyle(fontSize: 18)),
               ),
@@ -63,9 +85,10 @@ class GenderSelectionView extends StatelessWidget {
       Map<String, dynamic> userData) {
     return GestureDetector(
       onTap: () {
-        userData['gender'] = gender.toLowerCase();
-        Navigator.of(context)
-            .pushNamed('/profilepicturepicker', arguments: userData);
+        setState(() {
+          _selectedGender = gender.toLowerCase();
+          _errorText = null; // Clear error when gender is selected
+        });
       },
       child: Container(
         width: 120,
@@ -73,7 +96,11 @@ class GenderSelectionView extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.1),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.deepPurple, width: 2),
+          border: Border.all(
+              color: _selectedGender == gender.toLowerCase()
+                  ? Colors.deepPurple
+                  : Colors.deepPurple.withOpacity(0.5),
+              width: 2),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
