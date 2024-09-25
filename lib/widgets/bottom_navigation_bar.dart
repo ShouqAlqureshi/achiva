@@ -30,12 +30,12 @@ class _BottomNavigationBarWidgetState extends State<BottomNavigationBarWidget> {
           ),
 
           // Circular Add Button
-          SizedBox(
+          const SizedBox(
             width: 60, // Adjusted width for even spacing
             height: 60,
             child: CircleAvatar(
-              backgroundColor: WellBeingColors.darkMaroon,
-              child: const Icon(
+              backgroundColor: Colors.deepPurple,
+              child: Icon(
                 CupertinoIcons.add,
                 color: Color.fromARGB(255, 252, 255, 252),
               ),

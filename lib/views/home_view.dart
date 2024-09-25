@@ -234,7 +234,7 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                           width: ((MediaQuery.of(context).size.width - 40) / 2) - 9, // Card width
                           decoration: BoxDecoration(
                             color: progress < 100
-                                ? WellBeingColors.veryDarkMaroon
+                                ? Colors.deepPurple
                                 : Colors.white, // Background color based on progress
                             boxShadow: [
                               BoxShadow(
@@ -391,7 +391,7 @@ Widget reportStats(String title, String value) {
     children: [
       Text(
         title,
-        style: TextStyle(
+        style: const TextStyle(
           color: WellBeingColors.darkBlueGrey,
           fontSize: 18,
           fontWeight: FontWeight.bold,
