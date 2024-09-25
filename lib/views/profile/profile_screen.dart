@@ -76,8 +76,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   } else {
                     return CircleAvatar(
                         radius: 64,
-                        backgroundImage:
-                            NetworkImage(layoutCubit.user!.photo!));
+                        child:
+                            Image.network(layoutCubit.user!.photo!,fit:BoxFit.fill));
                   }
                 },
               ),
