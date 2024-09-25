@@ -16,7 +16,7 @@ class ProfilePicturePicker extends StatefulWidget {
 class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
   XFile? _imageFile;
   String? imageLink;
-
+  bool isFormSubmitted = false;
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickImage(ImageSource source) async {
@@ -31,6 +31,7 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade900,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -48,40 +49,52 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
                   ),
             const SizedBox(height: 40),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
               onPressed: () => _showImageSourceDialog(context),
               child: const Text('Add Profile Picture'),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
               onPressed: () async {
-                final usercollection = FirebaseFirestore.instance
-                    .collection("Users")
-                    .doc(FirebaseAuth.instance.currentUser!.uid);
-                //String newUserId = usercollection.doc().id;
-                final datatosave = ModalRoute.of(context)!.settings.arguments
-                    as Map<String, dynamic>;
-                await FirebaseStorage.instance
-                    .ref()
-                    .child(
-                        "Users/${Uri.file(_imageFile!.path).pathSegments.last}")
-                    .putFile(File(_imageFile!.path))
-                    .then((val) async {
-                  val.ref.getDownloadURL().then((urlOfImageUploaded) async {
-                    debugPrint(urlOfImageUploaded);
-                    datatosave.addAll({
-                      "photo": urlOfImageUploaded,
-                      'id': FirebaseAuth.instance.currentUser!.uid /*newUserId*/
-                    });
-                    log(datatosave.toString());
-                    usercollection.set(datatosave);
-
-                  });
+                setState(() {
+                  isFormSubmitted = true;
                 });
+                if (_imageFile != null) {
+                  final usercollection = FirebaseFirestore.instance
+                      .collection("Users")
+                      .doc(FirebaseAuth.instance.currentUser!.uid);
+                  final datatosave = ModalRoute.of(context)!.settings.arguments
+                      as Map<String, dynamic>;
+                  await FirebaseStorage.instance
+                      .ref()
+                      .child(
+                          "Users/${Uri.file(_imageFile!.path).pathSegments.last}")
+                      .putFile(File(_imageFile!.path))
+                      .then((val) async {
+                    val.ref.getDownloadURL().then((urlOfImageUploaded) async {
+                      debugPrint(urlOfImageUploaded);
+                      datatosave.addAll({
+                        "photo": urlOfImageUploaded,
+                        'id':
+                            FirebaseAuth.instance.currentUser!.uid /*newUserId*/
+                      });
+                      log(datatosave.toString());
+                      usercollection.set(datatosave);
+                    });
+                  });
 
-                Navigator.of(context).pushNamed('/home');
+                  Navigator.of(context).pushNamed('/home');
+                }
               },
               child: const Text('Continue'),
             ),
+            if (isFormSubmitted && _imageFile == null)
+              const Text(
+                "Photo is required",
+                style: TextStyle(
+                    color: Color.fromARGB(255, 195, 24, 12), fontSize: 11),
+              )
           ],
         ),
       ),

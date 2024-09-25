@@ -20,10 +20,11 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
   Validators validation = Validators();
   bool isLoading = false;
   bool isFormSubmitted = false;
-  bool isPhonenumTouched = false;
+  bool isCodeTouched = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade900,
       appBar: AppBar(
         title: Image.asset(
           'lib/images/logo-with-name.png',
@@ -31,7 +32,7 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
           height: 250,
         ),
         toolbarHeight: 150,
-        backgroundColor: null,
+        backgroundColor:Colors.grey.shade900,
         centerTitle: true,
       ),
       body: Padding(
@@ -53,7 +54,7 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
               TextField(
                 onChanged: (value) {
                   setState(() {
-                    isPhonenumTouched = true;
+                    isCodeTouched = true;
                   });
                 },
                 controller: otpController,
@@ -64,7 +65,7 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
                   hintText: "Enter OTP",
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30),
-                    borderSide: (isPhonenumTouched || isFormSubmitted) &&
+                    borderSide: (isCodeTouched || isFormSubmitted) &&
                             (validation
                                     .validateCode(otpController.text)
                                     ?.isNotEmpty ??
@@ -73,7 +74,7 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
                             color: Color.fromARGB(255, 195, 24, 12))
                         : BorderSide.none,
                   ),
-                  errorText: (isPhonenumTouched || isFormSubmitted)
+                  errorText: (isCodeTouched || isFormSubmitted)
                       ? validation.validateCode(otpController.text)
                       : null,
                 ),

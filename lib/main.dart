@@ -1,3 +1,4 @@
+import 'package:achiva/views/auth/gender_selection_view.dart';
 import 'package:achiva/views/auth/phone_num_authview.dart';
 import 'package:achiva/views/auth/sms_verification_authview.dart';
 import 'package:achiva/views/home_view.dart';
@@ -17,6 +18,7 @@ void main() async {
   runApp(BlocProvider(
     create: (context) => LayoutCubit(),
     child: MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Achiva',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
@@ -29,6 +31,7 @@ void main() async {
         '/phoneauth': (context) => const PhoneNumAuthView(),
         '/newuser': (context) => const NewUserInfoView(),
         '/profilepicturepicker': (context) => const ProfilePicturePicker(),
+        '/gender_selection': (context) => const GenderSelectionView(),
       },
     ),
   ));
