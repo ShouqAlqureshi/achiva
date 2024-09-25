@@ -66,21 +66,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: AppConstants.kScaffoldPadding,
             children: [
               Builder(
-                builder: (context) {
-                  if (layoutCubit.user!.photo == null) {
-                    return CircleAvatar(
-                        radius: 64,
-                        backgroundColor: Colors.grey[200],
-                        child: const Icon(Icons.person,
-                            size: 60, color: Colors.grey));
-                  } else {
-                    return CircleAvatar(
-                        radius: 64,
-                        child:
-                            Image.network(layoutCubit.user!.photo!,fit:BoxFit.fill));
-                  }
-                },
-              ),
+  builder: (context) {
+    if (layoutCubit.user!.photo == null) {
+      return CircleAvatar(
+        radius: 64,
+        backgroundColor: Colors.grey[200],
+        child: const Icon(Icons.person, size: 60, color: Colors.grey),
+      );
+    } else {
+      return CircleAvatar(
+        radius: 64,
+        backgroundColor: Colors.transparent, 
+        child: ClipOval(
+          child: Image.network(
+            layoutCubit.user!.photo!,
+            fit: BoxFit.cover,
+            width: 128,  
+            height: 128, 
+          ),
+        ),
+      );
+    }
+  },
+),
               16.vrSpace,
               Text(
                 "${layoutCubit.user!.fname} ${layoutCubit.user!.lname}",
