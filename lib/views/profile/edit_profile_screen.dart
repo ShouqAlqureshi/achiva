@@ -27,7 +27,11 @@ class EditProfileScreen extends StatefulWidget {
   State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
+
+
+
 class _EditProfileScreenState extends State<EditProfileScreen> {
+  
   final TextEditingController _fnameController = TextEditingController();
   final TextEditingController _lnameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -77,7 +81,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return false;
     }
   }
-
+  bool isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -157,14 +164,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 controller: _lnameController,
                 hint: "Last Name",
                 prefixIconData: Icons.account_circle),
+                
             TextFieldWidget(
                 validator: (val) {
                   if (val!.isEmpty) {
-                    return "email is required";
+                    return "Email is required";
                   }
-                  if (!val.contains("@")) {
-                    return "Enter a valid email address";
-                  }
+                  if (!isValidEmail(val)) {
+      return "Please enter a valid email address";
+    }
                 },
                 textInputAction: TextInputAction.next,
                 controller: _emailController,
