@@ -33,6 +33,7 @@ class _BottomNavigationBarWidgetState extends State<BottomNavigationBarWidget> {
           ),
 
           // Circular Add Button
+
           GestureDetector(
             onTap: () {
               Navigator.push(
@@ -46,7 +47,7 @@ class _BottomNavigationBarWidgetState extends State<BottomNavigationBarWidget> {
               width: 60, // Adjusted width for even spacing
               height: 60,
               child: CircleAvatar(
-                backgroundColor: WellBeingColors.darkMaroon,
+                backgroundColor: Colors.deepPurple,
                 child: const Icon(
                   CupertinoIcons.add,
                   color: Color.fromARGB(255, 252, 255, 252),

@@ -30,22 +30,6 @@ class FirestoreService {
   }
 
 
-  // Fetch user goals from Firestore
-  Stream<List<Goal>> getUserGoals(String userId) {
-    print('Fetching goals for user: $userId'); // Log when fetching starts
-
-    return _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('goals')
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) {
-      return Goal.fromJson(doc.data() as Map<String, dynamic>);
-      }).toList();
-    });
-  }
-
 }
 
 

@@ -4,6 +4,7 @@ class Goal {
   DateTime date;
   bool visibility;
   List<String> tasks;
+  
 
   Goal({
     required this.name,
@@ -25,5 +26,7 @@ class Goal {
         visibility: json['visibility'],
         tasks: List<String>.from(json['tasks']),
       );
+
 }
+
 

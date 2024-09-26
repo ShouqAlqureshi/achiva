@@ -1,16 +1,14 @@
 import 'package:achiva/enum/menu_action.dart';
 import 'package:achiva/exceptions/auth_exceptions.dart';
 import 'package:achiva/utilities/show_error_dialog.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import '../models/models.dart' as app_models;
-import 'package:achiva/views/addition_views/add_goal_page.dart';
+import '../utilities/filestore_services.dart';
 import '../utilities/show_log_out_dialog.dart';
 import 'package:achiva/widgets/bottom_navigation_bar.dart';
 import 'package:achiva/utilities/colors.dart';
-import '../utilities/filestore_services.dart';
-import 'package:achiva/models/goal.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,41 +17,44 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomePageState();
 }
 
+class GoalsPage extends StatefulWidget {
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
 class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
-  late PageController _pageViewController;
   late TabController _tabController;
   final FirestoreService _firestoreService = FirestoreService();
-  String? userId;
-  String firstName = '';
+  final CollectionReference goalCollection =
+      FirebaseFirestore.instance.collection('goals');
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  late PageController _pageController;
+  final currentUser = FirebaseAuth.instance;
+
+  int farmsLength = 8;
 
   @override
   void initState() {
     super.initState();
-    _pageViewController = PageController();
-    userId = FirebaseAuth.instance.currentUser?.uid; // Get the current user ID
-    if (userId != null) {
-      _loadUserProfile(userId!);
-    }
-  }
-
-  Future<void> _loadUserProfile(String userId) async {
-    try {
-      app_models.User? userProfile =
-          await _firestoreService.getUserProfile(userId);
-      if (userProfile != null) {
-        setState(() {
-          firstName = userProfile.fname; // Set first name
-        });
-      }
-    } catch (e) {
-      print('Error loading user profile: $e');
-    }
+    _pageController = PageController(
+      initialPage: 0,
+      viewportFraction: 0.85,
+    );
   }
 
   @override
   void dispose() {
-    _pageViewController.dispose();
+    _pageController.dispose();
     super.dispose();
+  }
+
+  void getuser() async {
+    await for (var snapshot in _firestore.collection('Users').snapshots()) {
+      for (var user in snapshot.docs) {
+        print(user.data());
+      }
+    }
   }
 
   @override
@@ -62,10 +63,10 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
-        title: const Row(
+        title: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            SizedBox(
+            const SizedBox(
               height: 50,
               width: 50,
               child: Icon(
@@ -76,34 +77,7 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ],
         ),
-        actions: [
-          PopupMenuButton<MenuAction>(
-            onSelected: (value) async {
-              if (value == MenuAction.logout) {
-                try {
-                  final shouldLogout = await showLogOutDialog(context);
-                  if (shouldLogout) {
-                    await FirebaseAuth.instance.signOut();
-                    Navigator.of(context)
-                        .pushNamedAndRemoveUntil('/phoneauth', (_) => false);
-                  }
-                } on UserNotLoggedInAuthException catch (_) {
-                  showErrorDialog(context, "User is not logged in");
-                }
-              }
-            },
-            itemBuilder: (context) {
-              return const [
-                PopupMenuItem<MenuAction>(
-                  value: MenuAction.logout,
-                  child: Text("Log out"),
-                ),
-              ];
-            },
-          ),
-        ],
-      ),
-      body: Stack(
+      ),body: Stack(
         children: [
           Positioned.fill(
             child: Column(
@@ -114,14 +88,37 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                   padding: const EdgeInsets.all(20.0),
                   child: Column(
                     children: [
-                      Text(
-                        'Welcome back to Achiva ${firstName}!',
-                        style: const TextStyle(
-                          color: WellBeingColors.darkBlueGrey,
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                    StreamBuilder(
+  stream: FirebaseFirestore.instance
+      .collection("Users")
+      .where("id", isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+      .snapshots(),
+  builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const CircularProgressIndicator(); // Show a loading spinner while data is being fetched
+    }
+
+    if (snapshot.hasError) {
+      return const Text("Error fetching user data");
+    }
+
+    if (snapshot.hasData && snapshot.data != null) {
+      final userData = snapshot.data!.docs.first; // Get the first matching document
+      final String fname = userData['fname']; // Assuming 'fname' is the field storing the first name
+
+      return Text(
+        'Welcome back to Achiva, $fname!',
+        style: const TextStyle(
+          color: WellBeingColors.darkBlueGrey,
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+    } else {
+      return const Text("No user data available");
+    }
+  },
+),
                       const SizedBox(height: 15),
                       Container(
                         height: 105,
@@ -177,7 +174,7 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                                     height: 40,
                                     width: 1.2,
                                   ),
-                                  reportStats('56 🚀', 'Streak'),
+                                  reportStats('56 🚀', 'Steark'),
                                 ],
                               ),
                             ),
@@ -188,186 +185,187 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ),
                 // Cards container
-                Expanded(
-                  child: Container(
-                    color: Colors.white,
-                    child: StreamBuilder<List<Goal>>(
-                      stream: userId != null
-                          ? _firestoreService.getUserGoals(userId!)
-                          : Stream.value([]),
-                      builder: (context, snapshot) {
-                        print('User ID: $userId'); // Log the user ID
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          print('Waiting for data...');
-                          return const Center(child: CircularProgressIndicator());
-                        } else if (snapshot.hasError) {
-                          print('Error: ${snapshot.error}');
-                          return Center(
-                              child: Text('Error: ${snapshot.error}'));
-                        } else if (!snapshot.hasData ||
-                            snapshot.data!.isEmpty) {
-                          print('No goals found.');
-                          return const Center(child: Text('No Goals Found'));
-                        }
+                // Cards container
 
-                        final goals = snapshot.data!;
-                        print('Goals received: ${goals.length}');
-                        return PageView.builder(
-                          controller: PageController(
-                              initialPage: 0, viewportFraction: .85),
-                          onPageChanged: _handlePageViewChanged,
-                          itemCount: goals.length,
-                          itemBuilder: (context, index) {
-                            final goal = goals[index];
-                            double progress =
-                                20; // Assuming Goal has a progress field
-                            final isDone = progress >= 100;
+              Expanded(
+      child: Container(
+        color: Colors.white, // Background color for the PageView
+        child: Column(
+          children: [
+            StreamBuilder(
+              stream: FirebaseFirestore.instance
+                  .collection("Users")
+                  .doc(FirebaseAuth.instance.currentUser!.uid)
+                  .collection('goals')
+                  .snapshots(), // Stream from the 'goals' subcollection
+              builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const CircularProgressIndicator(); // Loading indicator
+                }
 
-                            return AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              margin:
-                                  const EdgeInsets.symmetric(horizontal: 15),
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
-                              height: MediaQuery.of(context).size.width / 2,
-                              width: ((MediaQuery.of(context).size.width - 40) /
-                                      2) -
-                                  9,
-                              decoration: BoxDecoration(
-                                color: progress < 100
-                                    ? WellBeingColors.veryDarkMaroon
-                                    : Colors.white,
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Colors.grey,
-                                    blurRadius: 15,
-                                    offset: Offset(0, 3),
-                                  ),
-                                ],
-                                borderRadius: BorderRadius.circular(20),
+                if (snapshot.hasError) {
+                  return const Text("Error fetching goals");
+                }
+
+                if (snapshot.hasData && snapshot.data != null) {
+                  final goalDocuments = snapshot.data!.docs; // Retrieve all goal documents
+                  if (goalDocuments.isEmpty) {
+                    return const Text("No goals available");
+                  }
+
+                  // Use PageView.builder to display goals in cards
+                  return SizedBox(
+                    height: 300, // Maintain the height for the cards
+                    child: PageView.builder(
+                      controller: _pageController, // Use the persistent PageController
+                      onPageChanged: _handlePageViewChanged,
+                      itemCount: goalDocuments.length, // Number of goals
+                      itemBuilder: (context, index) {
+                        final goalData = goalDocuments[index].data() as Map<String, dynamic>;
+                        final String goalName = goalData['name']; // Assuming 'name' field in goal doc
+                        double progress = (index + 1) * 10.0; // Sample progress calculation
+                        final isDone = progress >= 100; // Check if the progress is complete
+
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          margin: const EdgeInsets.symmetric(horizontal: 15), // Spacing between cards
+                          padding: const EdgeInsets.symmetric(horizontal: 16), // Internal padding
+                          height: MediaQuery.of(context).size.width / 2, // Card height
+                          width: ((MediaQuery.of(context).size.width - 40) / 2) - 9, // Card width
+                          decoration: BoxDecoration(
+                            color: progress < 100
+                                ? Colors.deepPurple
+                                : Colors.white, // Background color based on progress
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey,
+                                blurRadius: 15,
+                                offset: const Offset(0, 3), // Shadow effect
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 23),
-                                  if (isDone)
-                                    Container(
-                                      height: 50,
-                                      width: 50,
-                                      decoration: BoxDecoration(
-                                        color: WellBeingColors.yellowColor,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      padding: const EdgeInsets.all(8),
-                                      child: Container(
-                                        decoration: const BoxDecoration(
-                                          color: Colors.white,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(
-                                          Icons.check_rounded,
-                                          color: WellBeingColors.yellowColor,
-                                          size: 25,
-                                        ),
-                                      ),
+                            ],
+                            borderRadius: BorderRadius.circular(20), // Rounded corners
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 23), // Spacing from top of the card
+                              if (isDone)
+                                // Checkmark when task is done
+                                Container(
+                                  height: 50,
+                                  width: 50,
+                                  decoration: BoxDecoration(
+                                    color: WellBeingColors.yellowColor,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  padding: const EdgeInsets.all(8),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
                                     ),
-                                  if (!isDone)
-                                    Row(
+                                    child: Icon(
+                                      Icons.check_rounded,
+                                      color: WellBeingColors.yellowColor,
+                                      size: 25,
+                                    ),
+                                  ),
+                                ),
+                              if (!isDone)
+                                Row(
+                                  // Row to align the progress indicator and the text next to it
+                                  children: [
+                                    Stack(
                                       children: [
-                                        Stack(
-                                          children: [
-                                            Container(
-                                              height: 50,
-                                              width: 50,
-                                              decoration: const BoxDecoration(
-                                                color: Colors.transparent,
-                                                shape: BoxShape.circle,
-                                              ),
-                                            ),
-                                            Positioned(
-                                              top: 0,
-                                              left: 0,
-                                              child: SizedBox(
-                                                height: 50,
-                                                width: 50,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                  value: progress / 100,
-                                                  strokeWidth: 8,
-                                                  backgroundColor: Colors.white,
-                                                  strokeCap: StrokeCap.round,
-                                                  valueColor:
-                                                      AlwaysStoppedAnimation<
-                                                          Color>(
-                                                    WellBeingColors.lightMaroon,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            Positioned(
-                                              top: 0,
-                                              left: 0,
-                                              child: Container(
-                                                height: 50,
-                                                width: 50,
-                                                alignment: Alignment.center,
-                                                child: Text(
-                                                  '${progress.round()}%',
-                                                  style: TextStyle(
-                                                    color: Colors.white
-                                                        .withOpacity(0.7),
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
+                                        Container(
+                                          height: 50,
+                                          width: 50,
+                                          decoration: const BoxDecoration(
+                                            color: Colors.transparent,
+                                            shape: BoxShape.circle,
+                                          ),
                                         ),
-                                        const SizedBox(width: 10),
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              goal.name, // Display goal title
+                                        Positioned(
+                                          top: 0,
+                                          left: 0,
+                                          child: SizedBox(
+                                            height: 50,
+                                            width: 50,
+                                            child: CircularProgressIndicator(
+                                              value: progress / 100, // Progress value
+                                              strokeWidth: 8,
+                                              backgroundColor: Colors.white,
+                                              strokeCap: StrokeCap.round,
+                                              valueColor: AlwaysStoppedAnimation<Color>(
+                                                WellBeingColors.lightMaroon, // Progress color
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Positioned(
+                                          top: 0,
+                                          left: 0,
+                                          child: Container(
+                                            height: 50,
+                                            width: 50,
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              '${progress.round()}%', // Display progress as percentage
                                               style: TextStyle(
-                                                color: isDone
-                                                    ? Colors.black
-                                                    : Colors.white,
-                                                fontSize: 16,
+                                                color: Colors.white.withOpacity(0.7),
+                                                fontSize: 12,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
-                                            const SizedBox(height: 3),
-                                            Text(
-                                              isDone
-                                                  ? 'Completed 100%'
-                                                  : '${(100 - progress).round()}% remaining',
-                                              style: TextStyle(
-                                                color: isDone
-                                                    ? Colors.grey[800]!
-                                                    : Colors.white,
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w200,
-                                              ),
-                                            ),
-                                          ],
+                                          ),
                                         ),
                                       ],
                                     ),
-                                  const SizedBox(height: 34),
-                                ],
-                              ),
-                            );
-                          },
+                                    const SizedBox(width: 10), // Space between progress indicator and text
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start, // Align text to the left
+                                      children: [
+                                        Text(
+                                          goalName, // Use goal name from Firestore data
+                                          style: TextStyle(
+                                            color: isDone ? Colors.black : Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          isDone
+                                              ? 'Completed 100%'
+                                              : '${(100 - progress).round()}% remaining', // Show remaining progress
+                                          style: TextStyle(
+                                            color: isDone ? Colors.grey[800]! : Colors.white,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w200,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              const SizedBox(height: 34), // Adjusted bottom spacing
+                            ],
+                          ),
                         );
                       },
                     ),
-                  ),
-                ),
-              ],
+                  );
+                } else {
+                  return const Text("No goals available");
+                }
+              },
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+            ),
+            ],
             ),
           ),
           const Positioned(

@@ -22,68 +22,87 @@ class UserGoalsListviewWidget extends StatefulWidget {
 }
 
 class _UserGoalsListviewWidgetState extends State<UserGoalsListviewWidget> {
+  // قائمة من الألوان لتمييز المستطيلات
+  final List<Color> colors = [
+    Colors.lightBlueAccent,
+    Colors.lightGreenAccent,
+    Colors.amberAccent,
+    
+  ];
+
   @override
   void initState() {
     widget.layoutCubit.getMyGoals();
     super.initState();
   }
+
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<LayoutCubit,LayoutStates>(
-      builder: (context,state){
-        if( widget.layoutCubit.myGoals.isNotEmpty )
-          {
-            return ListView.separated(
-              itemCount: widget.layoutCubit.myGoals.length,
-              shrinkWrap: true,
-              padding: EdgeInsets.zero,
-              separatorBuilder: AppConstants.kSeparatorBuilder(),
-              itemBuilder: (context,index)=> Container(
-                padding: AppConstants.kContainerPadding,
-                decoration: BoxDecoration(
-                  color: AppColors.kWhiteColor,
-                  borderRadius: AppConstants.kMainRadius
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(widget.layoutCubit.myGoals[index].name,style: TextStyle(fontSize: 16,fontWeight: FontWeight.w600,color: AppColors.kBlack),),
-                    8.vrSpace,
-                    Align(
-                      alignment: AlignmentDirectional.topEnd,
-                      child: Text(DateFormat('yyyy-MM-dd').format(widget.layoutCubit.myGoals[index].date),style: TextStyle(fontSize: 14,fontWeight: FontWeight.w500,color: AppColors.kLightGrey),),
-                    )
-                  ],
+    return BlocBuilder<LayoutCubit, LayoutStates>(
+      builder: (context, state) {
+        if (widget.layoutCubit.myGoals.isNotEmpty) {
+          return ListView.separated(
+            itemCount: widget.layoutCubit.myGoals.length,
+            shrinkWrap: true,
+            padding: EdgeInsets.zero,
+            separatorBuilder: AppConstants.kSeparatorBuilder(),
+            itemBuilder: (context, index) => Container(
+              padding: AppConstants.kContainerPadding,
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(255, 240, 240, 240),
+                borderRadius: AppConstants.kMainRadius,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.layoutCubit.myGoals[index].name,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.kBlack,
+                    ),
+                  ),
+                  8.vrSpace,
+                  Align(
+                    alignment: AlignmentDirectional.topEnd,
+                    child: Text(
+                      DateFormat('yyyy-MM-dd').format(widget.layoutCubit.myGoals[index].date),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.kLightGrey,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        } else if (state is GetUserGoalsWithFailureState) {
+          if (state.failure.runtimeType == InternetNotFoundFailure) {
+            return InternetLostColumnWidget(retryFunction: () => widget.layoutCubit.getMyGoals());
+          } else {
+            return const ServerFailureColumnWidget();
+          }
+        } else {
+          if (state is GetUserGoalsSuccessfullyState && widget.layoutCubit.myGoals.isEmpty) {
+            return Container(
+              alignment: Alignment.center,
+              height: 300,
+              child: Text(
+                "No Goals created until now!",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.kBlack,
                 ),
               ),
             );
+          } else {
+            return const SizedBox(height: 300, child: LoadingWidget(message: "Loading User Goals"));
           }
-        else if ( state is GetUserGoalsWithFailureState )
-          {
-            if( state.failure.runtimeType == InternetNotFoundFailure )
-              {
-                return InternetLostColumnWidget(retryFunction: ()=> widget.layoutCubit.getMyGoals());
-              }
-            else
-              {
-                return const ServerFailureColumnWidget();
-              }
-          }
-        else
-          {
-            if( state is GetUserGoalsSuccessfullyState && widget.layoutCubit.myGoals.isEmpty )
-              {
-                return Container(
-                  alignment: Alignment.center,
-                  height: 300,
-                  child: Text("No Goals created until now !",style: TextStyle(fontSize: 16,fontWeight: FontWeight.w600,color: AppColors.kBlack),),
-                );
-              }
-            else
-              {
-                return const SizedBox(height: 300,child: LoadingWidget(message: "Loading User Goals"));
-              }
-          }
+        }
       },
     );
   }

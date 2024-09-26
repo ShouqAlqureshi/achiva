@@ -13,7 +13,7 @@ import 'firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
+  options: DefaultFirebaseOptions.currentPlatform,
   );
   runApp(BlocProvider(
     create: (context) => LayoutCubit(),
@@ -24,7 +24,7 @@ void main() async {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const PhoneNumAuthView(),
+      home: const HomeScreen(),
       routes: {
         '/otp': (context) => const VerfyCodeView(),
         '/home': (context) => const HomeScreen(),
