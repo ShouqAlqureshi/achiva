@@ -1,8 +1,7 @@
 import 'package:achiva/utilities/show_log_out_dialog.dart';
-<<<<<<< Updated upstream
+
 import 'package:firebase_auth/firebase_auth.dart';
-=======
->>>>>>> Stashed changes
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/Constants/constants.dart';
@@ -110,7 +109,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
               },
               child: ListTileWidget(
                 onTap: () async {
-<<<<<<< Updated upstream
+
                   final shouldLogout = await showLogOutDialog(context);
                   if (shouldLogout) {
                     final user = FirebaseAuth.instance.currentUser;
@@ -121,13 +120,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                         .signOut(notToEmitToState: false, context: context);
                   }
                 },
-=======
-                final shouldLogout = await showLogOutDialog(context);
-                if (shouldLogout) {
-                widget.layoutCubit.signOut(notToEmitToState: false, context: context);
-    }
-  },
->>>>>>> Stashed changes
+
                 title: "Log Out",
                 leadingIconData: Icons.login_outlined,
                 backgroundColor: const Color.fromARGB(255, 213, 80, 71), // Red background for Log Out
