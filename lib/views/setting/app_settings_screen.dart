@@ -1,3 +1,7 @@
+import 'package:achiva/exceptions/auth_exceptions.dart';
+import 'package:achiva/utilities/show_error_dialog.dart';
+import 'package:achiva/utilities/show_log_out_dialog.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/Constants/constants.dart';
@@ -87,9 +91,17 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 }
               },
               child: ListTileWidget(
-                onTap: () {
-                  widget.layoutCubit
-                      .signOut(notToEmitToState: false, context: context);
+                onTap: () async {
+                 try {
+                  final shouldLogout = await showLogOutDialog(context);
+                  if (shouldLogout) {
+                    await FirebaseAuth.instance.signOut();
+                    Navigator.of(context)
+                        .pushNamedAndRemoveUntil('/phoneauth', (_) => false);
+                  }
+                } on UserNotLoggedInAuthException catch (_) {
+                  showErrorDialog(context, "User is not logged in");
+                }
                 },
                 title: "Log Out",
                 leadingIconData: Icons.login_outlined,
