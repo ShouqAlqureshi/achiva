@@ -17,7 +17,7 @@ class _GenderSelectionViewState extends State<GenderSelectionView> {
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade900,
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(50.0),
@@ -31,7 +31,7 @@ class _GenderSelectionViewState extends State<GenderSelectionView> {
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Color.fromARGB(255, 71, 71, 71),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -94,7 +94,7 @@ class _GenderSelectionViewState extends State<GenderSelectionView> {
         width: 120,
         height: 120,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
+          color: Color.fromARGB(255, 71, 71, 71).withOpacity(0.3),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
               color: _selectedGender == gender.toLowerCase()

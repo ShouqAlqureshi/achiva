@@ -24,7 +24,7 @@ void main() async {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const PhoneNumAuthView(),
+      home: const HomeScreen(),
       routes: {
         '/otp': (context) => const VerfyCodeView(),
         '/home': (context) => const HomeScreen(),

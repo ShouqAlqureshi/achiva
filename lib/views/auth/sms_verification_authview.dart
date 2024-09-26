@@ -24,7 +24,7 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade900,
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Image.asset(
           'lib/images/logo-with-name.png',
@@ -32,7 +32,7 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
           height: 250,
         ),
         toolbarHeight: 150,
-        backgroundColor: Colors.grey.shade900,
+        backgroundColor: Colors.white,
         centerTitle: true,
       ),
       body: SafeArea(
@@ -42,8 +42,8 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
                 decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 53, 29, 94),
-                    borderRadius: BorderRadius.circular(10)),
+                    color: Colors.deepPurple,
+                    borderRadius: BorderRadius.circular(30)),
                 width: 500,
                 height: 500,
                 padding: const EdgeInsets.all(8),
