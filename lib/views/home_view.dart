@@ -9,6 +9,9 @@ import '../utilities/filestore_services.dart';
 import '../utilities/show_log_out_dialog.dart';
 import 'package:achiva/widgets/bottom_navigation_bar.dart';
 import 'package:achiva/utilities/colors.dart';
+import 'package:achiva/views/friends_feed_page.dart';
+import 'package:achiva/views/profile/profile_screen.dart';
+import 'package:achiva/views/home_view.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,30 +20,16 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomePageState();
 }
 
-class GoalsPage extends StatefulWidget {
-  @override
-  _HomePageState createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
-  late TabController _tabController;
+class _HomePageState extends State<HomeScreen> {
   final FirestoreService _firestoreService = FirestoreService();
-  final CollectionReference goalCollection =
-      FirebaseFirestore.instance.collection('goals');
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
   late PageController _pageController;
-  final currentUser = FirebaseAuth.instance;
-
-  int farmsLength = 8;
+  int _currentIndex = 0; // Track the current index for the bottom navigation
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(
-      initialPage: 0,
-      viewportFraction: 0.85,
-    );
+    _pageController = PageController(initialPage: 0);
   }
 
   @override
@@ -49,361 +38,352 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  void getuser() async {
-    await for (var snapshot in _firestore.collection('Users').snapshots()) {
-      for (var user in snapshot.docs) {
-        print(user.data());
-      }
-    }
+  // Method to switch between pages when the navigation item is tapped
+  void _onTabSelected(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+    _pageController.jumpToPage(index); // Update the PageView when a tab is selected
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: Colors.white,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            const SizedBox(
-              height: 50,
-              width: 50,
-              child: Icon(
-                CupertinoIcons.search,
-                size: 32,
-                color: CoursesColors.darkGreen,
-              ),
-            ),
-          ],
-        ),
-      ),body: Stack(
+//       appBar: AppBar(
+//   automaticallyImplyLeading: false,
+//   backgroundColor: Colors.white,
+//   title: Row(
+//     mainAxisAlignment: MainAxisAlignment.end,
+//     children: [
+//       const SizedBox(
+//         height: 50,
+//         width: 50,
+//         child: Icon(
+//           CupertinoIcons.search,
+//           size: 32,
+//           color: CoursesColors.darkGreen,
+//         ),A
+//       ),
+//     ],
+//   ),
+// ),
+      body: PageView(
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(), // Disable swipe to switch pages
         children: [
-          Positioned.fill(
-            child: Column(
-              children: [
-                // Welcome message and report container
-                Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    children: [
+          _buildHomePage(context),
+          const FriendsFeedScreen(), // Your Friends Feed Page
+          const ProfileScreen(), // Your Profile Page
+        ],
+      ),
+      
+      bottomNavigationBar: FloatingBottomNavigationBarWidget(
+        currentIndex: _currentIndex,
+        onTabSelected: _onTabSelected,
+      ),
+    );
+  }
+
+  Widget _buildHomePage(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Column(
+            children: [
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  children: [
                     StreamBuilder(
-  stream: FirebaseFirestore.instance
-      .collection("Users")
-      .where("id", isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-      .snapshots(),
-  builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-    if (snapshot.connectionState == ConnectionState.waiting) {
-      return const CircularProgressIndicator(); // Show a loading spinner while data is being fetched
-    }
+                      stream: FirebaseFirestore.instance
+                          .collection("Users")
+                          .where("id", isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+                          .snapshots(),
+                      builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const CircularProgressIndicator();
+                        }
 
-    if (snapshot.hasError) {
-      return const Text("Error fetching user data");
-    }
+                        if (snapshot.hasError) {
+                          return const Text("Error fetching user data");
+                        }
 
-    if (snapshot.hasData && snapshot.data != null) {
-      final userData = snapshot.data!.docs.first; // Get the first matching document
-      final String fname = userData['fname']; // Assuming 'fname' is the field storing the first name
+                        if (snapshot.hasData && snapshot.data != null) {
+                          final userData = snapshot.data!.docs.first;
+                          final String fname = userData['fname'];
 
-      return Text(
-        'Welcome back to Achiva, $fname!',
-        style: const TextStyle(
-          color: WellBeingColors.darkBlueGrey,
-          fontSize: 32,
-          fontWeight: FontWeight.bold,
-        ),
-      );
-    } else {
-      return const Text("No user data available");
-    }
-  },
-),
-                      const SizedBox(height: 15),
-                      Container(
-                        height: 105,
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: Colors.grey[400]!,
-                            width: .4,
-                          ),
-                          borderRadius: BorderRadius.circular(18),
+                          return Text(
+                            'Welcome back to Achiva, $fname!',
+                            style: const TextStyle(
+                              color: WellBeingColors.darkBlueGrey,
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          );
+                        } else {
+                          return const Text("No user data available");
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 15),
+                    Container(
+                      height: 105,
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Colors.grey[400]!,
+                          width: .4,
                         ),
-                        child: Column(
-                          children: [
-                            const SizedBox(height: 13),
-                            Row(
-                              children: [
-                                Text(
-                                  'Your productivity',
-                                  style: TextStyle(
-                                    color: WellBeingColors.mediumGrey,
-                                    fontSize: 14,
-                                  ),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 13),
+                          Row(
+                            children: [
+                              Text(
+                                'Your productivity',
+                                style: TextStyle(
+                                  color: WellBeingColors.mediumGrey,
+                                  fontSize: 14,
                                 ),
-                                const Spacer(),
+                              ),
+                              const Spacer(),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 5),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                reportStats('2 Tasks', 'Today'),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: WellBeingColors.mediumGrey.withOpacity(0.3),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  height: 40,
+                                  width: 1.2,
+                                ),
+                                reportStats('13 Tasks', 'This Week'),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: WellBeingColors.mediumGrey.withOpacity(0.3),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  height: 40,
+                                  width: 1.2,
+                                ),
+                                reportStats('56 🚀', 'Steark'),
                               ],
                             ),
-                            const SizedBox(height: 10),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 5),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  reportStats('2 Tasks', 'Today'),
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      color: WellBeingColors.mediumGrey
-                                          .withOpacity(0.3),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    height: 40,
-                                    width: 1.2,
-                                  ),
-                                  reportStats('13 Tasks', 'This Week'),
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      color: WellBeingColors.mediumGrey
-                                          .withOpacity(0.3),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    height: 40,
-                                    width: 1.2,
-                                  ),
-                                  reportStats('56 🚀', 'Steark'),
-                                ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  color: Colors.white,
+                  child: Column(
+                    children: [
+                      StreamBuilder(
+                        stream: FirebaseFirestore.instance
+                            .collection("Users")
+                            .doc(FirebaseAuth.instance.currentUser!.uid)
+                            .collection('goals')
+                            .snapshots(),
+                        builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const CircularProgressIndicator();
+                          }
+
+                          if (snapshot.hasError) {
+                            return const Text("Error fetching goals");
+                          }
+
+                          if (snapshot.hasData && snapshot.data != null) {
+                            final goalDocuments = snapshot.data!.docs;
+                            if (goalDocuments.isEmpty) {
+                              return const Text("No goals available");
+                            }
+
+                            return SizedBox(
+                              height: 300,
+                              child: PageView.builder(
+                                controller: PageController(viewportFraction: 0.85),
+                                itemCount: goalDocuments.length,
+                                itemBuilder: (context, index) {
+                                  final goalData = goalDocuments[index].data() as Map<String, dynamic>;
+                                  final String goalName = goalData['name'];
+                                  double progress = (index + 1) * 10.0;
+                                  final isDone = progress >= 100;
+
+                                  return _buildGoalCard(goalName, progress, isDone);
+                                },
                               ),
-                            ),
-                          ],
-                        ),
+                            );
+                          } else {
+                            return const Text("No goals available");
+                          }
+                        },
                       ),
                     ],
                   ),
                 ),
-                // Cards container
-                // Cards container
-
-              Expanded(
-      child: Container(
-        color: Colors.white, // Background color for the PageView
-        child: Column(
-          children: [
-            StreamBuilder(
-              stream: FirebaseFirestore.instance
-                  .collection("Users")
-                  .doc(FirebaseAuth.instance.currentUser!.uid)
-                  .collection('goals')
-                  .snapshots(), // Stream from the 'goals' subcollection
-              builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const CircularProgressIndicator(); // Loading indicator
-                }
-
-                if (snapshot.hasError) {
-                  return const Text("Error fetching goals");
-                }
-
-                if (snapshot.hasData && snapshot.data != null) {
-                  final goalDocuments = snapshot.data!.docs; // Retrieve all goal documents
-                  if (goalDocuments.isEmpty) {
-                    return const Text("No goals available");
-                  }
-
-                  // Use PageView.builder to display goals in cards
-                  return SizedBox(
-                    height: 300, // Maintain the height for the cards
-                    child: PageView.builder(
-                      controller: _pageController, // Use the persistent PageController
-                      onPageChanged: _handlePageViewChanged,
-                      itemCount: goalDocuments.length, // Number of goals
-                      itemBuilder: (context, index) {
-                        final goalData = goalDocuments[index].data() as Map<String, dynamic>;
-                        final String goalName = goalData['name']; // Assuming 'name' field in goal doc
-                        double progress = (index + 1) * 10.0; // Sample progress calculation
-                        final isDone = progress >= 100; // Check if the progress is complete
-
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          margin: const EdgeInsets.symmetric(horizontal: 15), // Spacing between cards
-                          padding: const EdgeInsets.symmetric(horizontal: 16), // Internal padding
-                          height: MediaQuery.of(context).size.width / 2, // Card height
-                          width: ((MediaQuery.of(context).size.width - 40) / 2) - 9, // Card width
-                          decoration: BoxDecoration(
-                            color: progress < 100
-                                ? Colors.deepPurple
-                                : Colors.white, // Background color based on progress
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey,
-                                blurRadius: 15,
-                                offset: const Offset(0, 3), // Shadow effect
-                              ),
-                            ],
-                            borderRadius: BorderRadius.circular(20), // Rounded corners
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 23), // Spacing from top of the card
-                              if (isDone)
-                                // Checkmark when task is done
-                                Container(
-                                  height: 50,
-                                  width: 50,
-                                  decoration: BoxDecoration(
-                                    color: WellBeingColors.yellowColor,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  padding: const EdgeInsets.all(8),
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(
-                                      Icons.check_rounded,
-                                      color: WellBeingColors.yellowColor,
-                                      size: 25,
-                                    ),
-                                  ),
-                                ),
-                              if (!isDone)
-                                Row(
-                                  // Row to align the progress indicator and the text next to it
-                                  children: [
-                                    Stack(
-                                      children: [
-                                        Container(
-                                          height: 50,
-                                          width: 50,
-                                          decoration: const BoxDecoration(
-                                            color: Colors.transparent,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
-                                        Positioned(
-                                          top: 0,
-                                          left: 0,
-                                          child: SizedBox(
-                                            height: 50,
-                                            width: 50,
-                                            child: CircularProgressIndicator(
-                                              value: progress / 100, // Progress value
-                                              strokeWidth: 8,
-                                              backgroundColor: Colors.white,
-                                              strokeCap: StrokeCap.round,
-                                              valueColor: AlwaysStoppedAnimation<Color>(
-                                                WellBeingColors.lightMaroon, // Progress color
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        Positioned(
-                                          top: 0,
-                                          left: 0,
-                                          child: Container(
-                                            height: 50,
-                                            width: 50,
-                                            alignment: Alignment.center,
-                                            child: Text(
-                                              '${progress.round()}%', // Display progress as percentage
-                                              style: TextStyle(
-                                                color: Colors.white.withOpacity(0.7),
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(width: 10), // Space between progress indicator and text
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start, // Align text to the left
-                                      children: [
-                                        Text(
-                                          goalName, // Use goal name from Firestore data
-                                          style: TextStyle(
-                                            color: isDone ? Colors.black : Colors.white,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 3),
-                                        Text(
-                                          isDone
-                                              ? 'Completed 100%'
-                                              : '${(100 - progress).round()}% remaining', // Show remaining progress
-                                          style: TextStyle(
-                                            color: isDone ? Colors.grey[800]! : Colors.white,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w200,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              const SizedBox(height: 34), // Adjusted bottom spacing
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                } else {
-                  return const Text("No goals available");
-                }
-              },
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-            ),
+              ),
             ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGoalCard(String goalName, double progress, bool isDone) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      margin: const EdgeInsets.symmetric(horizontal: 15),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: progress < 100 ? Colors.deepPurple : Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey,
+            blurRadius: 15,
+            offset: const Offset(0, 3),
+          ),
+        ],
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 23),
+          if (isDone)
+            Container(
+              height: 50,
+              width: 50,
+              decoration: BoxDecoration(
+                color: WellBeingColors.yellowColor,
+                shape: BoxShape.circle,
+              ),
+              padding: const EdgeInsets.all(8),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.check_rounded,
+                  color: WellBeingColors.yellowColor,
+                  size: 25,
+                ),
+              ),
             ),
-          ),
-          const Positioned(
-            bottom: 5,
-            height: 100,
-            left: 25,
-            right: 25,
-            child: BottomNavigationBarWidget(),
-          ),
+          if (!isDone)
+            Row(
+              children: [
+                Stack(
+                  children: [
+                    Container(
+                      height: 50,
+                      width: 50,
+                      decoration: const BoxDecoration(
+                        color: Colors.transparent,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      child: SizedBox(
+                        height: 50,
+                        width: 50,
+                        child: CircularProgressIndicator(
+                          value: progress / 100,
+                          strokeWidth: 8,
+                          backgroundColor: Colors.white,
+                          strokeCap: StrokeCap.round,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            WellBeingColors.lightMaroon,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      child: Container(
+                        height: 50,
+                        width: 50,
+                        alignment: Alignment.center,
+                        child: Text(
+                          '${progress.round()}%',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.7),
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      goalName,
+                      style: TextStyle(
+                        color: WellBeingColors.lightYellow,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Almost done',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          const Spacer(),
         ],
       ),
     );
   }
 
-  void _handlePageViewChanged(int currentPageIndex) {
-    _tabController.index = currentPageIndex;
-    setState(() {});
+  Widget reportStats(String stat, String label) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          stat,
+          style: TextStyle(
+            color: WellBeingColors.darkBlueGrey,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          label,
+          style: TextStyle(
+            color: WellBeingColors.mediumGrey,
+            fontSize: 12,
+          ),
+        ),
+      ],
+    );
   }
-}
-
-Widget reportStats(String title, String value) {
-  return Column(
-    children: [
-      Text(
-        title,
-        style: const TextStyle(
-          color: WellBeingColors.darkBlueGrey,
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      Text(
-        value,
-        style: TextStyle(
-          color: WellBeingColors.mediumGrey,
-          fontSize: 13,
-        ),
-      ),
-    ],
-  );
 }

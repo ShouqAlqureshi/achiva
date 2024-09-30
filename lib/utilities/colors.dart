@@ -20,4 +20,6 @@ class WellBeingColors {
   static const lightGrey = Color(0xFFdedede);
   static final mediumGrey = Colors.grey[800]!;
   static const darkGrey = Colors.black;
+
+  static var lightYellow;
 }
