@@ -1,15 +1,12 @@
 import 'package:achiva/utilities/colors.dart';
-import 'package:achiva/views/home_view.dart';
-import 'package:achiva/views/profile/profile_screen.dart';
-import 'package:achiva/views/friends_feed_page.dart';
 import 'package:achiva/views/addition_views/add_goal_page.dart';
 import 'package:flutter/material.dart';
 
-class BottomNavigationBarWidget extends StatelessWidget {
+class FloatingBottomNavigationBarWidget extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTabSelected;
 
-  const BottomNavigationBarWidget({
+  const FloatingBottomNavigationBarWidget({
     Key? key,
     required this.currentIndex,
     required this.onTabSelected,
@@ -17,32 +14,43 @@ class BottomNavigationBarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            spreadRadius: 0,
-            blurRadius: 10,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(Icons.home, 'Home', 0),
-              _buildNavItem(Icons.people, 'Friends', 1),
-              _buildAddButton(context),
-              _buildNavItem(Icons.person, 'Profile', 2),
-            ],
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.bottomCenter,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+          child: Container(
+            height: 70,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.3),
+                  spreadRadius: 0,
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildNavItem(Icons.home, 'Home', 0),
+                _buildNavItem(Icons.people, 'Friends', 1),
+                const SizedBox(width: 60), // Space for FAB
+                _buildNavItem(Icons.notifications, 'Activity', 2),
+                _buildNavItem(Icons.person, 'Profile', 3),
+              ],
+            ),
           ),
         ),
-      ),
+        Positioned(
+          top: -25, // Adjust this value to position the FAB higher
+          child: _buildAddButton(context),
+        ),
+      ],
     );
   }
 
@@ -52,6 +60,7 @@ class BottomNavigationBarWidget extends StatelessWidget {
       onTap: () => onTabSelected(index),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             icon,
@@ -68,6 +77,7 @@ class BottomNavigationBarWidget extends StatelessWidget {
       ),
     );
   }
+
   Widget _buildAddButton(BuildContext context) {
     return GestureDetector(
       onTap: () => Navigator.push(
@@ -75,8 +85,8 @@ class BottomNavigationBarWidget extends StatelessWidget {
         MaterialPageRoute(builder: (context) => const AddGoalPage()),
       ),
       child: Container(
-        width: 56,
-        height: 56,
+        width: 60,
+        height: 60,
         decoration: BoxDecoration(
           color: Colors.deepPurple,
           shape: BoxShape.circle,

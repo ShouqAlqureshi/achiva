@@ -62,7 +62,7 @@ class _HomePageState extends State<HomeScreen> {
 //           CupertinoIcons.search,
 //           size: 32,
 //           color: CoursesColors.darkGreen,
-//         ),
+//         ),A
 //       ),
 //     ],
 //   ),
@@ -76,7 +76,8 @@ class _HomePageState extends State<HomeScreen> {
           const ProfileScreen(), // Your Profile Page
         ],
       ),
-      bottomNavigationBar: BottomNavigationBarWidget(
+      
+      bottomNavigationBar: FloatingBottomNavigationBarWidget(
         currentIndex: _currentIndex,
         onTabSelected: _onTabSelected,
       ),
