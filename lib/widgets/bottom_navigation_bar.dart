@@ -19,12 +19,12 @@ class FloatingBottomNavigationBarWidget extends StatelessWidget {
       alignment: Alignment.bottomCenter,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+          padding: const EdgeInsets.only(left: 24, right: 24, bottom: 16),
           child: Container(
             height: 70,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(30),
+              borderRadius: BorderRadius.circular(35),
               boxShadow: [
                 BoxShadow(
                   color: Colors.grey.withOpacity(0.3),
@@ -35,19 +35,23 @@ class FloatingBottomNavigationBarWidget extends StatelessWidget {
               ],
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                const SizedBox(width: 20),
                 _buildNavItem(Icons.home, 'Home', 0),
+                const SizedBox(width: 30),
                 _buildNavItem(Icons.people, 'Friends', 1),
-                const SizedBox(width: 60), // Space for FAB
+                const SizedBox(width: 80), // Space for FAB
                 _buildNavItem(Icons.notifications, 'Activity', 2),
+                const SizedBox(width: 30),
                 _buildNavItem(Icons.person, 'Profile', 3),
+                const SizedBox(width: 20),
               ],
             ),
           ),
         ),
         Positioned(
-          top: -25, // Adjust this value to position the FAB higher
+          top: -25,
           child: _buildAddButton(context),
         ),
       ],
@@ -65,12 +69,13 @@ class FloatingBottomNavigationBarWidget extends StatelessWidget {
           Icon(
             icon,
             color: isSelected ? CoursesColors.darkGreen : Colors.grey,
+            size: 24,
           ),
           Text(
             label,
             style: TextStyle(
               color: isSelected ? CoursesColors.darkGreen : Colors.grey,
-              fontSize: 12,
+              fontSize: 11,
             ),
           ),
         ],
