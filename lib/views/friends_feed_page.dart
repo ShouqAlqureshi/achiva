@@ -23,25 +23,22 @@ class FriendsFeedScreen extends StatelessWidget {
     },
   ];
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Friends Feed"),
-      ),
+@override
+Widget build(BuildContext context) {
+  return SafeArea(
+    child: Scaffold(
       body: Column(
         children: [
-          // Ranking dashboard at the top
           _buildRankingDashboard(),
-
-          // Expanded widget to allow the feed to take up the remaining space
           Expanded(
             child: _buildPostsFeed(),
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   // Widget for the ranking dashboard
   Widget _buildRankingDashboard() {
