@@ -13,7 +13,20 @@
           "package_name": "com.example.achiva"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "206634315030-3co5ih4r1p577bkogjnp2ofmtfnda2na.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.achiva",
+            "certificate_hash": "817d93ab1a298fb59aef626e7ff53ccb8dc5aac5"
+          }
+        },
+        {
+          "client_id": "206634315030-qpauula742g6cobv5d77ga352craru6v.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBuxX4hXh2g2LPebGdGPJAo_QIIwTUnUNk"
@@ -21,7 +34,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "206634315030-qpauula742g6cobv5d77ga352craru6v.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
