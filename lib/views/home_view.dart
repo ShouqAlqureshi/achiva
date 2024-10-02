@@ -109,7 +109,7 @@ class _HomePageState extends State<HomeScreen> {
                           return const Text("Error fetching user data");
                         }
 
-                        if (snapshot.hasData && snapshot.data != null) {
+                        if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
                           final userData = snapshot.data!.docs.first;
                           final String fname = userData['fname'];
 
