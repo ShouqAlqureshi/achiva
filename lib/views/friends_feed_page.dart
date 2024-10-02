@@ -79,7 +79,7 @@ class FriendsFeedScreen extends StatelessWidget {
     );
   }
 
-  // Widget for the ranking dashboard (unchanged)
+  // Widget for the ranking dashboard 
   Widget _buildRankingDashboard() {
     return Container(
       padding: const EdgeInsets.all(16.0),
@@ -109,7 +109,7 @@ class FriendsFeedScreen extends StatelessWidget {
     );
   }
 
-  // Widget for the feed of posts (updated to fetch posts from tasks)
+  // Widget for the feed of posts (fetch posts from tasks)
   Widget _buildPostsFeed() {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: _fetchTaskPosts(),
@@ -143,7 +143,7 @@ class FriendsFeedScreen extends StatelessWidget {
   }
 }
 
-// Widget for each ranking card (unchanged)
+// Widget for each ranking card 
 class _RankingCard extends StatelessWidget {
   final String user;
   final String score;
@@ -175,7 +175,7 @@ class _RankingCard extends StatelessWidget {
   }
 }
 
-// Widget for each post card (updated to display post content)
+// Widget for each post card (display post content)
 class _PostCard extends StatelessWidget {
   final String user;
   final String content;
