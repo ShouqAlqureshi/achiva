@@ -1,50 +1,89 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class FriendsFeedScreen extends StatelessWidget {
   const FriendsFeedScreen({super.key});
 
-  // Sample data for posts
-  final List<Map<String, String>> posts = const [
-    {
-      "user": "Alice",
-      "content": "Just finished a 10k run! Feeling awesome! 🏃‍♀️💪",
-    },
-    {
-      "user": "Bob",
-      "content": "Can't wait for the weekend! Time to relax. 🌴",
-    },
-    {
-      "user": "Charlie",
-      "content": "Loving this new coffee shop in town ☕. #BestCoffee",
-    },
-    {
-      "user": "Diana",
-      "content": "Working on my new project, so excited to share soon! 💻🚀",
-    },
-  ];
+  // Function to fetch posts from the user's tasks and their friends' tasks
+  Stream<List<Map<String, dynamic>>> _fetchTaskPosts() async* {
+    User? currentUser = FirebaseAuth.instance.currentUser;
 
-@override
-Widget build(BuildContext context) {
-  return SafeArea(
-    child: Scaffold(
-      body: Column(
-        children: [
-          _buildRankingDashboard(),
-          Expanded(
-            child: _buildPostsFeed(),
-          ),
-        ],
+    if (currentUser == null) {
+      throw Exception('No user is logged in.');
+    }
+
+    // Get the current user's document from the 'users' collection
+    DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUser.uid)
+        .get();
+
+    if (!userSnapshot.exists) {
+      throw Exception('User data not found.');
+    }
+
+    // Get the user's friends list (assuming it's an array of UIDs)
+    List<dynamic> friendsList = userSnapshot['friends'] ?? [];
+    
+    // Include the current user's UID to fetch their posts as well
+    friendsList.add(currentUser.uid);
+
+    // Fetch tasks with posts from both the user and their friends
+    List<Map<String, dynamic>> allPosts = [];
+
+    // For each friend (including the user), fetch tasks that have posts
+    for (String friendId in friendsList) {
+      QuerySnapshot tasksSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(friendId)
+          .collection('tasks')
+          .where('post', isNotEqualTo: null)  // Only fetch tasks with posts
+          .get();
+
+      for (var doc in tasksSnapshot.docs) {
+        final task = doc.data() as Map<String, dynamic>;
+        final post = task['post'];
+        if (post != null) {
+          allPosts.add({
+            'userId': friendId,
+            'content': post['content'],
+            'photo': post['photo'],
+            'timestamp': post['timestamp'],
+            'noReaction': post['noReaction'],
+            'reactions': post['reactions'],
+          });
+        }
+      }
+    }
+
+    // Emit the posts
+    yield allPosts;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Scaffold(
+        body: Column(
+          children: [
+            _buildRankingDashboard(),
+            Expanded(
+              child: _buildPostsFeed(),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
-
-  // Widget for the ranking dashboard
+  // Widget for the ranking dashboard 
   Widget _buildRankingDashboard() {
     return Container(
       padding: const EdgeInsets.all(16.0),
-      color: Colors.deepPurpleAccent, // Background color
+      color: Colors.deepPurpleAccent,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -70,19 +109,41 @@ Widget build(BuildContext context) {
     );
   }
 
-  // Widget for the feed of posts
+  // Widget for the feed of posts (fetch posts from tasks)
   Widget _buildPostsFeed() {
-    return ListView.builder(
-      itemCount: posts.length,
-      itemBuilder: (context, index) {
-        final post = posts[index];
-        return _PostCard(user: post['user']!, content: post['content']!);
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _fetchTaskPosts(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(child: Text('No posts available.'));
+        }
+
+        final posts = snapshot.data!;
+
+        return ListView.builder(
+          itemCount: posts.length,
+          itemBuilder: (context, index) {
+            final post = posts[index];
+            return _PostCard(
+              user: post['userId'],
+              content: post['content'],
+              photoUrl: post['photo'],
+              timestamp: post['timestamp'],
+              noReaction: post['noReaction'],
+              reactions: post['reactions'],
+            );
+          },
+        );
       },
     );
   }
 }
 
-// Widget for each ranking card
+// Widget for each ranking card 
 class _RankingCard extends StatelessWidget {
   final String user;
   final String score;
@@ -114,12 +175,23 @@ class _RankingCard extends StatelessWidget {
   }
 }
 
-// Widget for each post card
+// Widget for each post card (display post content)
 class _PostCard extends StatelessWidget {
   final String user;
   final String content;
+  final String? photoUrl;
+  final String timestamp;
+  final int noReaction;
+  final List reactions;
 
-  const _PostCard({required this.user, required this.content});
+  const _PostCard({
+    required this.user,
+    required this.content,
+    required this.photoUrl,
+    required this.timestamp,
+    required this.noReaction,
+    required this.reactions,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -130,6 +202,7 @@ class _PostCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // User name
             Text(
               user,
               style: const TextStyle(
@@ -138,9 +211,38 @@ class _PostCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 5.0),
+            // Post content
             Text(
               content,
               style: const TextStyle(fontSize: 14.0),
+            ),
+            const SizedBox(height: 5.0),
+            // Post image (if available)
+            photoUrl != null
+                ? Image.network(photoUrl!, height: 200.0, fit: BoxFit.cover)
+                : const SizedBox.shrink(),
+            const SizedBox(height: 10.0),
+            // Post reactions and timestamp
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Reactions
+                Text(
+                  '$noReaction Reactions',
+                  style: const TextStyle(
+                    fontSize: 14.0,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+                // Post date
+                Text(
+                  timestamp,
+                  style: const TextStyle(
+                    fontSize: 12.0,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
