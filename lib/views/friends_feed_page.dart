@@ -179,7 +179,7 @@ class _RankingCard extends StatelessWidget {
 class _PostCard extends StatelessWidget {
   final String user;
   final String content;
-  final String photoUrl;
+  final String? photoUrl;
   final String timestamp;
   final int noReaction;
   final List reactions;
@@ -202,6 +202,7 @@ class _PostCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // User name
             Text(
               user,
               style: const TextStyle(
@@ -210,18 +211,38 @@ class _PostCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 5.0),
+            // Post content
             Text(
               content,
               style: const TextStyle(fontSize: 14.0),
             ),
             const SizedBox(height: 5.0),
+            // Post image (if available)
             photoUrl != null
-                ? Image.network(photoUrl, height: 200.0, fit: BoxFit.cover)
+                ? Image.network(photoUrl!, height: 200.0, fit: BoxFit.cover)
                 : const SizedBox.shrink(),
-            const SizedBox(height: 5.0),
-            Text(
-              '$noReaction Reactions',
-              style: const TextStyle(fontSize: 14.0, fontStyle: FontStyle.italic),
+            const SizedBox(height: 10.0),
+            // Post reactions and timestamp
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Reactions
+                Text(
+                  '$noReaction Reactions',
+                  style: const TextStyle(
+                    fontSize: 14.0,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+                // Post date
+                Text(
+                  timestamp,
+                  style: const TextStyle(
+                    fontSize: 12.0,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
