@@ -25,6 +25,15 @@ class _GenderSelectionViewState extends State<GenderSelectionView> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const Text(
+                "Gender selection",
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w500,
+                  color: Color.fromARGB(255, 240, 238, 249),
+                ),
+                textAlign: TextAlign.start,
+              ),
               const SizedBox(height: 40),
               const Text(
                 'What is your gender?',
@@ -99,7 +108,7 @@ class _GenderSelectionViewState extends State<GenderSelectionView> {
           border: Border.all(
               color: _selectedGender == gender.toLowerCase()
                   ? Colors.deepPurple
-                  : Colors.deepPurple.withOpacity(0.5),
+                  : Color.fromARGB(255, 71, 71, 71),
               width: 2),
         ),
         child: Column(
