@@ -1,67 +1,86 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class FriendsFeedScreen extends StatelessWidget {
   const FriendsFeedScreen({super.key});
 
-  // Function to fetch posts from the user's tasks and their friends' tasks
-  Stream<List<Map<String, dynamic>>> _fetchTaskPosts() async* {
-    User? currentUser = FirebaseAuth.instance.currentUser;
+Stream<List<Map<String, dynamic>>> _fetchTaskPosts() async* {
+  User? currentUser = FirebaseAuth.instance.currentUser;
 
-    if (currentUser == null) {
-      throw Exception('No user is logged in.');
+  if (currentUser == null) {
+    if (kDebugMode) {
+      print('No user is logged in.');
     }
+    return;
+  }
 
-    // Get the current user's document from the 'users' collection
-    DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(currentUser.uid)
+  // Get the current user's document from the 'users' collection
+  DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+      .collection('Users')
+      .doc(currentUser.uid)
+      .get();
+
+  if (!userSnapshot.exists) {
+    if (kDebugMode) {
+      print('User data not found.');
+    }
+    return;
+  }
+
+  // Get the user's friends list
+  List<dynamic> friendsList = userSnapshot['friends'] ?? [];
+  friendsList.add(currentUser.uid);  // Include the current user's UID
+if (kDebugMode) {
+  print('Friends List: $friendsList');
+}
+
+  List<Map<String, dynamic>> allPosts = [];
+
+for (String friendId in friendsList) {
+  if (kDebugMode) {
+    print('Fetching posts for user: $friendId');
+  }
+  
+  QuerySnapshot goalsSnapshot = await FirebaseFirestore.instance
+      .collection('Users')
+      .doc(friendId)
+      .collection('goals')
+      .get();
+
+  for (var goalDoc in goalsSnapshot.docs) {
+    QuerySnapshot tasksSnapshot = await goalDoc.reference
+        .collection('tasks')
         .get();
 
-    if (!userSnapshot.exists) {
-      throw Exception('User data not found.');
-    }
-
-    // Get the user's friends list (assuming it's an array of UIDs)
-    List<dynamic> friendsList = userSnapshot['friends'] ?? [];
-    
-    // Include the current user's UID to fetch their posts as well
-    friendsList.add(currentUser.uid);
-
-    // Fetch tasks with posts from both the user and their friends
-    List<Map<String, dynamic>> allPosts = [];
-
-    // For each friend (including the user), fetch tasks that have posts
-    for (String friendId in friendsList) {
-      QuerySnapshot tasksSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(friendId)
-          .collection('tasks')
-          .where('post', isNotEqualTo: null)  // Only fetch tasks with posts
+    for (var taskDoc in tasksSnapshot.docs) {
+      // Fetch the posts subcollection inside each task
+      QuerySnapshot postsSnapshot = await taskDoc.reference
+          .collection('posts') // Adjusted to query 'posts' subcollection
           .get();
 
-      for (var doc in tasksSnapshot.docs) {
-        final task = doc.data() as Map<String, dynamic>;
-        final post = task['post'];
-        if (post != null) {
-          allPosts.add({
-            'userId': friendId,
-            'content': post['content'],
-            'photo': post['photo'],
-            'timestamp': post['timestamp'],
-            'noReaction': post['noReaction'],
-            'reactions': post['reactions'],
-          });
-        }
+      for (var postDoc in postsSnapshot.docs) {
+        final post = postDoc.data() as Map<String, dynamic>;
+        print('Post found: ${post['content']}');
+        allPosts.add({
+          'userId': friendId,
+          'content': post['content'],
+          'photo': post['photo'],
+          'timestamp': post['postDate'],
+        });
       }
     }
-
-    // Emit the posts
-    yield allPosts;
   }
+}
+
+
+  if (kDebugMode) {
+    print('Total posts fetched: ${allPosts.length}');
+  }
+  yield allPosts;
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -133,8 +152,6 @@ class FriendsFeedScreen extends StatelessWidget {
               content: post['content'],
               photoUrl: post['photo'],
               timestamp: post['timestamp'],
-              noReaction: post['noReaction'],
-              reactions: post['reactions'],
             );
           },
         );
@@ -181,16 +198,12 @@ class _PostCard extends StatelessWidget {
   final String content;
   final String? photoUrl;
   final String timestamp;
-  final int noReaction;
-  final List reactions;
 
   const _PostCard({
     required this.user,
     required this.content,
     required this.photoUrl,
     required this.timestamp,
-    required this.noReaction,
-    required this.reactions,
   });
 
   @override
@@ -226,14 +239,7 @@ class _PostCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Reactions
-                Text(
-                  '$noReaction Reactions',
-                  style: const TextStyle(
-                    fontSize: 14.0,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
+              
                 // Post date
                 Text(
                   timestamp,
