@@ -2,85 +2,130 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; 
+import 'package:http/http.dart' as http;
 
 class FriendsFeedScreen extends StatelessWidget {
   const FriendsFeedScreen({super.key});
 
-Stream<List<Map<String, dynamic>>> _fetchTaskPosts() async* {
-  User? currentUser = FirebaseAuth.instance.currentUser;
+  Stream<List<Map<String, dynamic>>> _fetchTaskPosts() async* {
+    try {
+      if (kDebugMode) {
+        print('Starting _fetchTaskPosts function');
+      }
 
-  if (currentUser == null) {
-    if (kDebugMode) {
-      print('No user is logged in.');
-    }
-    return;
-  }
+      User? currentUser = FirebaseAuth.instance.currentUser;
 
-  // Get the current user's document from the 'users' collection
-  DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
-      .collection('Users')
-      .doc(currentUser.uid)
-      .get();
+      if (currentUser == null) {
+        if (kDebugMode) {
+          print('No user is logged in.');
+        }
+        yield [];
+        return;
+      }
 
-  if (!userSnapshot.exists) {
-    if (kDebugMode) {
-      print('User data not found.');
-    }
-    return;
-  }
+      if (kDebugMode) {
+        print('Current user ID: ${currentUser.uid}');
+      }
 
-  // Get the user's friends list
-  List<dynamic> friendsList = userSnapshot['friends'] ?? [];
-  friendsList.add(currentUser.uid);  // Include the current user's UID
-if (kDebugMode) {
-  print('Friends List: $friendsList');
-}
-
-  List<Map<String, dynamic>> allPosts = [];
-
-for (String friendId in friendsList) {
-  if (kDebugMode) {
-    print('Fetching posts for user: $friendId');
-  }
-  
-  QuerySnapshot goalsSnapshot = await FirebaseFirestore.instance
-      .collection('Users')
-      .doc(friendId)
-      .collection('goals')
-      .get();
-
-  for (var goalDoc in goalsSnapshot.docs) {
-    QuerySnapshot tasksSnapshot = await goalDoc.reference
-        .collection('tasks')
-        .get();
-
-    for (var taskDoc in tasksSnapshot.docs) {
-      // Fetch the posts subcollection inside each task
-      QuerySnapshot postsSnapshot = await taskDoc.reference
-          .collection('posts') // Adjusted to query 'posts' subcollection
+      DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(currentUser.uid)
           .get();
 
-      for (var postDoc in postsSnapshot.docs) {
-        final post = postDoc.data() as Map<String, dynamic>;
-        print('Post found: ${post['content']}');
-        allPosts.add({
-          'userId': friendId,
-          'content': post['content'],
-          'photo': post['photo'],
-          'timestamp': post['postDate'],
-        });
+      if (!userSnapshot.exists) {
+        if (kDebugMode) {
+          print('User data not found for ID: ${currentUser.uid}');
+        }
+        yield [];
+        return;
       }
+
+      List<dynamic> friendsList = (userSnapshot.data() as Map<String, dynamic>)['friends'] ?? [];
+      friendsList.add(currentUser.uid);
+
+      if (kDebugMode) {
+        print('Friends List: $friendsList');
+      }
+
+      List<Map<String, dynamic>> allPosts = [];
+
+      for (String friendId in friendsList) {
+        if (kDebugMode) {
+          print('Fetching posts for user: $friendId');
+        }
+        
+        QuerySnapshot goalsSnapshot = await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(friendId)
+            .collection('goals')
+            .get();
+
+        for (var goalDoc in goalsSnapshot.docs) {
+          QuerySnapshot tasksSnapshot = await goalDoc.reference
+              .collection('tasks')
+              .get();
+
+          for (var taskDoc in tasksSnapshot.docs) {
+            QuerySnapshot postsSnapshot = await taskDoc.reference
+                .collection('posts')
+                .get();
+
+            for (var postDoc in postsSnapshot.docs) {
+              final postData = postDoc.data() as Map<String, dynamic>;
+              if (kDebugMode) {
+                print('Raw post data: $postData');
+              }
+
+              if (postData.containsKey('content') && postData.containsKey('postDate')) {
+                String formattedDate = 'Unknown Date';
+                try {
+                  if (postData['postDate'] is Timestamp) {
+                    DateTime dateTime = (postData['postDate'] as Timestamp).toDate();
+                    formattedDate = DateFormat('yyyy-MM-dd HH:mm:ss').format(dateTime);
+                  } else if (postData['postDate'] is String) {
+                    formattedDate = postData['postDate'];
+                  } else {
+                    if (kDebugMode) {
+                      print('Unexpected postDate type: ${postData['postDate'].runtimeType}');
+                    }
+                  }
+                } catch (e) {
+                  if (kDebugMode) {
+                    print('Error formatting date: $e');
+                    print('postDate value: ${postData['postDate']}');
+                  }
+                }
+
+                allPosts.add({
+                  'userId': friendId,
+                  'content': postData['content'].toString(),
+                  'photo': postData['photo']?.toString(),
+                  'timestamp': formattedDate,
+                });
+              } else {
+                if (kDebugMode) {
+                  print('Skipping post due to missing required fields: $postData');
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (kDebugMode) {
+        print('Total posts fetched: ${allPosts.length}');
+        print('All posts: $allPosts');
+      }
+      yield allPosts;
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        print('Error in _fetchTaskPosts: $e');
+        print('Stack trace: $stackTrace');
+      }
+      yield [];
     }
   }
-}
-
-
-  if (kDebugMode) {
-    print('Total posts fetched: ${allPosts.length}');
-  }
-  yield allPosts;
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -97,6 +142,8 @@ for (String friendId in friendsList) {
       ),
     );
   }
+
+
 
   // Widget for the ranking dashboard 
   Widget _buildRankingDashboard() {
@@ -133,6 +180,14 @@ for (String friendId in friendsList) {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: _fetchTaskPosts(),
       builder: (context, snapshot) {
+        if (kDebugMode) {
+          print('StreamBuilder state: ${snapshot.connectionState}');
+          print('StreamBuilder data: ${snapshot.data}');
+          if (snapshot.hasError) {
+            print('StreamBuilder error: ${snapshot.error}');
+          }
+        }
+
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -148,10 +203,10 @@ for (String friendId in friendsList) {
           itemBuilder: (context, index) {
             final post = posts[index];
             return _PostCard(
-              user: post['userId'],
-              content: post['content'],
-              photoUrl: post['photo'],
-              timestamp: post['timestamp'],
+              user: post['userId'].toString(),
+              content: post['content'].toString(),
+              photoUrl: post['photo']?.toString(),
+              timestamp: post['timestamp'].toString(),
             );
           },
         );
@@ -159,7 +214,6 @@ for (String friendId in friendsList) {
     );
   }
 }
-
 // Widget for each ranking card 
 class _RankingCard extends StatelessWidget {
   final String user;
@@ -202,9 +256,22 @@ class _PostCard extends StatelessWidget {
   const _PostCard({
     required this.user,
     required this.content,
-    required this.photoUrl,
+    this.photoUrl,
     required this.timestamp,
   });
+
+
+   Future<bool> _checkImageAvailability(String url) async {
+    try {
+      final response = await http.head(Uri.parse(url));
+      return response.statusCode == 200;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error checking image availability: $e');
+      }
+      return false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -215,43 +282,84 @@ class _PostCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // User name
-            Text(
-              user,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16.0,
+            Text(user, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0)),
+            const SizedBox(height: 5.0),
+            Text(content, style: const TextStyle(fontSize: 14.0)),
+            if (photoUrl != null && photoUrl!.isNotEmpty)
+              FutureBuilder<bool>(
+                future: _checkImageAvailability(photoUrl!),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.data == true) {
+                    return _buildImageWidget();
+                  } else {
+                    return _buildErrorWidget();
+                  }
+                },
               ),
-            ),
-            const SizedBox(height: 5.0),
-            // Post content
-            Text(
-              content,
-              style: const TextStyle(fontSize: 14.0),
-            ),
-            const SizedBox(height: 5.0),
-            // Post image (if available)
-            photoUrl != null
-                ? Image.network(photoUrl!, height: 200.0, fit: BoxFit.cover)
-                : const SizedBox.shrink(),
             const SizedBox(height: 10.0),
-            // Post reactions and timestamp
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-              
-                // Post date
-                Text(
-                  timestamp,
-                  style: const TextStyle(
-                    fontSize: 12.0,
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
+            Text(
+              timestamp,
+              style: const TextStyle(fontSize: 12.0, color: Colors.grey),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildImageWidget() {
+    return Image.network(
+      photoUrl!,
+      height: 200.0,
+      width: double.infinity,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        if (kDebugMode) {
+          print('Error loading image: $error');
+          print('Image URL: $photoUrl');
+        }
+        return _buildErrorWidget();
+      },
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Container(
+          height: 200.0,
+          width: double.infinity,
+          color: Colors.grey[300],
+          child: Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                  : null,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildErrorWidget() {
+    return Container(
+      height: 200.0,
+      width: double.infinity,
+      color: Colors.grey[300],
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error, color: Colors.red, size: 40),
+          const SizedBox(height: 10),
+          Text('Failed to load image', style: TextStyle(color: Colors.red[700])),
+          const SizedBox(height: 5),
+          if (kDebugMode)
+            Text(
+              'URL: $photoUrl',
+              style: const TextStyle(fontSize: 10),
+              textAlign: TextAlign.center,
+            ),
+        ],
       ),
     );
   }
