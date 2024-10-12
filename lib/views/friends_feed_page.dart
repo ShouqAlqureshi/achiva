@@ -69,6 +69,7 @@ class FriendsFeedScreen extends StatelessWidget {
           for (var taskDoc in tasksSnapshot.docs) {
             QuerySnapshot postsSnapshot = await taskDoc.reference
                 .collection('posts')
+                .orderBy('postDate', descending: true) 
                 .get();
 
             for (var postDoc in postsSnapshot.docs) {
@@ -157,6 +158,7 @@ class FriendsFeedScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
+        backgroundColor: Colors.white,
         body: Column(
           children: [
             _buildRankingDashboard(),
