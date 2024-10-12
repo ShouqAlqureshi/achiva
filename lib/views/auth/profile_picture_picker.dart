@@ -32,6 +32,7 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
     setState(() {
       isFormSubmitted = true;
     });
+
     final usercollection = FirebaseFirestore.instance
         .collection("Users")
         .doc(FirebaseAuth.instance.currentUser!.uid);
@@ -42,22 +43,33 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
     _showLoadingDialog();
 
     try {
-      final uploadTask = await FirebaseStorage.instance
-          .ref()
-          .child("Users/${Uri.file(_imageFile!.path).pathSegments.last}")
-          .putFile(File(_imageFile!.path));
+      String photoUrl;
 
-      final urlOfImageUploaded = await uploadTask.ref.getDownloadURL();
-
-      debugPrint(urlOfImageUploaded);
+      // If the user selected an image, upload it
       if (_imageFile != null) {
-        datatosave.addAll({
-          "photo": urlOfImageUploaded,
-          'id': FirebaseAuth.instance.currentUser!.uid
-        });
+        final uploadTask = await FirebaseStorage.instance
+            .ref()
+            .child("Users/${Uri.file(_imageFile!.path).pathSegments.last}")
+            .putFile(File(_imageFile!.path));
+
+        photoUrl = await uploadTask.ref.getDownloadURL();
+        debugPrint(photoUrl);
+         datatosave.addAll({
+        "photo": photoUrl,
+        'id': FirebaseAuth.instance.currentUser!.uid,
+      });
       } else {
-        datatosave.addAll({'id': FirebaseAuth.instance.currentUser!.uid});
+        // Use the default 'chicken.png' photo
+        photoUrl =
+            "https://firebasestorage.googleapis.com/gs://achiva444.appspot.com/defaultPictures/chicken.png";
+             datatosave.addAll({
+        // "photo": photoUrl,
+        'id': FirebaseAuth.instance.currentUser!.uid,
+      });
       }
+
+     
+
       log(datatosave.toString());
       usercollection.set(datatosave);
 
@@ -71,6 +83,9 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
       Navigator.of(context).pop();
       // Show error message or handle it as needed
       log("Error uploading image: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error uploading image: $e')),
+      );
     }
   }
 
@@ -121,10 +136,16 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
                             ? CircleAvatar(
                                 radius: 80,
                                 backgroundColor: Colors.grey[200],
-                                child: const Icon(
-                                  Icons.person,
-                                  size: 60,
-                                  color: Colors.grey,
+                                child: ClipOval(
+                                  child: Image.asset(
+                                    'lib/images/chicken.png', // Path to your default image
+                                    fit: BoxFit
+                                        .cover, // Ensures the image covers the available space
+                                    width:
+                                        160, // Adjust width to fit within the circle
+                                    height:
+                                        160, // Adjust height to fit within the circle
+                                  ),
                                 ),
                               )
                             : CircleAvatar(

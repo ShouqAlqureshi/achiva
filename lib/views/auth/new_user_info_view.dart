@@ -40,6 +40,19 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+          title: const Text(
+            "Profile information",
+            style: TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.w500,
+              color: Color.fromARGB(255, 71, 71, 71),
+            ),
+            textAlign: TextAlign.start,
+          ),
+          toolbarHeight: 100,
+          centerTitle: true,
+          backgroundColor: Colors.white),
       backgroundColor: Colors.white,
       body: Center(
         child: SingleChildScrollView(
