@@ -97,8 +97,11 @@ class FriendsFeedScreen extends StatelessWidget {
                   }
                 }
 
+                // Fetch the user's first and last names
+                final userName = await _fetchUserName(friendId);
+
                 allPosts.add({
-                  'userId': friendId,
+                  'userName': userName,
                   'content': postData['content'].toString(),
                   'photo': postData['photo']?.toString(),
                   'timestamp': formattedDate,
@@ -127,6 +130,29 @@ class FriendsFeedScreen extends StatelessWidget {
     }
   }
 
+  Future<String> _fetchUserName(String userId) async {
+    try {
+      DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(userId)
+          .get();
+
+      if (userSnapshot.exists) {
+        Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
+        String firstName = userData['fname'] ?? 'Unknown';
+        String lastName = userData['lname'] ?? 'Unknown';
+        return '$firstName $lastName';
+      } else {
+        return 'Unknown User';
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error fetching user name: $e');
+      }
+      return 'Unknown User';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -142,8 +168,6 @@ class FriendsFeedScreen extends StatelessWidget {
       ),
     );
   }
-
-
 
   // Widget for the ranking dashboard 
   Widget _buildRankingDashboard() {
@@ -203,7 +227,7 @@ class FriendsFeedScreen extends StatelessWidget {
           itemBuilder: (context, index) {
             final post = posts[index];
             return _PostCard(
-              user: post['userId'].toString(),
+              userName: post['userName'],
               content: post['content'].toString(),
               photoUrl: post['photo']?.toString(),
               timestamp: post['timestamp'].toString(),
@@ -214,54 +238,22 @@ class FriendsFeedScreen extends StatelessWidget {
     );
   }
 }
-// Widget for each ranking card 
-class _RankingCard extends StatelessWidget {
-  final String user;
-  final String score;
-
-  const _RankingCard({required this.user, required this.score});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        CircleAvatar(
-          backgroundColor: Colors.white,
-          child: Text(user[0], style: const TextStyle(fontSize: 20.0)),
-        ),
-        const SizedBox(height: 5.0),
-        Text(
-          user,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        Text(
-          score,
-          style: const TextStyle(color: Colors.white),
-        ),
-      ],
-    );
-  }
-}
 
 // Widget for each post card (display post content)
 class _PostCard extends StatelessWidget {
-  final String user;
+  final String userName;
   final String content;
   final String? photoUrl;
   final String timestamp;
 
   const _PostCard({
-    required this.user,
+    required this.userName,
     required this.content,
     this.photoUrl,
     required this.timestamp,
   });
 
-
-   Future<bool> _checkImageAvailability(String url) async {
+  Future<bool> _checkImageAvailability(String url) async {
     try {
       final response = await http.head(Uri.parse(url));
       return response.statusCode == 200;
@@ -282,7 +274,7 @@ class _PostCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(user, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0)),
+            Text(userName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0)),
             const SizedBox(height: 5.0),
             Text(content, style: const TextStyle(fontSize: 14.0)),
             if (photoUrl != null && photoUrl!.isNotEmpty)
@@ -302,7 +294,8 @@ class _PostCard extends StatelessWidget {
             const SizedBox(height: 10.0),
             Text(
               timestamp,
-              style: const TextStyle(fontSize: 12.0, color: Colors.grey),
+              style: const TextStyle(fontSize: 12
+              , color: Colors.grey),
             ),
           ],
         ),
@@ -310,57 +303,55 @@ class _PostCard extends StatelessWidget {
     );
   }
 
+  // Widget to display the image if available
   Widget _buildImageWidget() {
     return Image.network(
       photoUrl!,
-      height: 200.0,
-      width: double.infinity,
       fit: BoxFit.cover,
+      width: double.infinity,
+      height: 200.0,
       errorBuilder: (context, error, stackTrace) {
-        if (kDebugMode) {
-          print('Error loading image: $error');
-          print('Image URL: $photoUrl');
-        }
-        return _buildErrorWidget();
-      },
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return Container(
-          height: 200.0,
-          width: double.infinity,
-          color: Colors.grey[300],
-          child: Center(
-            child: CircularProgressIndicator(
-              value: loadingProgress.expectedTotalBytes != null
-                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                  : null,
-            ),
-          ),
-        );
+        return const Center(child: Text('Image not available.'));
       },
     );
   }
 
+  // Widget to display an error message if the image is not available
   Widget _buildErrorWidget() {
-    return Container(
-      height: 200.0,
-      width: double.infinity,
-      color: Colors.grey[300],
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error, color: Colors.red, size: 40),
-          const SizedBox(height: 10),
-          Text('Failed to load image', style: TextStyle(color: Colors.red[700])),
-          const SizedBox(height: 5),
-          if (kDebugMode)
-            Text(
-              'URL: $photoUrl',
-              style: const TextStyle(fontSize: 10),
-              textAlign: TextAlign.center,
-            ),
-        ],
-      ),
+    return const Center(
+      child: Text('Image not available.'),
+    );
+  }
+}
+
+// Widget for the ranking cards
+class _RankingCard extends StatelessWidget {
+  final String user;
+  final String score;
+
+  const _RankingCard({
+    required this.user,
+    required this.score,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        CircleAvatar(
+          radius: 30.0,
+          child: Text(user.substring(0, 1)),
+        ),
+        const SizedBox(height: 5.0),
+        Text(
+          user,
+          style: const TextStyle(color: Colors.white, fontSize: 14.0),
+        ),
+        Text(
+          score,
+          style: const TextStyle(color: Colors.white, fontSize: 12.0),
+        ),
+      ],
     );
   }
 }
