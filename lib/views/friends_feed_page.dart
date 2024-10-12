@@ -305,21 +305,61 @@ class _PostCard extends StatelessWidget {
 
   // Widget to display the image if available
   Widget _buildImageWidget() {
-    return Image.network(
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(10.0), // Adjust this value for more or less rounding
+    child: Image.network(
       photoUrl!,
-      fit: BoxFit.cover,
-      width: double.infinity,
       height: 200.0,
+      width: double.infinity,
+      fit: BoxFit.cover,
       errorBuilder: (context, error, stackTrace) {
-        return const Center(child: Text('Image not available.'));
+        if (kDebugMode) {
+          print('Error loading image: $error');
+          print('Image URL: $photoUrl');
+        }
+        return _buildErrorWidget();
       },
-    );
-  }
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Container(
+          height: 200.0,
+          width: double.infinity,
+          color: Colors.grey[300],
+          child: Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                  : null,
+            ),
+          ),
+        );
+      },
+    ),
+  );
+}
+
 
   // Widget to display an error message if the image is not available
   Widget _buildErrorWidget() {
-    return const Center(
-      child: Text('Image not available.'),
+    return Container(
+      height: 200.0,
+      width: double.infinity,
+      color: Colors.grey[300],
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error, color: Colors.red, size: 40),
+          const SizedBox(height: 10),
+          Text('Failed to load image', style: TextStyle(color: Colors.red[700])),
+          const SizedBox(height: 5),
+          if (kDebugMode)
+            Text(
+              'URL: $photoUrl',
+              style: const TextStyle(fontSize: 10),
+              textAlign: TextAlign.center,
+            ),
+        ],
+      ),
     );
   }
 }
