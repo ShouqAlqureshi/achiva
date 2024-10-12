@@ -8,12 +8,7 @@ import 'package:achiva/views/profile/layout_controller/layout_cubit.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
 import 'firebase_options.dart';
-<<<<<<< Updated upstream
-=======
-import 'package:firebase_app_check/firebase_app_check.dart';
->>>>>>> Stashed changes
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,7 +24,7 @@ void main() async {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const PhoneNumAuthView(),
+      home: const HomeScreen(),
       routes: {
         '/otp': (context) => const VerfyCodeView(),
         '/home': (context) => const HomeScreen(),
