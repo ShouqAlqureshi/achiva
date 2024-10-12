@@ -1,66 +1,156 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; 
+import 'package:http/http.dart' as http;
 
 class FriendsFeedScreen extends StatelessWidget {
   const FriendsFeedScreen({super.key});
 
-  // Function to fetch posts from the user's tasks and their friends' tasks
   Stream<List<Map<String, dynamic>>> _fetchTaskPosts() async* {
-    User? currentUser = FirebaseAuth.instance.currentUser;
+    try {
+      if (kDebugMode) {
+        print('Starting _fetchTaskPosts function');
+      }
 
-    if (currentUser == null) {
-      throw Exception('No user is logged in.');
-    }
+      User? currentUser = FirebaseAuth.instance.currentUser;
 
-    // Get the current user's document from the 'users' collection
-    DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(currentUser.uid)
-        .get();
+      if (currentUser == null) {
+        if (kDebugMode) {
+          print('No user is logged in.');
+        }
+        yield [];
+        return;
+      }
 
-    if (!userSnapshot.exists) {
-      throw Exception('User data not found.');
-    }
+      if (kDebugMode) {
+        print('Current user ID: ${currentUser.uid}');
+      }
 
-    // Get the user's friends list (assuming it's an array of UIDs)
-    List<dynamic> friendsList = userSnapshot['friends'] ?? [];
-    
-    // Include the current user's UID to fetch their posts as well
-    friendsList.add(currentUser.uid);
-
-    // Fetch tasks with posts from both the user and their friends
-    List<Map<String, dynamic>> allPosts = [];
-
-    // For each friend (including the user), fetch tasks that have posts
-    for (String friendId in friendsList) {
-      QuerySnapshot tasksSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(friendId)
-          .collection('tasks')
-          .where('post', isNotEqualTo: null)  // Only fetch tasks with posts
+      DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(currentUser.uid)
           .get();
 
-      for (var doc in tasksSnapshot.docs) {
-        final task = doc.data() as Map<String, dynamic>;
-        final post = task['post'];
-        if (post != null) {
-          allPosts.add({
-            'userId': friendId,
-            'content': post['content'],
-            'photo': post['photo'],
-            'timestamp': post['timestamp'],
-            'noReaction': post['noReaction'],
-            'reactions': post['reactions'],
-          });
+      if (!userSnapshot.exists) {
+        if (kDebugMode) {
+          print('User data not found for ID: ${currentUser.uid}');
+        }
+        yield [];
+        return;
+      }
+
+      List<dynamic> friendsList = (userSnapshot.data() as Map<String, dynamic>)['friends'] ?? [];
+      friendsList.add(currentUser.uid);
+
+      if (kDebugMode) {
+        print('Friends List: $friendsList');
+      }
+
+      List<Map<String, dynamic>> allPosts = [];
+
+      for (String friendId in friendsList) {
+        if (kDebugMode) {
+          print('Fetching posts for user: $friendId');
+        }
+        
+        QuerySnapshot goalsSnapshot = await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(friendId)
+            .collection('goals')
+            .get();
+
+        for (var goalDoc in goalsSnapshot.docs) {
+          QuerySnapshot tasksSnapshot = await goalDoc.reference
+              .collection('tasks')
+              .get();
+
+          for (var taskDoc in tasksSnapshot.docs) {
+            QuerySnapshot postsSnapshot = await taskDoc.reference
+                .collection('posts')
+                .get();
+
+            for (var postDoc in postsSnapshot.docs) {
+              final postData = postDoc.data() as Map<String, dynamic>;
+              if (kDebugMode) {
+                print('Raw post data: $postData');
+              }
+
+              if (postData.containsKey('content') && postData.containsKey('postDate')) {
+                String formattedDate = 'Unknown Date';
+                try {
+                  if (postData['postDate'] is Timestamp) {
+                    DateTime dateTime = (postData['postDate'] as Timestamp).toDate();
+                    formattedDate = DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
+                  } else if (postData['postDate'] is String) {
+                    formattedDate = postData['postDate'];
+                  } else {
+                    if (kDebugMode) {
+                      print('Unexpected postDate type: ${postData['postDate'].runtimeType}');
+                    }
+                  }
+                } catch (e) {
+                  if (kDebugMode) {
+                    print('Error formatting date: $e');
+                    print('postDate value: ${postData['postDate']}');
+                  }
+                }
+
+                // Fetch the user's first and last names
+                final userName = await _fetchUserName(friendId);
+
+                allPosts.add({
+                  'userName': userName,
+                  'content': postData['content'].toString(),
+                  'photo': postData['photo']?.toString(),
+                  'timestamp': formattedDate,
+                });
+              } else {
+                if (kDebugMode) {
+                  print('Skipping post due to missing required fields: $postData');
+                }
+              }
+            }
+          }
         }
       }
-    }
 
-    // Emit the posts
-    yield allPosts;
+      if (kDebugMode) {
+        print('Total posts fetched: ${allPosts.length}');
+        print('All posts: $allPosts');
+      }
+      yield allPosts;
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        print('Error in _fetchTaskPosts: $e');
+        print('Stack trace: $stackTrace');
+      }
+      yield [];
+    }
+  }
+
+  Future<String> _fetchUserName(String userId) async {
+    try {
+      DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(userId)
+          .get();
+
+      if (userSnapshot.exists) {
+        Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
+        String firstName = userData['fname'] ?? 'Unknown';
+        String lastName = userData['lname'] ?? 'Unknown';
+        return '$firstName $lastName';
+      } else {
+        return 'Unknown User';
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error fetching user name: $e');
+      }
+      return 'Unknown User';
+    }
   }
 
   @override
@@ -114,6 +204,14 @@ class FriendsFeedScreen extends StatelessWidget {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: _fetchTaskPosts(),
       builder: (context, snapshot) {
+        if (kDebugMode) {
+          print('StreamBuilder state: ${snapshot.connectionState}');
+          print('StreamBuilder data: ${snapshot.data}');
+          if (snapshot.hasError) {
+            print('StreamBuilder error: ${snapshot.error}');
+          }
+        }
+
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -129,12 +227,10 @@ class FriendsFeedScreen extends StatelessWidget {
           itemBuilder: (context, index) {
             final post = posts[index];
             return _PostCard(
-              user: post['userId'],
-              content: post['content'],
-              photoUrl: post['photo'],
-              timestamp: post['timestamp'],
-              noReaction: post['noReaction'],
-              reactions: post['reactions'],
+              userName: post['userName'],
+              content: post['content'].toString(),
+              photoUrl: post['photo']?.toString(),
+              timestamp: post['timestamp'].toString(),
             );
           },
         );
@@ -143,55 +239,31 @@ class FriendsFeedScreen extends StatelessWidget {
   }
 }
 
-// Widget for each ranking card 
-class _RankingCard extends StatelessWidget {
-  final String user;
-  final String score;
-
-  const _RankingCard({required this.user, required this.score});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        CircleAvatar(
-          backgroundColor: Colors.white,
-          child: Text(user[0], style: const TextStyle(fontSize: 20.0)),
-        ),
-        const SizedBox(height: 5.0),
-        Text(
-          user,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        Text(
-          score,
-          style: const TextStyle(color: Colors.white),
-        ),
-      ],
-    );
-  }
-}
-
 // Widget for each post card (display post content)
 class _PostCard extends StatelessWidget {
-  final String user;
+  final String userName;
   final String content;
   final String? photoUrl;
   final String timestamp;
-  final int noReaction;
-  final List reactions;
 
   const _PostCard({
-    required this.user,
+    required this.userName,
     required this.content,
-    required this.photoUrl,
+    this.photoUrl,
     required this.timestamp,
-    required this.noReaction,
-    required this.reactions,
   });
+
+  Future<bool> _checkImageAvailability(String url) async {
+    try {
+      final response = await http.head(Uri.parse(url));
+      return response.statusCode == 200;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error checking image availability: $e');
+      }
+      return false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -202,51 +274,124 @@ class _PostCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // User name
-            Text(
-              user,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16.0,
+            Text(userName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0)),
+            const SizedBox(height: 5.0),
+            Text(content, style: const TextStyle(fontSize: 14.0)),
+            if (photoUrl != null && photoUrl!.isNotEmpty)
+              FutureBuilder<bool>(
+                future: _checkImageAvailability(photoUrl!),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.data == true) {
+                    return _buildImageWidget();
+                  } else {
+                    return _buildErrorWidget();
+                  }
+                },
               ),
-            ),
-            const SizedBox(height: 5.0),
-            // Post content
-            Text(
-              content,
-              style: const TextStyle(fontSize: 14.0),
-            ),
-            const SizedBox(height: 5.0),
-            // Post image (if available)
-            photoUrl != null
-                ? Image.network(photoUrl!, height: 200.0, fit: BoxFit.cover)
-                : const SizedBox.shrink(),
             const SizedBox(height: 10.0),
-            // Post reactions and timestamp
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Reactions
-                Text(
-                  '$noReaction Reactions',
-                  style: const TextStyle(
-                    fontSize: 14.0,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-                // Post date
-                Text(
-                  timestamp,
-                  style: const TextStyle(
-                    fontSize: 12.0,
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
+            Text(
+              timestamp,
+              style: const TextStyle(fontSize: 12
+              , color: Colors.grey),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  // Widget to display the image if available
+  Widget _buildImageWidget() {
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(10.0), // Adjust this value for more or less rounding
+    child: Image.network(
+      photoUrl!,
+      height: 200.0,
+      width: double.infinity,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        if (kDebugMode) {
+          print('Error loading image: $error');
+          print('Image URL: $photoUrl');
+        }
+        return _buildErrorWidget();
+      },
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Container(
+          height: 200.0,
+          width: double.infinity,
+          color: Colors.grey[300],
+          child: Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                  : null,
+            ),
+          ),
+        );
+      },
+    ),
+  );
+}
+
+
+  // Widget to display an error message if the image is not available
+  Widget _buildErrorWidget() {
+    return Container(
+      height: 200.0,
+      width: double.infinity,
+      color: Colors.grey[300],
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error, color: Colors.red, size: 40),
+          const SizedBox(height: 10),
+          Text('Failed to load image', style: TextStyle(color: Colors.red[700])),
+          const SizedBox(height: 5),
+          if (kDebugMode)
+            Text(
+              'URL: $photoUrl',
+              style: const TextStyle(fontSize: 10),
+              textAlign: TextAlign.center,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// Widget for the ranking cards
+class _RankingCard extends StatelessWidget {
+  final String user;
+  final String score;
+
+  const _RankingCard({
+    required this.user,
+    required this.score,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        CircleAvatar(
+          radius: 30.0,
+          child: Text(user.substring(0, 1)),
+        ),
+        const SizedBox(height: 5.0),
+        Text(
+          user,
+          style: const TextStyle(color: Colors.white, fontSize: 14.0),
+        ),
+        Text(
+          score,
+          style: const TextStyle(color: Colors.white, fontSize: 12.0),
+        ),
+      ],
     );
   }
 }
