@@ -82,7 +82,7 @@ class FriendsFeedScreen extends StatelessWidget {
                 try {
                   if (postData['postDate'] is Timestamp) {
                     DateTime dateTime = (postData['postDate'] as Timestamp).toDate();
-                    formattedDate = DateFormat('yyyy-MM-dd HH:mm:ss').format(dateTime);
+                    formattedDate = DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
                   } else if (postData['postDate'] is String) {
                     formattedDate = postData['postDate'];
                   } else {
