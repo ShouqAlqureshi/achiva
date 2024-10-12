@@ -9,126 +9,132 @@ class FriendsFeedScreen extends StatelessWidget {
   const FriendsFeedScreen({super.key});
 
   Stream<List<Map<String, dynamic>>> _fetchTaskPosts() async* {
-    try {
+  try {
+    if (kDebugMode) {
+      print('Starting _fetchTaskPosts function');
+    }
+
+    User? currentUser = FirebaseAuth.instance.currentUser;
+
+    if (currentUser == null) {
       if (kDebugMode) {
-        print('Starting _fetchTaskPosts function');
+        print('No user is logged in.');
       }
+      yield [];
+      return;
+    }
 
-      User? currentUser = FirebaseAuth.instance.currentUser;
+    if (kDebugMode) {
+      print('Current user ID: ${currentUser.uid}');
+    }
 
-      if (currentUser == null) {
-        if (kDebugMode) {
-          print('No user is logged in.');
-        }
-        yield [];
-        return;
-      }
+    DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(currentUser.uid)
+        .get();
 
+    if (!userSnapshot.exists) {
       if (kDebugMode) {
-        print('Current user ID: ${currentUser.uid}');
+        print('User data not found for ID: ${currentUser.uid}');
+      }
+      yield [];
+      return;
+    }
+
+    List<dynamic> friendsList = (userSnapshot.data() as Map<String, dynamic>)['friends'] ?? [];
+    friendsList.add(currentUser.uid);
+
+    if (kDebugMode) {
+      print('Friends List: $friendsList');
+    }
+
+    List<Map<String, dynamic>> allPosts = [];
+
+    for (String friendId in friendsList) {
+      if (kDebugMode) {
+        print('Fetching posts for user: $friendId');
       }
 
-      DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+      QuerySnapshot goalsSnapshot = await FirebaseFirestore.instance
           .collection('Users')
-          .doc(currentUser.uid)
+          .doc(friendId)
+          .collection('goals')
           .get();
 
-      if (!userSnapshot.exists) {
-        if (kDebugMode) {
-          print('User data not found for ID: ${currentUser.uid}');
-        }
-        yield [];
-        return;
-      }
-
-      List<dynamic> friendsList = (userSnapshot.data() as Map<String, dynamic>)['friends'] ?? [];
-      friendsList.add(currentUser.uid);
-
-      if (kDebugMode) {
-        print('Friends List: $friendsList');
-      }
-
-      List<Map<String, dynamic>> allPosts = [];
-
-      for (String friendId in friendsList) {
-        if (kDebugMode) {
-          print('Fetching posts for user: $friendId');
-        }
-        
-        QuerySnapshot goalsSnapshot = await FirebaseFirestore.instance
-            .collection('Users')
-            .doc(friendId)
-            .collection('goals')
+      for (var goalDoc in goalsSnapshot.docs) {
+        QuerySnapshot tasksSnapshot = await goalDoc.reference
+            .collection('tasks')
             .get();
 
-        for (var goalDoc in goalsSnapshot.docs) {
-          QuerySnapshot tasksSnapshot = await goalDoc.reference
-              .collection('tasks')
+        for (var taskDoc in tasksSnapshot.docs) {
+          QuerySnapshot postsSnapshot = await taskDoc.reference
+              .collection('posts')
+              .orderBy('postDate', descending: true) 
               .get();
 
-          for (var taskDoc in tasksSnapshot.docs) {
-            QuerySnapshot postsSnapshot = await taskDoc.reference
-                .collection('posts')
-                .get();
+          for (var postDoc in postsSnapshot.docs) {
+            final postData = postDoc.data() as Map<String, dynamic>;
+            if (kDebugMode) {
+              print('Raw post data: $postData');
+            }
 
-            for (var postDoc in postsSnapshot.docs) {
-              final postData = postDoc.data() as Map<String, dynamic>;
-              if (kDebugMode) {
-                print('Raw post data: $postData');
+            if (postData.containsKey('content') && postData.containsKey('postDate')) {
+              String formattedDate = 'Unknown Date';
+              try {
+                if (postData['postDate'] is Timestamp) {
+                  DateTime dateTime = (postData['postDate'] as Timestamp).toDate();
+                  formattedDate = DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
+                } else if (postData['postDate'] is String) {
+                  formattedDate = postData['postDate'];
+                } else {
+                  if (kDebugMode) {
+                    print('Unexpected postDate type: ${postData['postDate'].runtimeType}');
+                  }
+                }
+              } catch (e) {
+                if (kDebugMode) {
+                  print('Error formatting date: $e');
+                  print('postDate value: ${postData['postDate']}');
+                }
               }
 
-              if (postData.containsKey('content') && postData.containsKey('postDate')) {
-                String formattedDate = 'Unknown Date';
-                try {
-                  if (postData['postDate'] is Timestamp) {
-                    DateTime dateTime = (postData['postDate'] as Timestamp).toDate();
-                    formattedDate = DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
-                  } else if (postData['postDate'] is String) {
-                    formattedDate = postData['postDate'];
-                  } else {
-                    if (kDebugMode) {
-                      print('Unexpected postDate type: ${postData['postDate'].runtimeType}');
-                    }
-                  }
-                } catch (e) {
-                  if (kDebugMode) {
-                    print('Error formatting date: $e');
-                    print('postDate value: ${postData['postDate']}');
-                  }
-                }
+              // Fetch the user's first and last names
+              final userName = await _fetchUserName(friendId);
 
-                // Fetch the user's first and last names
-                final userName = await _fetchUserName(friendId);
-
-                allPosts.add({
-                  'userName': userName,
-                  'content': postData['content'].toString(),
-                  'photo': postData['photo']?.toString(),
-                  'timestamp': formattedDate,
-                });
-              } else {
-                if (kDebugMode) {
-                  print('Skipping post due to missing required fields: $postData');
-                }
+              allPosts.add({
+                'userName': userName,
+                'content': postData['content'].toString(),
+                'photo': postData['photo']?.toString(),
+                'timestamp': formattedDate,
+                'dateTime': (postData['postDate'] as Timestamp).toDate(),  // Add the DateTime object for sorting
+              });
+            } else {
+              if (kDebugMode) {
+                print('Skipping post due to missing required fields: $postData');
               }
             }
           }
         }
       }
-
-      if (kDebugMode) {
-        print('Total posts fetched: ${allPosts.length}');
-        print('All posts: $allPosts');
-      }
-      yield allPosts;
-    } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('Error in _fetchTaskPosts: $e');
-        print('Stack trace: $stackTrace');
-      }
-      yield [];
     }
+
+    // Sort the posts by the 'dateTime' field in descending order
+    allPosts.sort((a, b) => b['dateTime'].compareTo(a['dateTime']));
+
+    if (kDebugMode) {
+      print('Total posts fetched: ${allPosts.length}');
+      print('All posts: $allPosts');
+    }
+    yield allPosts;
+  } catch (e, stackTrace) {
+    if (kDebugMode) {
+      print('Error in _fetchTaskPosts: $e');
+      print('Stack trace: $stackTrace');
+    }
+    yield [];
   }
+}
+
 
   Future<String> _fetchUserName(String userId) async {
     try {
@@ -157,6 +163,7 @@ class FriendsFeedScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
+        backgroundColor: Colors.white,
         body: Column(
           children: [
             _buildRankingDashboard(),
@@ -309,8 +316,8 @@ class _PostCard extends StatelessWidget {
     borderRadius: BorderRadius.circular(10.0), // Adjust this value for more or less rounding
     child: Image.network(
       photoUrl!,
-      height: 200.0,
-      width: double.infinity,
+      height:400.0,
+      width:400.0,
       fit: BoxFit.cover,
       errorBuilder: (context, error, stackTrace) {
         if (kDebugMode) {
