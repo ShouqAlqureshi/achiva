@@ -17,73 +17,111 @@ class _GenderSelectionViewState extends State<GenderSelectionView> {
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
 
     return Scaffold(
+      appBar: AppBar(
+          title: const Text(
+            "Gender selection",
+            style: TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.w500,
+              color: Color.fromARGB(255, 71, 71, 71),
+            ),
+            textAlign: TextAlign.start,
+          ),
+          toolbarHeight: 150,
+          centerTitle: true,
+          backgroundColor: Colors.white),
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(50.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                "Gender selection",
-                style: TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.w500,
-                  color: Color.fromARGB(255, 240, 238, 249),
-                ),
-                textAlign: TextAlign.start,
-              ),
-              const SizedBox(height: 40),
-              const Text(
-                'What is your gender?',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color.fromARGB(255, 71, 71, 71),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 40),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildGenderOption(context, 'Female', Icons.female, userData),
-                  _buildGenderOption(context, 'Male', Icons.male, userData),
-                ],
-              ),
-              const SizedBox(height: 20),
-              if (_errorText != null) // Display error if gender not selected
-                Text(
-                  _errorText!,
-                  style: const TextStyle(color: Colors.red, fontSize: 16),
-                  textAlign: TextAlign.center,
-                ),
-              const Spacer(),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(50.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurple,
+                    borderRadius:
+                        BorderRadius.circular(30), // More rounded edges
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        spreadRadius: 3,
+                        blurRadius: 10,
+                        offset: const Offset(0, 5), // Shadow position
+                      ),
+                    ],
                   ),
+                  padding: const EdgeInsets.all(20),
+                  width: 350,
+                  height: 350,
+                  child: Column(children: [
+                    const SizedBox(height: 40),
+                    const Text(
+                      'What is your gender?',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 40),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildGenderOption(
+                            context, 'Female', Icons.female, userData),
+                        _buildGenderOption(
+                            context, 'Male', Icons.male, userData),
+                      ],
+                    ),
+                    if (_errorText !=
+                        null) // Display error if gender not selected
+                      Text(
+                        _errorText!,
+                        style: const TextStyle(color: Colors.red, fontSize: 16),
+                        textAlign: TextAlign.center,
+                      ),
+                  ]),
                 ),
-                onPressed: () {
-                  if (_selectedGender == null) {
-                    setState(() {
-                      _errorText = 'Please select a gender.';
-                    });
-                  } else {
-                    userData['gender'] = _selectedGender;
-                    Navigator.of(context).pushNamed('/profilepicturepicker',
-                        arguments: userData);
-                  }
-                },
-                child: const Text('CONTINUE', style: TextStyle(fontSize: 18)),
-              ),
-              const SizedBox(height: 20),
-            ],
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      barrierDismissible:
+                          false, // Prevent dismissal by tapping outside
+                      builder: (context) => const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+                    if (_selectedGender == null) {
+                      setState(() {
+                        _errorText = 'Please select a gender.';
+                      });
+                      Navigator.of(context).pop();
+                    } else {
+                      userData['gender'] = _selectedGender;
+                      Navigator.of(context).pop();
+                      Navigator.of(context).pushNamed('/profilepicturepicker',
+                          arguments: userData);
+                    }
+                  },
+                  child: const Text('CONTINUE', style: TextStyle(fontSize: 18)),
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
@@ -107,7 +145,7 @@ class _GenderSelectionViewState extends State<GenderSelectionView> {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
               color: _selectedGender == gender.toLowerCase()
-                  ? Colors.deepPurple
+                  ? Colors.white.withOpacity(0.7) //Colors.deepPurple
                   : Color.fromARGB(255, 71, 71, 71),
               width: 2),
         ),

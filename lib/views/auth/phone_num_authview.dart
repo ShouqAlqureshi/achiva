@@ -140,7 +140,10 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                     isloading
                         ? const Align(
                             alignment: Alignment.center,
-                            child: CircularProgressIndicator(),
+                            child: CircularProgressIndicator(
+                                backgroundColor: Colors.black,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.red)),
                           )
                         : ElevatedButton(
                             onPressed: () async {

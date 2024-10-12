@@ -72,7 +72,7 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                         inputFormatters: [
                           LengthLimitingTextInputFormatter(
                               50), // Enforce the limit
-                              FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                          FilteringTextInputFormatter.deny(RegExp(r'\s')),
                         ],
                         onChanged: (value) {
                           setState(() {
@@ -112,9 +112,9 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                         controller: ln,
                         maxLength: 50, // Set the maximum number of characters
                         inputFormatters: [
-                          LengthLimitingTextInputFormatter(
-                              50),
-                              FilteringTextInputFormatter.deny(RegExp(r'\s')), // Enforce the limit
+                          LengthLimitingTextInputFormatter(50),
+                          FilteringTextInputFormatter.deny(
+                              RegExp(r'\s')), // Enforce the limit
                         ],
                         onChanged: (value) {
                           setState(() {
@@ -156,7 +156,7 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                         inputFormatters: [
                           LengthLimitingTextInputFormatter(
                               50), // Enforce the limit
-                              FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                          FilteringTextInputFormatter.deny(RegExp(r'\s')),
                         ],
                         enableSuggestions: false,
                         autocorrect: false,
@@ -169,7 +169,7 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                         decoration: InputDecoration(
                           fillColor: Colors.white.withOpacity(0.25),
                           filled: true,
-                          counterText: '', 
+                          counterText: '',
                           hintText: "Email ex: xxx@gmail.com",
                           prefixIcon:
                               const Icon(Icons.email, color: Colors.white),
@@ -198,6 +198,14 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                         ),
                       ),
                       onPressed: () async {
+                        showDialog(
+                          context: context,
+                          barrierDismissible:
+                              false, // Prevent dismissal by tapping outside
+                          builder: (context) => const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
                         setState(() {
                           isFormSubmitted = true;
                         });
@@ -213,11 +221,13 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                             "email": email.text,
                             // "gender": gender,
                           });
+                          Navigator.of(context).pop();
                           Navigator.of(contextBeforeAsync).pushNamed(
                             '/gender_selection',
                             arguments: dataToSave,
                           );
                         } else {
+                          Navigator.of(context).pop();
                           ScaffoldMessenger.of(contextBeforeAsync).showSnackBar(
                             const SnackBar(
                               content: Text('Please fill all fields correctly'),
