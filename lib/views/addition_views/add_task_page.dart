@@ -1,3 +1,6 @@
+import 'dart:developer';
+
+import 'package:achiva/views/addition_views/add_redundence_tasks.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -30,7 +33,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
   List<Map<String, dynamic>> _tasks = [];
-
+  final taskManager = RecurringTaskManager();
   bool _isTaskNameValid = true;
   bool _isDateValid = true;
   bool _isStartTimeValid = true;
@@ -96,6 +99,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
 
   // Save the goal and tasks to Firestore
   Future<void> _saveGoal() async {
+    final taskManager = RecurringTaskManager();
     if (_tasks.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please add at least one task')),
@@ -149,13 +153,38 @@ class _AddTaskPageState extends State<AddTaskPage> {
           'notasks': _tasks.length,
         });
       }
-
-      // Add tasks to Firestore
-      for (var task in _tasks) {
-        await goalsCollectionRef
-            .doc(widget.goalName)
-            .collection('tasks')
-            .add(task);
+      if (_recurrenceController.text == "Weekly") {
+        //add redundunce method to assign to tasks
+        List<Map<String, dynamic>> createdTasks =
+            await taskManager.addRecurringTask(
+          goalName: widget.goalName,
+          startDate:
+              _selectedDate!, // This date determines the day of week
+          startTime: _startTime!,
+          endTime: _endTime!,
+          location: _locationController.text.isNotEmpty
+            ? _locationController.text
+            : null,
+          recurrenceType:  _recurrenceController.text.isNotEmpty
+            ? _recurrenceController.text
+            : null,//change layout
+          description:  _descriptionController.text.isNotEmpty
+            ? _descriptionController.text
+            : null,
+          taskName: _taskNameController.text,
+          usergoallistrefrence: goalsCollectionRef,
+        );
+        if (createdTasks.isNotEmpty) {
+          log("redundunce tasks success");
+        }
+      } else {
+        // Add tasks to Firestore
+        for (var task in _tasks) {
+          await goalsCollectionRef
+              .doc(widget.goalName)
+              .collection('tasks')
+              .add(task);
+        }
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -214,7 +243,8 @@ class _AddTaskPageState extends State<AddTaskPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Tasks'),backgroundColor: Colors.grey[200]),
+      appBar: AppBar(
+          title: const Text('Add Tasks'), backgroundColor: Colors.grey[200]),
       backgroundColor: Colors.grey[200],
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -223,8 +253,9 @@ class _AddTaskPageState extends State<AddTaskPage> {
             children: [
               // Container to hold the form fields
               Container(
-                  alignment: Alignment.center,  // Centers the content inside the container
-                  decoration: BoxDecoration(
+                alignment: Alignment
+                    .center, // Centers the content inside the container
+                decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
                   color: Colors.white,
                   boxShadow: [BoxShadow(color: Colors.grey, blurRadius: 5)],

@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:achiva/views/auth/validators.dart';
+import 'package:flutter/services.dart';
 
 class NewUserInfoView extends StatefulWidget {
   const NewUserInfoView({super.key});
@@ -39,6 +40,19 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+          title: const Text(
+            "Profile information",
+            style: TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.w500,
+              color: Color.fromARGB(255, 71, 71, 71),
+            ),
+            textAlign: TextAlign.start,
+          ),
+          toolbarHeight: 100,
+          centerTitle: true,
+          backgroundColor: Colors.white),
       backgroundColor: Colors.white,
       body: Center(
         child: SingleChildScrollView(
@@ -59,12 +73,20 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                     const SizedBox(height: 20),
                     const Text(
                       "Enter your first name",
-                      style: TextStyle(fontSize: 20, color: Colors.white), // Set text color to white
+                      style: TextStyle(
+                          fontSize: 20,
+                          color: Colors.white), // Set text color to white
                     ),
                     Padding(
                       padding: const EdgeInsets.all(20),
                       child: TextField(
                         controller: fn,
+                        maxLength: 50, // Set the maximum number of characters
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(
+                              50), // Enforce the limit
+                          FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                        ],
                         onChanged: (value) {
                           setState(() {
                             isFirstNameTouched = true;
@@ -73,15 +95,18 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                         decoration: InputDecoration(
                           fillColor: Colors.white.withOpacity(0.25),
                           filled: true,
+                          counterText: '',
                           hintText: "First Name",
-                          prefixIcon: const Icon(Icons.abc, color: Colors.white),
+                          prefixIcon:
+                              const Icon(Icons.abc, color: Colors.white),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(30),
-                            borderSide: (isFirstNameTouched || isFormSubmitted) &&
-                                    fn.text.isEmpty
-                                ? const BorderSide(
-                                    color: Color.fromARGB(255, 195, 24, 12))
-                                : BorderSide.none,
+                            borderSide:
+                                (isFirstNameTouched || isFormSubmitted) &&
+                                        fn.text.isEmpty
+                                    ? const BorderSide(
+                                        color: Color.fromARGB(255, 195, 24, 12))
+                                    : BorderSide.none,
                           ),
                           errorText: (isFirstNameTouched || isFormSubmitted) &&
                                   fn.text.isEmpty
@@ -98,6 +123,12 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                       padding: const EdgeInsets.all(20),
                       child: TextField(
                         controller: ln,
+                        maxLength: 50, // Set the maximum number of characters
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(50),
+                          FilteringTextInputFormatter.deny(
+                              RegExp(r'\s')), // Enforce the limit
+                        ],
                         onChanged: (value) {
                           setState(() {
                             isLastNameTouched = true;
@@ -106,15 +137,18 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                         decoration: InputDecoration(
                           fillColor: Colors.white.withOpacity(0.25),
                           filled: true,
+                          counterText: '',
                           hintText: "Last Name",
-                          prefixIcon: const Icon(Icons.abc, color: Colors.white),
+                          prefixIcon:
+                              const Icon(Icons.abc, color: Colors.white),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(30),
-                            borderSide: (isLastNameTouched || isFormSubmitted) &&
-                                    ln.text.isEmpty
-                                ? const BorderSide(
-                                    color: Color.fromARGB(255, 195, 24, 12))
-                                : BorderSide.none,
+                            borderSide:
+                                (isLastNameTouched || isFormSubmitted) &&
+                                        ln.text.isEmpty
+                                    ? const BorderSide(
+                                        color: Color.fromARGB(255, 195, 24, 12))
+                                    : BorderSide.none,
                           ),
                           errorText: (isLastNameTouched || isFormSubmitted) &&
                                   ln.text.isEmpty
@@ -131,6 +165,12 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                       padding: const EdgeInsets.all(20),
                       child: TextField(
                         controller: email,
+                        maxLength: 150, // Set the maximum number of characters
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(
+                              50), // Enforce the limit
+                          FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                        ],
                         enableSuggestions: false,
                         autocorrect: false,
                         keyboardType: TextInputType.emailAddress,
@@ -142,12 +182,17 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                         decoration: InputDecoration(
                           fillColor: Colors.white.withOpacity(0.25),
                           filled: true,
+                          counterText: '',
                           hintText: "Email ex: xxx@gmail.com",
-                          prefixIcon: const Icon(Icons.email, color: Colors.white),
+                          prefixIcon:
+                              const Icon(Icons.email, color: Colors.white),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(30),
                             borderSide: (isEmailTouched || isFormSubmitted) &&
-                                    (validation.validateEmail(email.text)?.isEmpty ?? true)
+                                    (validation
+                                            .validateEmail(email.text)
+                                            ?.isEmpty ??
+                                        true)
                                 ? BorderSide.none
                                 : const BorderSide(
                                     color: Color.fromARGB(255, 195, 24, 12)),
@@ -166,6 +211,14 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                         ),
                       ),
                       onPressed: () async {
+                        showDialog(
+                          context: context,
+                          barrierDismissible:
+                              false, // Prevent dismissal by tapping outside
+                          builder: (context) => const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
                         setState(() {
                           isFormSubmitted = true;
                         });
@@ -181,11 +234,13 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                             "email": email.text,
                             // "gender": gender,
                           });
+                          Navigator.of(context).pop();
                           Navigator.of(contextBeforeAsync).pushNamed(
                             '/gender_selection',
                             arguments: dataToSave,
                           );
                         } else {
+                          Navigator.of(context).pop();
                           ScaffoldMessenger.of(contextBeforeAsync).showSnackBar(
                             const SnackBar(
                               content: Text('Please fill all fields correctly'),

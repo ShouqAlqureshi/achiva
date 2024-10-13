@@ -2,6 +2,7 @@ import 'package:achiva/exceptions/auth_exceptions.dart';
 import 'package:achiva/views/auth/validators.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:developer' as devtool show log;
 import '../../utilities/show_error_dialog.dart';
 
@@ -64,23 +65,44 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                   ],
                 ),
                 padding: const EdgeInsets.all(20),
-                width: 500,
-                height: 500,
+                width: 450,
+                height: 450,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const Text(
-                      "Welcome to Achiva",
+                      "Welcome to ",
                       style: TextStyle(
-                        fontSize: 25,
+                        fontSize: 30,
                         fontWeight: FontWeight.w500,
                         color: Color.fromARGB(255, 240, 238, 249),
                       ),
-                      textAlign: TextAlign.center,
+                      textAlign: TextAlign.start,
+                    ),
+                    const Text(
+                      "Achiva,",
+                      style: TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.w500,
+                        color: Color.fromARGB(255, 240, 238, 249),
+                      ),
+                      textAlign: TextAlign.start,
                     ),
                     const SizedBox(height: 30),
+                    Text("follow this format:+966[number]",
+                        textAlign: TextAlign.start,
+                        style: TextStyle(
+                            color: const Color.fromARGB(255, 54, 53, 53),
+                            fontSize: 14)),
+                    const SizedBox(height: 15),
                     TextField(
+                      maxLength: 30, // Set the maximum number of characters
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(
+                            50), // Enforce the limit
+                        FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                      ],
                       onChanged: (value) {
                         setState(() {
                           isPhonenumTouched = true;
@@ -94,10 +116,12 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                       decoration: InputDecoration(
                         fillColor: Colors.white.withOpacity(0.25),
                         filled: true,
+                        counterText: '',
                         hintText: "Enter your phone number",
                         prefixIcon: const Icon(Icons.phone),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30), // Rounded input
+                          borderRadius:
+                              BorderRadius.circular(30), // Rounded input
                           borderSide: (isPhonenumTouched || isFormSubmitted) &&
                                   (validation
                                           .validatePhoneNum(_phonenumber.text)
@@ -116,7 +140,10 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                     isloading
                         ? const Align(
                             alignment: Alignment.center,
-                            child: CircularProgressIndicator(),
+                            child: CircularProgressIndicator(
+                                backgroundColor: Colors.black,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.red)),
                           )
                         : ElevatedButton(
                             onPressed: () async {

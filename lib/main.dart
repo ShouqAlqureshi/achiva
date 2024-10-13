@@ -11,14 +11,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'firebase_options.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-   await FirebaseAppCheck.instance.activate(
-    androidProvider: AndroidProvider.playIntegrity,
+  await FirebaseAppCheck.instance.activate(
+    androidProvider: AndroidProvider
+        .playIntegrity, // [DO NOT DO THIS] change for debug for emulators and add debug token in terminal and playIntegrity for android device
   );
 
   runApp(const MyApp());
@@ -82,11 +84,10 @@ class SplashScreen extends StatelessWidget {
       body: Center(
         child: Image.asset(
           'lib/images/logo-with-name.png',
-          width: 200, 
-          height: 200, 
+          width: 200,
+          height: 200,
         ),
       ),
     );
   }
 }
-
