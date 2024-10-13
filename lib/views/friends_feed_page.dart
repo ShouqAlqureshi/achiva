@@ -285,39 +285,95 @@ class _PostCard extends StatefulWidget {
 class _PostCardState extends State<_PostCard> {
   String? selectedEmoji;
   bool showHeart = false;
+  Map<String, dynamic> reactions = {};
 
-  final List<String> emojis = ['😀', '😍', '👍', '🎉', '😮', '😢'];
+
+  final List<String> emojis = ['❤️', '😀', '😍', '👍', '🎉', '😮', '😢'];
 
   @override
   void initState() {
     super.initState();
+    _fetchReactions();
+
   }
 
-  void _showEmojiPicker() {
+  void _fetchReactions() async {
+    try {
+      var postDoc = await _findPostDocument(widget.postId!);
+      if (postDoc == null) return;
+
+      setState(() {
+        var data = postDoc.data() as Map<String, dynamic>?;
+        reactions = data?['reactions'] as Map<String, dynamic>? ?? {};
+      });
+    } catch (error) {
+      print('Failed to fetch reactions: $error');
+    }
+  }
+
+  
+  void _showReactionsDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Choose a reaction'),
-          content: Wrap(
-            spacing: 10,
-            children: emojis.map((emoji) {
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    selectedEmoji = emoji;
-                  });
-                  _updateReaction(emoji);
-                  Navigator.of(context).pop();
-                },
-                child: Text(emoji, style: const TextStyle(fontSize: 30)),
-              );
-            }).toList(),
+          title: const Text('Reactions'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView(
+              shrinkWrap: true,
+              children: emojis.map((emoji) {
+                var usersReacted = reactions.entries
+                    .where((entry) => entry.value == emoji)
+                    .map((entry) => entry.key)
+                    .toList();
+                return ListTile(
+                  leading: Text(emoji, style: const TextStyle(fontSize: 24)),
+                  title: Text('${usersReacted.length} ${usersReacted.length == 1 ? 'user' : 'users'}'),
+                  onTap: () {
+                    // Here you can show the list of users who reacted with this emoji
+                    // For simplicity, we're just printing to console
+                    print('Users who reacted with $emoji: $usersReacted');
+                  },
+                );
+              }).toList(),
+            ),
           ),
+          actions: [
+            TextButton(
+              child: const Text('Close'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
         );
       },
     );
   }
+
+  void _showEmojiPicker() {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Choose a reaction'),
+        content: Wrap(
+          spacing: 10,
+          children: emojis.map((emoji) {
+            return GestureDetector(
+              onTap: () {
+                _updateReaction(emoji);
+                Navigator.of(context).pop();
+              },
+              child: Text(emoji, style: const TextStyle(fontSize: 30)),
+            );
+          }).toList(),
+        ),
+      );
+    },
+  );
+}
 
   void _updateReaction(String emoji) async {
     try {
@@ -336,8 +392,9 @@ class _PostCardState extends State<_PostCard> {
       });
 
       setState(() {
-        selectedEmoji = emoji;
-      });
+      reactions[currentUser.uid] = emoji;
+      selectedEmoji = emoji;
+    });
     } catch (error) {
       print('Failed to update reaction: $error');
     }
@@ -397,10 +454,10 @@ class _PostCardState extends State<_PostCard> {
 
   // Handle double tap for heart reaction
   void _handleDoubleTap() {
-    setState(() {
-      showHeart = true;
-      _updateReaction('❤️');
-    });
+     _updateReaction('❤️');
+  setState(() {
+    showHeart = true;
+  });
 
     // Show the heart for a brief moment
     Future.delayed(const Duration(seconds: 1), () {
@@ -478,13 +535,15 @@ class _PostCardState extends State<_PostCard> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            selectedEmoji ?? '',
-                            style: const TextStyle(fontSize: 24),
+                           Wrap(
+                            spacing: 8,
+                            children: reactions.values.toSet().map((emoji) {
+                              return Text(emoji, style: const TextStyle(fontSize: 24));
+                            }).toList(),
                           ),
                           IconButton(
                             icon: const Icon(Icons.emoji_emotions_outlined),
-                            onPressed: _showEmojiPicker,
+                            onPressed: _showReactionsDialog,
                           ),
                         ],
                       ),
