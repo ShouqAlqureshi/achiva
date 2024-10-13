@@ -7,10 +7,10 @@ class FloatingBottomNavigationBarWidget extends StatelessWidget {
   final ValueChanged<int> onTabSelected;
 
   const FloatingBottomNavigationBarWidget({
-    Key? key,
+    super.key,
     required this.currentIndex,
     required this.onTabSelected,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
