@@ -144,13 +144,14 @@ class _AddTaskPageState extends State<AddTaskPage> {
           await goalsCollectionRef.doc(widget.goalName).get();
 
       if (!goalSnapshot.exists) {
+        log("the goal doesn't exist");
         // If the goal doesn't exist, create it
-        await goalsCollectionRef.doc(widget.goalName).set({
-          'name': widget.goalName,
-          'date': widget.goalDate.toIso8601String(),
-          'visibility': widget.goalVisibility,
-          'notasks': _tasks.length,
-        });
+        // await goalsCollectionRef.doc(widget.goalName).set({
+        //   'name': widget.goalName,
+        //   'date': widget.goalDate.toIso8601String(),
+        //   'visibility': widget.goalVisibility,
+        //   'notasks': _tasks.length,
+        // });
       }
       if (_selectedRecurrence == "Weekly") {
         //add redundunce method to assign to tasks
@@ -171,7 +172,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
           usergoallistrefrence: goalsCollectionRef,
         );
         if (createdTasks.isNotEmpty) {
-          log("redundunce tasks success");
+          log("redundunce tasks added successfully");
         }
       } else {
         // Add tasks to Firestore
@@ -376,7 +377,10 @@ class _AddTaskPageState extends State<AddTaskPage> {
                       ),
                       items: [
                         DropdownMenuItem(
-                            value: null,enabled: true, child: Text('No recurrence'),),
+                          value: null,
+                          enabled: true,
+                          child: Text('No recurrence'),
+                        ),
                         DropdownMenuItem(
                             value: 'Weekly', child: Text('Weekly recurrence')),
                       ],
