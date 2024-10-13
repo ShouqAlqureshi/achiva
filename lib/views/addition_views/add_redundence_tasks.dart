@@ -128,7 +128,7 @@ String calcDuration(TimeOfDay starttime,TimeOfDay endtime) {
     final minutes = durationInMinutes % 60;
     return '${hours}h ${minutes}m';
 }
-// Usage example
+// Usage example for testing
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();

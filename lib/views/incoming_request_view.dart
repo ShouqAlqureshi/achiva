@@ -16,8 +16,8 @@ class IncomingRequestsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // String currentUserId = _getCurrentUserId();
-    String currentUserId = "c4FDYNv72uOEKWxH3BeFIOZls8z2";
+    String currentUserId = _getCurrentUserId();
+    // String currentUserId = "c4FDYNv72uOEKWxH3BeFIOZls8z2"; for testig
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
