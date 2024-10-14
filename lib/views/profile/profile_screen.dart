@@ -112,7 +112,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: AppConstants.kContainerPadding,
                 margin: const EdgeInsets.symmetric(vertical: 16),
                 decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 53, 29, 94),
+                    color: Colors.deepPurple,
                     borderRadius: AppConstants.kMainRadius),
                 child: const Row(
                   children: [

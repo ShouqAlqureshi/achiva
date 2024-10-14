@@ -4,12 +4,12 @@ import 'package:intl/intl.dart'; // Import the intl package for date formatting
 
 
 
-
 class AddGoalPage extends StatefulWidget {
   const AddGoalPage({super.key});
 
   @override
   _AddGoalPageState createState() => _AddGoalPageState();
+
 }
 
 class _AddGoalPageState extends State<AddGoalPage> {
@@ -68,6 +68,7 @@ class _AddGoalPageState extends State<AddGoalPage> {
       const SnackBar(content: Text('Please complete all required fields')),
     );
   }
+
 }
 
   // Display a date picker that doesn't allow selecting past dates
@@ -90,7 +91,8 @@ class _AddGoalPageState extends State<AddGoalPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add a New Goal')),
+      appBar: AppBar(title: const Text('Add a New Goal'),backgroundColor: Colors.grey[200], // Set app bar background color to white
+),
       backgroundColor: Colors.grey[200],
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -101,10 +103,13 @@ class _AddGoalPageState extends State<AddGoalPage> {
               Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(20),
+
                 ),
                 child: Card(
                   elevation: 5,
+                
+                  color: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -175,7 +180,7 @@ class _AddGoalPageState extends State<AddGoalPage> {
               // Submit Button
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.purple, // Set button background color
+                  backgroundColor: Colors.deepPurple, // Set button background color
                 ),
                 onPressed: _goToAddTaskPage,
                 child: const Text(

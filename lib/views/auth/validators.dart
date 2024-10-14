@@ -4,8 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Validators {
   bool isValidEmail(String email) {
-    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
-  }
+  return RegExp(r'^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+      .hasMatch(email.trim());
+}
 
   String? validateEmail(String? value) {
     if (value == null || value.isEmpty) {
@@ -18,7 +19,7 @@ class Validators {
   }
 
   bool isNotValidPhoneNumber(String phonenumber) {
-    return !RegExp(r'^\+[0-9]{12,14}$').hasMatch(phonenumber);
+    return !RegExp(r'^\+[0-9]{12,14}$').hasMatch(phonenumber.trim());
   }
 
   Future<bool> isEmailUnique(String email,

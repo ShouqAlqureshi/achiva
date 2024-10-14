@@ -2,6 +2,7 @@ import 'package:achiva/exceptions/auth_exceptions.dart';
 import 'package:achiva/views/auth/validators.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:developer' as devtool show log;
 import '../../utilities/show_error_dialog.dart';
 
@@ -14,8 +15,12 @@ class PhoneNumAuthView extends StatefulWidget {
 
 class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
   late final TextEditingController _phonenumber;
-  // ignore: unused_field
   String _verificationId = '';
+  Validators validation = Validators();
+  bool isFormSubmitted = false;
+  bool isPhonenumTouched = false;
+  bool isloading = false;
+
   @override
   void initState() {
     super.initState();
@@ -28,14 +33,10 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
     super.dispose();
   }
 
-  Validators validation = Validators();
-  bool isFormSubmitted = false;
-  bool isPhonenumTouched = false;
-  bool isloading = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade900,
+      backgroundColor: Colors.white,
       appBar: AppBar(
           title: Image.asset(
             'lib/images/logo-with-name.png',
@@ -43,9 +44,8 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
             height: 250,
           ),
           toolbarHeight: 150,
-          // backgroundColor: null,
           centerTitle: true,
-          backgroundColor: Colors.grey.shade900),
+          backgroundColor: Colors.white),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -53,25 +53,56 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
                 decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 53, 29, 94),
-                    borderRadius: BorderRadius.circular(10)),
+                  color: Colors.deepPurple,
+                  borderRadius: BorderRadius.circular(30), // More rounded edges
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      spreadRadius: 3,
+                      blurRadius: 10,
+                      offset: const Offset(0, 5), // Shadow position
+                    ),
+                  ],
+                ),
                 padding: const EdgeInsets.all(20),
-                width: 500,
-                height: 500,
+                width: 450,
+                height: 450,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const Text(
-                      "Welcome to achiva ",
+                      "Welcome to ",
                       style: TextStyle(
-                          fontSize: 25,
-                          fontWeight: FontWeight.w500,
-                          color: Color.fromARGB(255, 240, 238, 249)),
-                      textAlign: TextAlign.center,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w500,
+                        color: Color.fromARGB(255, 240, 238, 249),
+                      ),
+                      textAlign: TextAlign.start,
+                    ),
+                    const Text(
+                      "Achiva,",
+                      style: TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.w500,
+                        color: Color.fromARGB(255, 240, 238, 249),
+                      ),
+                      textAlign: TextAlign.start,
                     ),
                     const SizedBox(height: 30),
+                    Text("follow this format:+966[number]",
+                        textAlign: TextAlign.start,
+                        style: TextStyle(
+                            color: const Color.fromARGB(255, 54, 53, 53),
+                            fontSize: 14)),
+                    const SizedBox(height: 15),
                     TextField(
+                      maxLength: 30, // Set the maximum number of characters
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(
+                            50), // Enforce the limit
+                        FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                      ],
                       onChanged: (value) {
                         setState(() {
                           isPhonenumTouched = true;
@@ -85,10 +116,12 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                       decoration: InputDecoration(
                         fillColor: Colors.white.withOpacity(0.25),
                         filled: true,
-                        hintText: "enter your Phone number here",
+                        counterText: '',
+                        hintText: "Enter your phone number",
                         prefixIcon: const Icon(Icons.phone),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30),
+                          borderRadius:
+                              BorderRadius.circular(30), // Rounded input
                           borderSide: (isPhonenumTouched || isFormSubmitted) &&
                                   (validation
                                           .validatePhoneNum(_phonenumber.text)
@@ -107,7 +140,10 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                     isloading
                         ? const Align(
                             alignment: Alignment.center,
-                            child: CircularProgressIndicator(),
+                            child: CircularProgressIndicator(
+                                backgroundColor: Colors.black,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.red)),
                           )
                         : ElevatedButton(
                             onPressed: () async {
@@ -137,7 +173,7 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                                         (FirebaseAuthException error) async {
                                       await showErrorDialog(
                                         context,
-                                        'Check your Phone number formate:\n ${error.message}',
+                                        'Check your phone number format:\n ${error.message}',
                                       );
                                     },
                                     codeSent: (verificationId,
@@ -153,7 +189,7 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                                     },
                                     timeout: const Duration(seconds: 60),
                                     codeAutoRetrievalTimeout: (verificationId) {
-                                      devtool.log("auto retrireval timeout");
+                                      devtool.log("auto retrieval timeout");
                                       setState(() {
                                         _verificationId = verificationId;
                                       });
@@ -178,9 +214,9 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                               setState(() {
                                 isloading = false;
                               });
-                            }, //on pressed
+                            }, // on pressed
                             child: const Text("Continue"),
-                          )
+                          ),
                   ],
                 ),
               ),
