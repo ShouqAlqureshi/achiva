@@ -11,6 +11,8 @@ import 'package:achiva/widgets/bottom_navigation_bar.dart';
 import 'package:achiva/utilities/colors.dart';
 import '../utilities/filestore_services.dart';
 import 'package:achiva/models/goal.dart';
+import 'package:achiva/views/SearchFriendsScreen.dart'; // Adjust the path as necessary
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -59,50 +61,53 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: Colors.white,
-        title: const Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            SizedBox(
-              height: 50,
-              width: 50,
-              child: Icon(
-                CupertinoIcons.search,
-                size: 32,
-                color: CoursesColors.darkGreen,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          PopupMenuButton<MenuAction>(
-            onSelected: (value) async {
-              if (value == MenuAction.logout) {
-                try {
-                  final shouldLogout = await showLogOutDialog(context);
-                  if (shouldLogout) {
-                    await FirebaseAuth.instance.signOut();
-                    Navigator.of(context)
-                        .pushNamedAndRemoveUntil('/phoneauth', (_) => false);
-                  }
-                } on UserNotLoggedInAuthException catch (_) {
-                  showErrorDialog(context, "User is not logged in");
-                }
-              }
-            },
-            itemBuilder: (context) {
-              return const [
-                PopupMenuItem<MenuAction>(
-                  value: MenuAction.logout,
-                  child: Text("Log out"),
-                ),
-              ];
-            },
-          ),
-        ],
+     appBar: AppBar(
+  automaticallyImplyLeading: false,
+  backgroundColor: Colors.white,
+  title: const Row(
+    mainAxisAlignment: MainAxisAlignment.end,
+    children: [],
+  ),
+  actions: [
+    IconButton(
+      icon: const Icon(
+        CupertinoIcons.search,
+        size: 32,
+        color: CoursesColors.darkGreen,
       ),
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => SearchFriendsScreen()),
+        );
+      },
+    ),
+    PopupMenuButton<MenuAction>(
+      onSelected: (value) async {
+        if (value == MenuAction.logout) {
+          try {
+            final shouldLogout = await showLogOutDialog(context);
+            if (shouldLogout) {
+              await FirebaseAuth.instance.signOut();
+              Navigator.of(context)
+                  .pushNamedAndRemoveUntil('/phoneauth', (_) => false);
+            }
+          } on UserNotLoggedInAuthException catch (_) {
+            showErrorDialog(context, "User is not logged in");
+          }
+        }
+      },
+      itemBuilder: (context) {
+        return const [
+          PopupMenuItem<MenuAction>(
+            value: MenuAction.logout,
+            child: Text("Log out"),
+          ),
+        ];
+      },
+    ),
+  ],
+),
       body: Stack(
         children: [
           Positioned.fill(
