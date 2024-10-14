@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:developer';
 
 import 'package:achiva/views/addition_views/add_redundence_tasks.dart';
@@ -13,11 +15,11 @@ class AddTaskPage extends StatefulWidget {
   final bool goalVisibility;
 
   const AddTaskPage({
-    Key? key,
+    super.key,
     required this.goalName,
     required this.goalDate,
     required this.goalVisibility,
-  }) : super(key: key);
+  });
 
   @override
   _AddTaskPageState createState() => _AddTaskPageState();
@@ -27,95 +29,41 @@ class _AddTaskPageState extends State<AddTaskPage> {
   final TextEditingController _taskNameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
-  final TextEditingController _recurrenceController = TextEditingController();
   String? _selectedRecurrence;
   DateTime? _selectedDate;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
-  List<Map<String, dynamic>> _tasks = [];
+  List<Map<String, dynamic>> createdTasks = [];
   final taskManager = RecurringTaskManager();
+  Map<String, dynamic> taskData = {};
   bool _isTaskNameValid = true;
   bool _isDateValid = true;
   bool _isStartTimeValid = true;
   bool _isEndTimeValid = true;
 
   // Add a task to the list
-  void _addTask() {
+  Future<void> _createGoalAndAddTask() async {
     setState(() {
       _isTaskNameValid = _taskNameController.text.isNotEmpty;
       _isDateValid = _selectedDate != null;
       _isStartTimeValid = _startTime != null;
       _isEndTimeValid = _endTime != null;
     });
-
     if (!_isTaskNameValid ||
         !_isDateValid ||
         !_isStartTimeValid ||
         !_isEndTimeValid) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text(
-                'Please fill in all required fields (Task Name, Date, Start Time, End Time)')),
-      );
-      return;
-    }
-
-    // Calculate the duration in hours and minutes
-    final startTimeInMinutes = _startTime!.hour * 60 + _startTime!.minute;
-    final endTimeInMinutes = _endTime!.hour * 60 + _endTime!.minute;
-    final durationInMinutes = endTimeInMinutes - startTimeInMinutes;
-    final hours = durationInMinutes ~/ 60;
-    final minutes = durationInMinutes % 60;
-    final duration = '${hours}h ${minutes}m';
-
-    setState(() {
-      _tasks.add({
-        'taskName': _taskNameController.text,
-        'description': _descriptionController.text.isNotEmpty
-            ? _descriptionController.text
-            : null,
-        'location': _locationController.text.isNotEmpty
-            ? _locationController.text
-            : null,
-        'date': DateFormat('yyyy-MM-dd').format(_selectedDate!),
-        'startTime': _startTime!.format(context),
-        'endTime': _endTime!.format(context),
-        'duration': duration,
-        'recurrence': _selectedRecurrence,
-      });
-
-      // Clear the fields after adding the task
-      _taskNameController.clear();
-      _descriptionController.clear();
-      _locationController.clear();
-      _recurrenceController.clear();
-      _selectedDate = null;
-      _startTime = null;
-      _endTime = null;
-      _selectedRecurrence = null;
-    });
-  }
-
-  // Save the goal and tasks to Firestore
-  Future<void> _saveGoal() async {
-    final taskManager = RecurringTaskManager();
-    if (_tasks.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please add at least one task')),
+        const SnackBar(content: Text('Please fill in all required fields')),
       );
       return;
     }
 
     try {
-      // Get the current logged-in user
       final User? user = FirebaseAuth.instance.currentUser;
-
-      if (user == null) {
-        throw Exception("User not logged in");
-      }
+      if (user == null) throw Exception("User not logged in");
 
       final String? userPhoneNumber = user.phoneNumber;
-
       if (userPhoneNumber == null) {
         throw Exception(
             "Phone number is not available for the logged-in user.");
@@ -128,9 +76,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
           .get();
 
       DocumentReference userDocRef;
-
       if (userSnapshot.docs.isEmpty) {
-        // If no user found, create a new user
         userDocRef = await FirebaseFirestore.instance.collection('Users').add({
           'phoneNumber': userPhoneNumber,
         });
@@ -139,57 +85,83 @@ class _AddTaskPageState extends State<AddTaskPage> {
       }
 
       CollectionReference goalsCollectionRef = userDocRef.collection('goals');
-
       DocumentSnapshot goalSnapshot =
           await goalsCollectionRef.doc(widget.goalName).get();
 
-      if (!goalSnapshot.exists) {
-        // If the goal doesn't exist, create it
-        await goalsCollectionRef.doc(widget.goalName).set({
-          'name': widget.goalName,
-          'date': widget.goalDate.toIso8601String(),
-          'visibility': widget.goalVisibility,
-          'notasks': _tasks.length,
-        });
+      if (goalSnapshot.exists) {
+        log("the goal name exists, try changing the name");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text("the goal name exists, try changing the name")),
+        );
+        return;
       }
+      // Create the goal
+      await goalsCollectionRef.doc(widget.goalName).set({
+        'name': widget.goalName,
+        'date': widget.goalDate.toIso8601String(),
+        'visibility': widget.goalVisibility,
+        'notasks': 1, // Initially set to 1 as we're adding one task
+      });
+
+      // Prepare task data
+      taskData = {
+        'taskName': _taskNameController.text,
+        'description': _descriptionController.text.isNotEmpty
+            ? _descriptionController.text
+            : null,
+        'location': _locationController.text.isNotEmpty
+            ? _locationController.text
+            : null,
+        'date': DateFormat('yyyy-MM-dd').format(_selectedDate!),
+        'startTime': _startTime!.format(context),
+        'endTime': _endTime!.format(context),
+        'recurrence': _selectedRecurrence ?? 'No recurrence',
+      };
+
+      // Add the task
       if (_selectedRecurrence == "Weekly") {
-        //add redundunce method to assign to tasks
-        List<Map<String, dynamic>> createdTasks =
+       createdTasks =
             await taskManager.addRecurringTask(
           goalName: widget.goalName,
-          startDate: _selectedDate!, // This date determines the day of week
-          startTime: _startTime!,
-          endTime: _endTime!,
+          startDate: _selectedDate!, // Ensure _selectedDate is non-null
+          startTime: _startTime!, // Ensure _startTime is non-null
+          endTime: _endTime!, // Ensure _endTime is non-null
           location: _locationController.text.isNotEmpty
               ? _locationController.text
-              : null,
-          recurrenceType: _selectedRecurrence, //change layout
+              : null, // Safely pass null if location is empty
+          recurrenceType: _selectedRecurrence ??
+              'No recurrence', // Default to 'No recurrence'
           description: _descriptionController.text.isNotEmpty
               ? _descriptionController.text
-              : null,
+              : null, // Safely pass null if description is empty
           taskName: _taskNameController.text,
           usergoallistrefrence: goalsCollectionRef,
+          goalDate: widget.goalDate,
         );
+
         if (createdTasks.isNotEmpty) {
-          log("redundunce tasks success");
+          log("Recurring tasks created successfully");
+          await goalsCollectionRef.doc(widget.goalName).update({
+            'notasks': FieldValue.increment(createdTasks.length) // -1 because we already set it to 1 initially
+          });
         }
       } else {
-        // Add tasks to Firestore
-        for (var task in _tasks) {
-          await goalsCollectionRef
-              .doc(widget.goalName)
-              .collection('tasks')
-              .add(task);
-        }
+        await goalsCollectionRef
+            .doc(widget.goalName)
+            .collection('tasks')
+            .add(taskData);
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Goal and tasks added successfully')),
+        const SnackBar(
+            content: Text('Goal created and task added successfully')),
       );
       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
     } catch (e) {
+      log("$e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error saving goal: $e')),
+        SnackBar(content: Text('Error creating goal and adding task: $e')),
       );
     }
   }
@@ -368,6 +340,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
                     // Recurrence
                     DropdownButtonFormField<String>(
                       value: _selectedRecurrence,
+                      dropdownColor: Colors.white,
                       decoration: InputDecoration(
                         labelText: 'Recurrence',
                         border: OutlineInputBorder(
@@ -376,7 +349,10 @@ class _AddTaskPageState extends State<AddTaskPage> {
                       ),
                       items: [
                         DropdownMenuItem(
-                            value: null,enabled: true, child: Text('No recurrence'),),
+                          value: null,
+                          enabled: true,
+                          child: Text('No recurrence'),
+                        ),
                         DropdownMenuItem(
                             value: 'Weekly', child: Text('Weekly recurrence')),
                       ],
@@ -403,59 +379,47 @@ class _AddTaskPageState extends State<AddTaskPage> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 12), // Add padding
                     ),
-                    onPressed: _addTask,
+                    onPressed: _createGoalAndAddTask,
                     child: const Text(
-                      'Add Task',
+                      'Save',
                       style: TextStyle(
                         color: Colors.white,
                       ),
                     ),
                   ),
                   const SizedBox(width: 20), // Space between buttons
-                  // Save Goal Button
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          Colors.deepPurple, // Set button background color
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12), // Add padding
-                    ),
-                    onPressed: _saveGoal,
-                    child: const Text(
-                      'Save Goal',
-                      style: TextStyle(
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
                 ],
               ),
               const SizedBox(height: 16),
 
-              // Display Subtasks as cards centered
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _tasks.length,
-                itemBuilder: (context, index) {
-                  final task = _tasks[index];
-                  return Center(
-                    // Center the card
-                    child: Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      elevation: 4,
-                      margin: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: ListTile(
-                        title: Text(task['taskName']),
-                        subtitle: Text(
-                            'Date: ${task['date']} | Duration: ${task['duration']}'),
-                      ),
-                    ),
-                  );
-                },
-              ),
+              // // Display Subtasks as cards centered
+              // ListView.builder(
+              //   shrinkWrap: true,
+              //   physics: const NeverScrollableScrollPhysics(),
+              //   itemCount:
+              //       _selectedRecurrence == "Weekly" ? createdTasks.length : 1,
+              //   itemBuilder: (context, index) {
+              //     final task = _selectedRecurrence == "Weekly"
+              //         ? createdTasks[index]
+              //         : taskData;
+              //     return Center(
+              //       // Center the card
+              //       child: Card(
+              //         color: Colors.deepPurple,
+              //         shape: RoundedRectangleBorder(
+              //           borderRadius: BorderRadius.circular(10),
+              //         ),
+              //         elevation: 4,
+              //         margin: const EdgeInsets.symmetric(vertical: 8.0),
+              //         child: ListTile(
+              //           title: Text(task['taskName']),
+              //           subtitle: Text(
+              //               'Date: ${task['date']} | Duration: ${task['duration']}| Recurrence: ${task['recurrence'] ?? "No recurrence"}'),
+              //         ),
+              //       ),
+              //     );
+              //   },
+              // ),
             ],
           ),
         ),
