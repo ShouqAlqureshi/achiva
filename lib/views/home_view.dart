@@ -9,10 +9,11 @@ import '../utilities/filestore_services.dart';
 import '../utilities/show_log_out_dialog.dart';
 import 'package:achiva/widgets/bottom_navigation_bar.dart';
 import 'package:achiva/utilities/colors.dart';
+import 'package:achiva/models/goal.dart';
+import 'package:achiva/views/SearchFriendsScreen.dart';
 import 'package:achiva/views/friends_feed_page.dart';
 import 'package:achiva/views/profile/profile_screen.dart';
 import 'package:achiva/views/home_view.dart';
-
 import 'GoalTasks.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -51,6 +52,30 @@ class _HomePageState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        backgroundColor: Colors.white,
+        title: const Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(
+              CupertinoIcons.search,
+              size: 32,
+              color: CoursesColors.darkGreen,
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SearchFriendsScreen()),
+              );
+            },
+          ),
+        
+        ],
+      ),
 //       appBar: AppBar(
 //   automaticallyImplyLeading: false,
 //   backgroundColor: Colors.white,
