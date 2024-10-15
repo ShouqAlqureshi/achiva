@@ -9,9 +9,12 @@ import '../utilities/filestore_services.dart';
 import '../utilities/show_log_out_dialog.dart';
 import 'package:achiva/widgets/bottom_navigation_bar.dart';
 import 'package:achiva/utilities/colors.dart';
-import 'package:achiva/views/friends_feed_page.dart';
-import 'package:achiva/views/profile/profile_screen.dart';
-import 'package:achiva/views/home_view.dart';
+import 'package:achiva/models/goal.dart';
+import 'package:achiva/views/SearchFriendsScreen.dart'; 
+import 'package:achiva/views/friends_feed_page.dart'; 
+import 'package:achiva/views/profile/profile_screen.dart'; 
+import 'package:achiva/views/home_view.dart'; 
+
 
 import 'GoalTasks.dart';
 
@@ -51,6 +54,58 @@ class _HomePageState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        backgroundColor: Colors.white,
+        title: const Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(
+              CupertinoIcons.search,
+              size: 32,
+              color: CoursesColors.darkGreen,
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SearchFriendsScreen()),
+              );
+            },
+          ),
+          PopupMenuButton<MenuAction>(
+            onSelected: (value) async {
+              if (value == MenuAction.logout) {
+                try {
+                  final shouldLogout = await showLogOutDialog(context);
+                  if (shouldLogout) {
+                    await FirebaseAuth.instance.signOut();
+                    Navigator.of(context)
+                        .pushNamedAndRemoveUntil('/phoneauth', (_) => false);
+                  }
+                } on UserNotLoggedInAuthException catch (_) {
+                  showErrorDialog(context, "User is not logged in");
+                }
+              }
+            },
+            itemBuilder: (context) {
+              return const [
+                PopupMenuItem<MenuAction>(
+                  value: MenuAction.logout,
+                  child: Text("Log out"),
+                ),
+              ];
+            },
+          ),
+        ],
+      ),
+      body: PageView(
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(),
+
 //       appBar: AppBar(
 //   automaticallyImplyLeading: false,
 //   backgroundColor: Colors.white,
@@ -73,6 +128,7 @@ class _HomePageState extends State<HomeScreen> {
         controller: _pageController,
         physics:
             const NeverScrollableScrollPhysics(), // Disable swipe to switch pages
+
         children: [
           _buildHomePage(context),
           const FriendsFeedScreen(), // Your Friends Feed Page
