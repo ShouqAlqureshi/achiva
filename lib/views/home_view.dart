@@ -14,7 +14,6 @@ import 'package:achiva/views/SearchFriendsScreen.dart';
 import 'package:achiva/views/friends_feed_page.dart';
 import 'package:achiva/views/profile/profile_screen.dart';
 import 'package:achiva/views/home_view.dart';
-
 import 'GoalTasks.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -75,7 +74,25 @@ class _HomePageState extends State<HomeScreen> {
               );
             },
           ),
-          // PopupMenuButton<MenuAction>(
+
+//       appBar: AppBar(
+//   automaticallyImplyLeading: false,
+//   backgroundColor: Colors.white,
+//   title: Row(
+//     mainAxisAlignment: MainAxisAlignment.end,
+//     children: [
+//       const SizedBox(
+//         height: 50,
+//         width: 50,
+//         child: Icon(
+//           CupertinoIcons.search,
+//           size: 32,
+//           color: CoursesColors.darkGreen,
+//         ),
+//       ),
+//     ],
+//   ),
+// ),
           //   // onSelected: (value) async {
           //   //   // if (value == MenuAction.logout) {
           //   //   //   try {
