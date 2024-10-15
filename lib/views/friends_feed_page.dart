@@ -313,7 +313,10 @@ class _PostCardState extends State<_PostCard> {
   }
 
   
-  void _showReactionsDialog() {
+void _showReactionsDialog() {
+  // Check if there are any reactions
+  bool hasReactions = reactions.entries.any((entry) => emojis.contains(entry.value));
+
   showDialog(
     context: context,
     builder: (BuildContext context) {
@@ -321,27 +324,31 @@ class _PostCardState extends State<_PostCard> {
         title: const Text('Reactions'),
         content: SizedBox(
           width: double.maxFinite,
-          child: ListView(
-            shrinkWrap: true,
-            children: emojis.where((emoji) {
-              // Check if there are any users who reacted with this emoji
-              return reactions.entries.any((entry) => entry.value == emoji);
-            }).map((emoji) {
-              var usersReacted = reactions.entries
-                  .where((entry) => entry.value == emoji)
-                  .map((entry) => entry.key)
-                  .toList();
-              return ListTile(
-                leading: Text(emoji, style: const TextStyle(fontSize: 24)),
-                title: Text('${usersReacted.length}'),
-                onTap: () {
-                  // Here you can show the list of users who reacted with this emoji
-                  // For simplicity, we're just printing to console
-                  print('Users who reacted with $emoji: $usersReacted');
-                },
-              );
-            }).toList(),
-          ),
+          child: hasReactions
+              ? ListView(
+                  shrinkWrap: true,
+                  children: emojis.where((emoji) {
+                    return reactions.entries.any((entry) => entry.value == emoji);
+                  }).map((emoji) {
+                    var usersReacted = reactions.entries
+                        .where((entry) => entry.value == emoji)
+                        .map((entry) => entry.key)
+                        .toList();
+                    return ListTile(
+                      leading: Text(emoji, style: const TextStyle(fontSize: 24)),
+                      title: Text('${usersReacted.length}'),
+                      onTap: () {
+                        print('Users who reacted with $emoji: $usersReacted');
+                      },
+                    );
+                  }).toList(),
+                )
+              : const Center( // Correct placement of the Text widget
+                  child: Text(
+                    'No reactions yet',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                ),
         ),
         actions: [
           TextButton(
@@ -355,6 +362,8 @@ class _PostCardState extends State<_PostCard> {
     },
   );
 }
+
+
 
 
   void _showEmojiPicker() {

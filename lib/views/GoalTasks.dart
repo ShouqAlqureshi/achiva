@@ -119,7 +119,7 @@ class GoalTasks extends StatelessWidget {
               TextButton(
                 child: Text('Yes'),
                  onPressed: () {
-                  String userId = 'currentUserId';
+                  // String userId = userId;
                   String goalId = goalDocument.id;
                   String taskId = taskRef.id;
               Navigator.of(context).pop(); // Close the dialog
