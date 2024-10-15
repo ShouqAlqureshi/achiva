@@ -322,31 +322,40 @@ void _showReactionsDialog() {
     builder: (BuildContext context) {
       return AlertDialog(
         title: const Text('Reactions'),
-        content: SizedBox(
-          width: double.maxFinite,
+        content: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.7,
+            minHeight: 50,
+          ),
           child: hasReactions
-              ? ListView(
-                  shrinkWrap: true,
-                  children: emojis.where((emoji) {
-                    return reactions.entries.any((entry) => entry.value == emoji);
-                  }).map((emoji) {
-                    var usersReacted = reactions.entries
-                        .where((entry) => entry.value == emoji)
-                        .map((entry) => entry.key)
-                        .toList();
-                    return ListTile(
-                      leading: Text(emoji, style: const TextStyle(fontSize: 24)),
-                      title: Text('${usersReacted.length}'),
-                      onTap: () {
-                        print('Users who reacted with $emoji: $usersReacted');
-                      },
-                    );
-                  }).toList(),
+              ? SizedBox(
+                  width: double.maxFinite,
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: emojis.where((emoji) {
+                      return reactions.entries.any((entry) => entry.value == emoji);
+                    }).map((emoji) {
+                      var usersReacted = reactions.entries
+                          .where((entry) => entry.value == emoji)
+                          .map((entry) => entry.key)
+                          .toList();
+                      return ListTile(
+                        leading: Text(emoji, style: const TextStyle(fontSize: 24)),
+                        title: Text('${usersReacted.length}'),
+                        onTap: () {
+                          print('Users who reacted with $emoji: $usersReacted');
+                        },
+                      );
+                    }).toList(),
+                  ),
                 )
-              : const Center( // Correct placement of the Text widget
-                  child: Text(
-                    'No reactions yet',
-                    style: TextStyle(fontSize: 14),
+              : const SizedBox(
+                  height: 50,
+                  child: Center(
+                    child: Text(
+                      'No reactions yet',
+                      style: TextStyle(fontSize: 14),
+                    ),
                   ),
                 ),
         ),
@@ -362,9 +371,6 @@ void _showReactionsDialog() {
     },
   );
 }
-
-
-
 
   void _showEmojiPicker() {
   showDialog(
