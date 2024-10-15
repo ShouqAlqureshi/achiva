@@ -6,13 +6,12 @@ import 'package:achiva/core/constants/extensions.dart';
 import 'package:achiva/core/errors/app_failures.dart';
 import 'package:achiva/core/theme/app_colors.dart';
 import 'package:achiva/views/profile/widgets/profile_widgets/textBehindIconWidget.dart';
+import 'package:achiva/views/profile/widgets/profile_widgets/user_friends_listview_widget.dart';
 import 'package:achiva/views/profile/widgets/profile_widgets/user_goals_listview_widget.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../setting/app_settings_screen.dart';
-import 'edit_profile_screen.dart';
 import 'layout_controller/layout_cubit.dart';
 import 'layout_controller/layout_states.dart';
 
@@ -41,7 +40,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         title: const Text("Profile"),
-       // leading: const SizedBox(),
+        // leading: const SizedBox(),
         actions: [
           BlocBuilder<LayoutCubit, LayoutStates>(builder: (context, state) {
             if (layoutCubit.user != null) {
@@ -68,29 +67,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: AppConstants.kScaffoldPadding,
             children: [
               Builder(
-  builder: (context) {
-    if (layoutCubit.user!.photo == null) {
-      return CircleAvatar(
-        radius: 64,
-        backgroundColor: Colors.grey[200],
-        child: const Icon(Icons.person, size: 60, color: Colors.grey),
-      );
-    } else {
-      return CircleAvatar(
-        radius: 64,
-        backgroundColor: Colors.transparent, 
-        child: ClipOval(
-          child: Image.network(
-            layoutCubit.user!.photo!,
-            fit: BoxFit.cover,
-            width: 128,  
-            height: 128, 
-          ),
-        ),
-      );
-    }
-  },
-),
+                builder: (context) {
+                  if (layoutCubit.user!.photo == null) {
+                    return CircleAvatar(
+                      radius: 64,
+                      backgroundColor: Colors.grey[200],
+                      child: const Icon(Icons.person,
+                          size: 60, color: Colors.grey),
+                    );
+                  } else {
+                    return CircleAvatar(
+                      radius: 64,
+                      backgroundColor: Colors.transparent,
+                      child: ClipOval(
+                        child: Image.network(
+                          layoutCubit.user!.photo!,
+                          fit: BoxFit.cover,
+                          width: 128,
+                          height: 128,
+                        ),
+                      ),
+                    );
+                  }
+                },
+              ),
               16.vrSpace,
               Text(
                 "${layoutCubit.user!.fname} ${layoutCubit.user!.lname}",
@@ -108,7 +108,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: AppColors.kDarkGrey,
                       fontWeight: FontWeight.w500)),
               Container(
-
                 padding: AppConstants.kContainerPadding,
                 margin: const EdgeInsets.symmetric(vertical: 16),
                 decoration: BoxDecoration(
@@ -145,7 +144,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
                               color: layoutCubit.showFriendNotGoalsOnProfile
-                                  ? const Color.fromARGB(255, 53, 29, 94).withOpacity(0.15)
+                                  ? const Color.fromARGB(255, 53, 29, 94)
+                                      .withOpacity(0.15)
                                   : AppColors.kLightGrey.withOpacity(0.1),
                               borderRadius: AppConstants.kMainRadius),
                           child: const Text(
@@ -168,7 +168,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           decoration: BoxDecoration(
                               color: layoutCubit.showFriendNotGoalsOnProfile ==
                                       false
-                                  ? const Color.fromARGB(255, 53, 29, 94).withOpacity(0.15)
+                                  ? const Color.fromARGB(255, 53, 29, 94)
+                                      .withOpacity(0.15)
                                   : AppColors.kLightGrey.withOpacity(0.1),
                               borderRadius: AppConstants.kMainRadius),
                           child: const Text(
@@ -185,7 +186,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Builder(
                 builder: (context) {
                   if (layoutCubit.showFriendNotGoalsOnProfile) {
-                    return const SizedBox();
+
+                     return UserFriendsListviewWidget(layoutCubit: layoutCubit);
+                    
                   } else {
                     return UserGoalsListviewWidget(layoutCubit: layoutCubit);
                   }
@@ -209,4 +212,3 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
-
