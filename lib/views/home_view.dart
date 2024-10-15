@@ -102,33 +102,10 @@ class _HomePageState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: PageView(
-        controller: _pageController,
-        physics: const NeverScrollableScrollPhysics(),
-
-//       appBar: AppBar(
-//   automaticallyImplyLeading: false,
-//   backgroundColor: Colors.white,
-//   title: Row(
-//     mainAxisAlignment: MainAxisAlignment.end,
-//     children: [
-//       const SizedBox(
-//         height: 50,
-//         width: 50,
-//         child: Icon(
-//           CupertinoIcons.search,
-//           size: 32,
-//           color: CoursesColors.darkGreen,
-//         ),
-//       ),
-//     ],
-//   ),
-// ),
-      body: PageView(
+       body: PageView(
         controller: _pageController,
         physics:
             const NeverScrollableScrollPhysics(), // Disable swipe to switch pages
-
         children: [
           _buildHomePage(context),
           const FriendsFeedScreen(), // Your Friends Feed Page
