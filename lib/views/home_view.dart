@@ -46,7 +46,8 @@ class _HomePageState extends State<HomeScreen> {
     setState(() {
       _currentIndex = index;
     });
-    _pageController.jumpToPage(index); // Update the PageView when a tab is selected
+    _pageController
+        .jumpToPage(index); // Update the PageView when a tab is selected
   }
 
   @override
@@ -73,9 +74,7 @@ class _HomePageState extends State<HomeScreen> {
               );
             },
           ),
-        
-        ],
-      ),
+
 //       appBar: AppBar(
 //   automaticallyImplyLeading: false,
 //   backgroundColor: Colors.white,
@@ -94,6 +93,31 @@ class _HomePageState extends State<HomeScreen> {
 //     ],
 //   ),
 // ),
+          //   // onSelected: (value) async {
+          //   //   // if (value == MenuAction.logout) {
+          //   //   //   try {
+          //   //   //     final shouldLogout = await showLogOutDialog(context);
+          //   //   //     if (shouldLogout) {
+          //   //   //       await FirebaseAuth.instance.signOut();
+          //   //   //       Navigator.of(context)
+          //   //   //           .pushNamedAndRemoveUntil('/phoneauth', (_) => false);
+          //   //   //     }
+          //   //   //   } on UserNotLoggedInAuthException catch (_) {
+          //   //   //     showErrorDialog(context, "User is not logged in");
+          //   //   //   }
+          //   //   // }
+          //   // },
+          //   itemBuilder: (context) {
+          //     return const [
+          //       PopupMenuItem<MenuAction>(
+          //         value: MenuAction.logout,
+          //         child: Text("Log out"),
+          //       ),
+          //     ];
+          //   },
+          // ),
+        ],
+      ),
       body: PageView(
         controller: _pageController,
         physics:
@@ -104,7 +128,6 @@ class _HomePageState extends State<HomeScreen> {
           const ProfileScreen(), // Your Profile Page
         ],
       ),
-
       bottomNavigationBar: FloatingBottomNavigationBarWidget(
         currentIndex: _currentIndex,
         onTabSelected: _onTabSelected,
@@ -126,7 +149,8 @@ class _HomePageState extends State<HomeScreen> {
                     StreamBuilder(
                       stream: FirebaseFirestore.instance
                           .collection("Users")
-                          .where("id", isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+                          .where("id",
+                              isEqualTo: FirebaseAuth.instance.currentUser!.uid)
                           .snapshots(),
                       builder:
                           (context, AsyncSnapshot<QuerySnapshot> snapshot) {
@@ -144,7 +168,6 @@ class _HomePageState extends State<HomeScreen> {
                           if (goalDocuments.isEmpty) {
                             return const Text("No goals available");
                           }
-
 
                           final userData = snapshot.data!.docs.first;
                           final String fname = userData['fname'];
@@ -254,26 +277,29 @@ class _HomePageState extends State<HomeScreen> {
                             }
 
                             return SizedBox(
-            height: 300,
-            child: PageView.builder(
-              controller: PageController(viewportFraction: 0.85),
-              itemCount: goalDocuments.length,
-              itemBuilder: (context, index) {
-                final goalDocument = goalDocuments[index];
-                final goalData = goalDocument.data() as Map<String, dynamic>;
-                final String goalName = goalData['name'];
-                double progress = (index + 1) * 10.0;
-                final isDone = progress >= 100;
+                              height: 300,
+                              child: PageView.builder(
+                                controller:
+                                    PageController(viewportFraction: 0.85),
+                                itemCount: goalDocuments.length,
+                                itemBuilder: (context, index) {
+                                  final goalDocument = goalDocuments[index];
+                                  final goalData = goalDocument.data()
+                                      as Map<String, dynamic>;
+                                  final String goalName = goalData['name'];
+                                  double progress = (index + 1) * 10.0;
+                                  final isDone = progress >= 100;
 
-                return _buildGoalCard(goalName, progress, isDone, goalDocument);
-              },
-            ),
-          );
-        } else {
-          return const Text("No goals available");
-        }
-      },
-    ),
+                                  return _buildGoalCard(
+                                      goalName, progress, isDone, goalDocument);
+                                },
+                              ),
+                            );
+                          } else {
+                            return const Text("No goals available");
+                          }
+                        },
+                      ),
                     ],
                   ),
                 ),

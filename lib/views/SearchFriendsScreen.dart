@@ -602,4 +602,6 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
       ),
     );
   }
+
 }
+
