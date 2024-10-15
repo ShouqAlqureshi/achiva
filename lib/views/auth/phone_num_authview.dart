@@ -54,13 +54,13 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.deepPurple,
-                  borderRadius: BorderRadius.circular(30), // More rounded edges
+                  borderRadius: BorderRadius.circular(30),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.2),
                       spreadRadius: 3,
                       blurRadius: 10,
-                      offset: const Offset(0, 5), // Shadow position
+                      offset: const Offset(0, 5),
                     ),
                   ],
                 ),
@@ -97,10 +97,9 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                             fontSize: 14)),
                     const SizedBox(height: 15),
                     TextField(
-                      maxLength: 30, // Set the maximum number of characters
+                      maxLength: 30,
                       inputFormatters: [
-                        LengthLimitingTextInputFormatter(
-                            50), // Enforce the limit
+                        LengthLimitingTextInputFormatter(50),
                         FilteringTextInputFormatter.deny(RegExp(r'\s')),
                       ],
                       onChanged: (value) {
@@ -120,8 +119,7 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                         hintText: "Enter your phone number",
                         prefixIcon: const Icon(Icons.phone),
                         border: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(30), // Rounded input
+                          borderRadius: BorderRadius.circular(30),
                           borderSide: (isPhonenumTouched || isFormSubmitted) &&
                                   (validation
                                           .validatePhoneNum(_phonenumber.text)
@@ -140,65 +138,29 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                     isloading
                         ? const Align(
                             alignment: Alignment.center,
-                            child: CircularProgressIndicator(
-                                backgroundColor: Colors.black,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.red)),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                  backgroundColor: Colors.black,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Color.fromARGB(255, 100, 6, 222))),
+                            ),
                           )
                         : ElevatedButton(
                             onPressed: () async {
+                              if (!mounted) return;
                               setState(() {
                                 isloading = true;
                                 isFormSubmitted = true;
                               });
+
                               if (validation
                                       .validatePhoneNum(_phonenumber.text)
                                       ?.isEmpty ??
                                   true) {
                                 try {
-                                  FirebaseAuth.instance.verifyPhoneNumber(
-                                    phoneNumber: _phonenumber.text,
-                                    verificationCompleted:
-                                        (phoneAuthCredential) async {
-                                      await FirebaseAuth.instance
-                                          .signInWithCredential(
-                                              phoneAuthCredential);
-                                      final user =
-                                          FirebaseAuth.instance.currentUser;
-                                      if (user == null) {
-                                        throw UserNotLoggedInAuthException();
-                                      }
-                                    },
-                                    verificationFailed:
-                                        (FirebaseAuthException error) async {
-                                      await showErrorDialog(
-                                        context,
-                                        'Check your phone number format:\n ${error.message}',
-                                      );
-                                    },
-                                    codeSent: (verificationId,
-                                        forceResendingToken) async {
-                                      setState(() {
-                                        _verificationId = verificationId;
-                                      });
-                                      Navigator.pushNamed(
-                                        context,
-                                        '/otp',
-                                        arguments: verificationId,
-                                      );
-                                    },
-                                    timeout: const Duration(seconds: 60),
-                                    codeAutoRetrievalTimeout: (verificationId) {
-                                      devtool.log("auto retrieval timeout");
-                                      setState(() {
-                                        _verificationId = verificationId;
-                                      });
-                                    },
-                                  );
-                                  setState(() {
-                                    isloading = false;
-                                  });
+                                  await verifyPhoneNumber();
                                 } catch (e) {
+                                  if (!mounted) return;
                                   await showErrorDialog(context,
                                       'An unexpected error occurred: $e');
                                 }
@@ -210,11 +172,7 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                                   ),
                                 );
                               }
-
-                              setState(() {
-                                isloading = false;
-                              });
-                            }, // on pressed
+                            },
                             child: const Text("Continue"),
                           ),
                   ],
@@ -224,6 +182,45 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> verifyPhoneNumber() async {
+    await FirebaseAuth.instance.verifyPhoneNumber(
+      phoneNumber: _phonenumber.text,
+      verificationCompleted: (phoneAuthCredential) async {
+        await FirebaseAuth.instance.signInWithCredential(phoneAuthCredential);
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) {
+          throw UserNotLoggedInAuthException();
+        }
+      },
+      verificationFailed: (FirebaseAuthException error) async {
+        if (!mounted) return;
+        await showErrorDialog(
+          context,
+          'Check your phone number format:\n ${error.message}',
+        );
+      },
+      codeSent: (verificationId, forceResendingToken) async {
+        if (!mounted) return;
+        setState(() {
+          _verificationId = verificationId;
+        });
+        Navigator.pushNamed(
+          context,
+          '/otp',
+          arguments: verificationId,
+        );
+      },
+      timeout: const Duration(seconds: 60),
+      codeAutoRetrievalTimeout: (verificationId) {
+        devtool.log("auto retrieval timeout");
+        if (!mounted) return;
+        setState(() {
+          _verificationId = verificationId;
+        });
+      },
     );
   }
 }
