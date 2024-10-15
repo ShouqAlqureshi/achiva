@@ -1,3 +1,5 @@
+import 'package:achiva/views/CreatePostPage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:timelines/timelines.dart';
@@ -6,8 +8,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class GoalTasks extends StatelessWidget {
   final DocumentSnapshot goalDocument;
   final double progress = 65.0;
+  final String userId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
-  const GoalTasks({Key? key, required this.goalDocument}) : super(key: key);
+   GoalTasks({Key? key, required this.goalDocument}) : super(key: key);
 
   void _showTaskDetails(BuildContext context, Map<String, dynamic> task) {
     showDialog(
@@ -115,11 +118,18 @@ class GoalTasks extends StatelessWidget {
               ),
               TextButton(
                 child: Text('Yes'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  // TODO: Implement post creation functionality
-                  print('Create a post about completing: $taskName');
-                },
+                 onPressed: () {
+                  // String userId = userId;
+                  String goalId = goalDocument.id;
+                  String taskId = taskRef.id;
+              Navigator.of(context).pop(); // Close the dialog
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CreatePostPage(userId: userId, goalId: goalId, taskId: taskId),
+                ),
+              ); // Navigate to the Create Post page if 'Yes' is selected
+            },
               ),
             ],
           );

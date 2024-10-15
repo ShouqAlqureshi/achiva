@@ -13,11 +13,10 @@ class FloatingBottomNavigationBarWidget extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    
-    return Stack(
+Widget build(BuildContext context) {
+  return SafeArea(
+    child: Stack(
       clipBehavior: Clip.none,
-      
       alignment: Alignment.bottomCenter,
       children: [
         Container(
@@ -25,9 +24,9 @@ class FloatingBottomNavigationBarWidget extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.only(left: 24, right: 24, bottom: 16),
             child: Container(
-              height: 70,
+              height: 60,
               decoration: BoxDecoration(
-                color: Colors.white, // Set to white for navigation bar background
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(35),
                 boxShadow: [
                   BoxShadow(
@@ -56,12 +55,13 @@ class FloatingBottomNavigationBarWidget extends StatelessWidget {
           ),
         ),
         Positioned(
-          top: -25,
+          top: -20,
           child: _buildAddButton(context),
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildNavItem(IconData icon, String label, int index) {
     final isSelected = currentIndex == index;
