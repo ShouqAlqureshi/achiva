@@ -89,7 +89,9 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
                     isLoading
                         ? const Align(
                             alignment: Alignment.center,
-                            child: CircularProgressIndicator(),
+                            child: CircularProgressIndicator(
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.grey)),
                           )
                         : ElevatedButton(
                             onPressed: () async {
@@ -128,7 +130,8 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
                                         arguments: datatosave,
                                       );
                                     } else {
-                                      Navigator.pushNamed(context, "/home");
+                                      Navigator.pushNamedAndRemoveUntil(
+                                          context, "/home", (route) => false);
                                     }
                                   } on FirebaseAuthException catch (e) {
                                     log(e.toString());

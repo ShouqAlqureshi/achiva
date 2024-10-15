@@ -1,6 +1,7 @@
 import 'package:achiva/enum/menu_action.dart';
 import 'package:achiva/exceptions/auth_exceptions.dart';
 import 'package:achiva/utilities/show_error_dialog.dart';
+import 'package:achiva/views/incoming_request_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -125,9 +126,12 @@ class _HomePageState extends State<HomeScreen> {
         children: [
           _buildHomePage(context),
           const FriendsFeedScreen(), // Your Friends Feed Page
+          const IncomingRequestsPage(), //Your Incoming Requests Page
           const ProfileScreen(), // Your Profile Page
         ],
       ),
+
+
       bottomNavigationBar: FloatingBottomNavigationBarWidget(
         currentIndex: _currentIndex,
         onTabSelected: _onTabSelected,
@@ -168,6 +172,7 @@ class _HomePageState extends State<HomeScreen> {
                           if (goalDocuments.isEmpty) {
                             return const Text("No goals available");
                           }
+
 
                           final userData = snapshot.data!.docs.first;
                           final String fname = userData['fname'];
@@ -283,15 +288,19 @@ class _HomePageState extends State<HomeScreen> {
                                     PageController(viewportFraction: 0.85),
                                 itemCount: goalDocuments.length,
                                 itemBuilder: (context, index) {
+
                                   final goalDocument = goalDocuments[index];
                                   final goalData = goalDocument.data()
+
                                       as Map<String, dynamic>;
                                   final String goalName = goalData['name'];
                                   double progress = (index + 1) * 10.0;
                                   final isDone = progress >= 100;
 
                                   return _buildGoalCard(
+
                                       goalName, progress, isDone, goalDocument);
+
                                 },
                               ),
                             );
