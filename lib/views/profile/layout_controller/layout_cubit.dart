@@ -36,16 +36,19 @@ class LayoutCubit extends Cubit<LayoutStates> {
             .doc(FirebaseAuth.instance.currentUser!.uid)
             .get()
             .then((e) {
-          log(e.data().toString());
           log(FirebaseAuth.instance.currentUser!.uid);
 
           if (e.data() != null) {
             user = UserModel.fromJson(json: e.data()!);
 
             log(e.data().toString());
+            emit(GetUserDataSuccessfullyState());
+          } else {
+            log("getUserData is Null");
+            emit(GetUserDataWithFailureState(
+                failure: InvalidDataEnteredByUserFailure()));
           }
         });
-        emit(GetUserDataSuccessfullyState());
       }
     } on FirebaseException catch (e) {
       emit(GetUserDataWithFailureState(
@@ -79,7 +82,7 @@ class LayoutCubit extends Cubit<LayoutStates> {
   }
 
   List<GoalModel> myGoals = [];
-
+  List<UserModel> myFriends = [];
   Future<void> getMyGoals({bool? updateData}) async {
     try {
       myGoals.clear(); // TODO: to get new data
@@ -100,6 +103,72 @@ class LayoutCubit extends Cubit<LayoutStates> {
           failure: await CheckInternetConnection.getStatus()
               ? InternetNotFoundFailure()
               : ServerFailure()));
+    }
+  }
+
+  Future<List<GoalModel>> getGoalsByUserId({required String userId}) async {
+    try {
+      List<GoalModel> goals = [];
+      var snapshot = await cloudFirestore
+          .collection(AppStrings.kUsersCollectionName)
+          .doc(userId)
+          .collection(AppStrings.kGoalsCollectionName)
+          .get();
+      if (snapshot.docs.isEmpty) {
+        return [];
+      }
+
+      for (var item in snapshot.docs) {
+        GoalModel goal = GoalModel.fromJson(json: item.data());
+        // this also can be done by where clause in the firebase query
+        if (goal.visibility) {
+          goals.add(goal);
+        }
+      }
+
+      return goals;
+    } on FirebaseException catch (e) {
+      throw Exception("somthing whent wrong");
+    }
+  }
+
+  Future<void> getMyFriends({bool? updateData}) async {
+    try {
+      myFriends.clear();
+      emit(GetUserFriendsLoadingState());
+      await cloudFirestore
+          .collection(AppStrings.kUsersCollectionName)
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .collection(AppStrings.kFriendsCollectionName)
+          .get()
+          .then((data) async {
+        for (var item in data.docs) {
+          UserModel? user = await getUserById(userId: item.id);
+          if (user != null) {
+            myFriends.add(user);
+          }
+        }
+      });
+
+      emit(GetUserFriendsSuccessfullyState());
+    } on FirebaseException catch (e) {
+      log("getMyFriends Exception : $e");
+      emit(GetUserFriendsWithFailureState(
+          failure: await CheckInternetConnection.getStatus()
+              ? InternetNotFoundFailure()
+              : ServerFailure()));
+    }
+  }
+
+  Future<UserModel?> getUserById({required String userId}) async {
+    var snapshot = await FirebaseFirestore.instance
+        .collection("Users")
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .get();
+    if (snapshot.exists && snapshot.data() != null) {
+      return UserModel.fromJson(json: snapshot.data()!);
+    } else {
+      return null;
     }
   }
 
@@ -258,7 +327,7 @@ class LayoutCubit extends Cubit<LayoutStates> {
     }
   }
 
-  Future<void> deleteAccount({required String pinCode,context}) async {
+  Future<void> deleteAccount({required String pinCode, context}) async {
     try {
       emit(DeleteAccountLoadingState());
       PhoneAuthCredential credential = PhoneAuthProvider.credential(
@@ -272,7 +341,7 @@ class LayoutCubit extends Cubit<LayoutStates> {
             .collection(AppStrings.kUsersCollectionName)
             .doc(userID)
             .delete();
-        await signOut(notToEmitToState: true,context: context);
+        await signOut(notToEmitToState: true, context: context);
         emit(DeleteAccountSuccessfullyState());
       }
     } on FirebaseException catch (e) {
@@ -292,6 +361,30 @@ class LayoutCubit extends Cubit<LayoutStates> {
     user = null;
     if (notToEmitToState == false) {
       emit(SignOutSuccessfullyState());
+    }
+  }
+
+  removeFrieand({required String userId}) async {
+    try {
+      await cloudFirestore
+          .collection(AppStrings.kUsersCollectionName)
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .collection(AppStrings.kFriendsCollectionName)
+          .doc(userId)
+          .delete()
+          .then(
+        (doc) {
+          log("Document deleted");
+          getMyFriends();
+        },
+        onError: (e) {
+          log("Error updating document $e");
+          emit(GetUserGoalsWithFailureState(failure: ServerFailure()));
+        },
+      );
+    } catch (e) {
+      log("$e");
+      emit(GetUserGoalsWithFailureState(failure: ServerFailure()));
     }
   }
 }

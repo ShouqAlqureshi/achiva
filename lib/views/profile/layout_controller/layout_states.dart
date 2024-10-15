@@ -49,6 +49,14 @@ class GetUserGoalsWithFailureState extends LayoutStates {
   GetUserGoalsWithFailureState({required this.failure});
 }
 
+class GetUserFriendsSuccessfullyState extends LayoutStates {}
+class GetUserFriendsLoadingState extends LayoutStates {}
+class GetUserFriendsWithFailureState extends LayoutStates {
+  final Failure failure;
+  GetUserFriendsWithFailureState({required this.failure});
+}
+
+
 class UpdateUserDataSuccessfullyState extends LayoutStates {}
 class UpdateUserDataLoadingState extends LayoutStates {}
 class UpdateUserDataWithFailureState extends LayoutStates {

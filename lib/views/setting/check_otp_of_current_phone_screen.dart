@@ -1,4 +1,3 @@
-
 import 'package:achiva/core/constants/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -14,6 +13,7 @@ import 'change_user_phone_number_screen.dart';
 class CheckOtpOfCurrentPhoneScreen extends StatefulWidget {
   final LayoutCubit layoutCubit;
   final String phoneNumber;
+
   const CheckOtpOfCurrentPhoneScreen({super.key, required this.layoutCubit, required this.phoneNumber});
 
   @override
@@ -25,14 +25,21 @@ class _CheckOtpOfCurrentPhoneScreenState extends State<CheckOtpOfCurrentPhoneScr
 
   @override
   void initState() {
-    widget.layoutCubit.verifyPhoneNum(phoneNumber: widget.phoneNumber,usedWithCurrentPhoneOrNewOne: true);
     super.initState();
+    widget.layoutCubit.verifyPhoneNum(phoneNumber: widget.phoneNumber, usedWithCurrentPhoneOrNewOne: true);
   }
 
+ 
   @override
   void dispose() {
-    _pinCodeController.clear();
+    _pinCodeController.dispose(); // Directly dispose the controller
     super.dispose();
+  }
+
+  void clearPinCode() {
+    if (mounted) {
+      _pinCodeController.clear();
+    }
   }
 
   @override
@@ -45,10 +52,9 @@ class _CheckOtpOfCurrentPhoneScreenState extends State<CheckOtpOfCurrentPhoneScr
         padding: AppConstants.kScaffoldPadding,
         child: ListView(
           padding: EdgeInsets.zero,
-          children:
-          [
-            Text("Verification Code",style: TextStyle(fontSize: 36,fontWeight: FontWeight.bold,color: AppColors.kBlack)),
-            Text("Please type the verification code sent to ${widget.phoneNumber}",style: TextStyle(fontSize: 24,fontWeight: FontWeight.w600,height: 1.6,color: AppColors.kLightGrey),),
+          children: [
+            Text("Verification Code", style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: AppColors.kBlack)),
+            Text("Please type the verification code sent to ${widget.phoneNumber}", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, height: 1.6, color: AppColors.kLightGrey)),
             24.vrSpace,
             PinCodeTextField(
               length: 6,
@@ -68,42 +74,42 @@ class _CheckOtpOfCurrentPhoneScreenState extends State<CheckOtpOfCurrentPhoneScr
               backgroundColor: Colors.transparent,
               enableActiveFill: true,
               controller: _pinCodeController,
-              onCompleted: (v)
-              {
-                widget.layoutCubit.checkOtpOfCurrentPhone(code: _pinCodeController.text.trim());
+              onCompleted: (v) {
+                if (mounted) { // Check if the widget is still mounted
+                  widget.layoutCubit.checkOtpOfCurrentPhone(code: _pinCodeController.text.trim());
+                }
               },
               appContext: context,
             ),
             12.vrSpace,
-            BlocConsumer<LayoutCubit,LayoutStates>(
-              listenWhen: (past,currentState) => (currentState is PhoneNumVerifiedWithFailureState && currentState.usedWithCurrentPhoneOrNewOne) || (currentState is PhoneNumVerifiedSuccessfullyState && currentState.usedWithCurrentPhoneOrNewOne) || currentState is CheckOtpOfCurrentPhoneLoadingState || currentState is CheckOtpOfCurrentPhoneSuccessfullyState || currentState is CheckOtpOfCurrentPhoneWithFailureState,
-              listener: (context,state)
-              {
-                if( state is CheckOtpOfCurrentPhoneWithFailureState )
-                {
+            BlocConsumer<LayoutCubit, LayoutStates>(
+              listenWhen: (past, currentState) =>
+                  (currentState is PhoneNumVerifiedWithFailureState && currentState.usedWithCurrentPhoneOrNewOne) ||
+                  (currentState is PhoneNumVerifiedSuccessfullyState && currentState.usedWithCurrentPhoneOrNewOne) ||
+                  currentState is CheckOtpOfCurrentPhoneLoadingState ||
+                  currentState is CheckOtpOfCurrentPhoneSuccessfullyState ||
+                  currentState is CheckOtpOfCurrentPhoneWithFailureState,
+              listener: (context, state) {
+                if (state is CheckOtpOfCurrentPhoneWithFailureState) {
                   showSnackBarWidget(message: state.message, successOrNot: false, context: context);
                 }
-                if( state is CheckOtpOfCurrentPhoneSuccessfullyState )
-                {
+                if (state is CheckOtpOfCurrentPhoneSuccessfullyState) {
                   showSnackBarWidget(message: "Otp code confirmed successfully", successOrNot: true, context: context);
-                  Navigator.push(context, MaterialPageRoute(builder: (context)=> const ChangeUserPhoneScreen()));
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const ChangeUserPhoneScreen()));
                 }
-                if( state is PhoneNumVerifiedWithFailureState )
-                {
+                if (state is PhoneNumVerifiedWithFailureState) {
                   showSnackBarWidget(message: "${state.message}, While sending Otp to your Phone.", successOrNot: false, context: context);
                 }
               },
-              builder: (context,state) => BtnWidget(
+              builder: (context, state) => BtnWidget(
                 minWidth: double.infinity,
-                onTap: ()
-                {
-                  if( _pinCodeController.text.isEmpty )
-                  {
+                onTap: () {
+                  if (_pinCodeController.text.isEmpty) {
                     showSnackBarWidget(message: "Please, Enter Otp code, try again !", successOrNot: false, context: context);
-                  }
-                  else
-                  {
-                    widget.layoutCubit.checkOtpOfCurrentPhone(code: _pinCodeController.text.trim());
+                  } else {
+                    if (mounted) { // Check if the widget is still mounted
+                      widget.layoutCubit.checkOtpOfCurrentPhone(code: _pinCodeController.text.trim());
+                    }
                   }
                 },
                 title: state is CheckOtpOfCurrentPhoneLoadingState ? "Check Otp code loading" : "Continue",
@@ -112,16 +118,16 @@ class _CheckOtpOfCurrentPhoneScreenState extends State<CheckOtpOfCurrentPhoneScr
             16.vrSpace,
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children:
-              [
-                Text("Didn't receive Otp code ?",style: TextStyle(fontSize: 16,fontWeight: FontWeight.w500,color: AppColors.kDarkGrey),),
+              children: [
+                Text("Didn't receive Otp code ?", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: AppColors.kDarkGrey)),
                 6.hrSpace,
                 InkWell(
-                  onTap: ()  
-                  {
-                    widget.layoutCubit.verifyPhoneNum(phoneNumber: widget.phoneNumber,usedWithCurrentPhoneOrNewOne: true);
+                  onTap: () {
+                    if (mounted) { // Check if the widget is still mounted
+                      widget.layoutCubit.verifyPhoneNum(phoneNumber: widget.phoneNumber, usedWithCurrentPhoneOrNewOne: true);
+                    }
                   },
-                  child: Text("Resent it",style: TextStyle(fontSize: 16,fontWeight: FontWeight.w500,color: AppColors.kMain),),
+                  child: Text("Resent it", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: AppColors.kMain)),
                 )
               ],
             )
@@ -130,6 +136,4 @@ class _CheckOtpOfCurrentPhoneScreenState extends State<CheckOtpOfCurrentPhoneScr
       ),
     );
   }
-
 }
-

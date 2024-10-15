@@ -119,6 +119,8 @@ class _HomePageState extends State<HomeScreen> {
                           if (goalDocuments.isEmpty) {
                             return const Text("No goals available");
                           }
+
+
                           final userData = snapshot.data!.docs.first;
                           final String fname = userData['fname'];
 
