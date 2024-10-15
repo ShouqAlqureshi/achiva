@@ -72,7 +72,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
     }
   }
 
- void _createPost() async {
+  void _createPost() async {
     String postContent = _postContentController.text;
     print('Creating post with content: $postContent');
     print('UserId: ${widget.userId}, GoalId: ${widget.goalId}, TaskId: ${widget.taskId}');
@@ -138,23 +138,50 @@ class _CreatePostPageState extends State<CreatePostPage> {
           print('Total number of posts in this task: ${postsQuery.docs.length}');
         }
 
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Post created successfully!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+        // Delay pop to allow user to see the message
+        Future.delayed(Duration(seconds: 2), () {
+          Navigator.of(context).pop();
+        });
+
       } catch (e) {
         if (kDebugMode) {
           print('Error adding post to Firestore: $e');
         }
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating post. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
 
       setState(() {
         _isUploading = false;
       });
-
-      Navigator.of(context).pop();
     } else {
       if (kDebugMode) {
         print('Post content is empty and no image selected');
       }
+      // Show warning message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please add some content or an image to your post.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
