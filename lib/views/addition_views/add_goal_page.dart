@@ -3,11 +3,13 @@ import 'package:achiva/views/addition_views/add_task_page.dart'; // Import the t
 import 'package:intl/intl.dart'; // Import the intl package for date formatting
 
 
+
 class AddGoalPage extends StatefulWidget {
   const AddGoalPage({super.key});
 
   @override
   _AddGoalPageState createState() => _AddGoalPageState();
+
 }
 
 class _AddGoalPageState extends State<AddGoalPage> {
@@ -18,7 +20,7 @@ class _AddGoalPageState extends State<AddGoalPage> {
   bool _isDateValid = true; // Tracks if the date is valid
 
   // Navigate to the next page to add tasks
-  void _goToAddTaskPage() {
+ /* void _goToAddTaskPage() {
     setState(() {
       _isNameValid = _nameController.text.isNotEmpty; // Check if name is not empty
       _isDateValid = _selectedDate != null; // Check if date is selected
@@ -41,7 +43,33 @@ class _AddGoalPageState extends State<AddGoalPage> {
         const SnackBar(content: Text('Please complete all required fields')),
       );
     }
+  }*/
+  void _goToAddTaskPage() {
+  setState(() {
+    // Check if name is not empty and not just whitespace
+    _isNameValid = _nameController.text.trim().isNotEmpty;
+    _isDateValid = _selectedDate != null; // Check if date is selected
+  });
+
+  // If both fields are valid, proceed to the next page
+  if (_isNameValid && _isDateValid) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddTaskPage(
+          goalName: _nameController.text,
+          goalDate: _selectedDate!,
+          goalVisibility: _visibility,
+        ),
+      ),
+    );
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please complete all required fields')),
+    );
   }
+
+}
 
   // Display a date picker that doesn't allow selecting past dates
   Future<void> _pickDate(BuildContext context) async {
@@ -102,7 +130,7 @@ class _AddGoalPageState extends State<AddGoalPage> {
                           ),
                           onChanged: (text) {
                             setState(() {
-                              _isNameValid = text.isNotEmpty; // Validate on typing
+                             _isNameValid = text.trim().isNotEmpty; // Validate on typing
                             });
                           },
                         ),
