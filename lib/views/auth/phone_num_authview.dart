@@ -142,7 +142,7 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                               child: CircularProgressIndicator(
                                   backgroundColor: Colors.black,
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                      Color.fromARGB(255, 100, 6, 222))),
+                                      Colors.grey)),
                             ),
                           )
                         : ElevatedButton(

@@ -1,6 +1,7 @@
 import 'package:achiva/enum/menu_action.dart';
 import 'package:achiva/exceptions/auth_exceptions.dart';
 import 'package:achiva/utilities/show_error_dialog.dart';
+import 'package:achiva/views/incoming_request_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -43,7 +44,8 @@ class _HomePageState extends State<HomeScreen> {
     setState(() {
       _currentIndex = index;
     });
-    _pageController.jumpToPage(index); // Update the PageView when a tab is selected
+    _pageController
+        .jumpToPage(index); // Update the PageView when a tab is selected
   }
 
   @override
@@ -69,14 +71,16 @@ class _HomePageState extends State<HomeScreen> {
 // ),
       body: PageView(
         controller: _pageController,
-        physics: const NeverScrollableScrollPhysics(), // Disable swipe to switch pages
+        physics:
+            const NeverScrollableScrollPhysics(), // Disable swipe to switch pages
         children: [
           _buildHomePage(context),
           const FriendsFeedScreen(), // Your Friends Feed Page
+          const IncomingRequestsPage(), //Your Incoming Requests Page
           const ProfileScreen(), // Your Profile Page
         ],
       ),
-      
+
       bottomNavigationBar: FloatingBottomNavigationBarWidget(
         currentIndex: _currentIndex,
         onTabSelected: _onTabSelected,
@@ -98,10 +102,13 @@ class _HomePageState extends State<HomeScreen> {
                     StreamBuilder(
                       stream: FirebaseFirestore.instance
                           .collection("Users")
-                          .where("id", isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+                          .where("id",
+                              isEqualTo: FirebaseAuth.instance.currentUser!.uid)
                           .snapshots(),
-                      builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
+                      builder:
+                          (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
                           return const CircularProgressIndicator();
                         }
 
@@ -109,7 +116,8 @@ class _HomePageState extends State<HomeScreen> {
                           return const Text("Error fetching user data");
                         }
 
-                        if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+                        if (snapshot.hasData &&
+                            snapshot.data!.docs.isNotEmpty) {
                           final userData = snapshot.data!.docs.first;
                           final String fname = userData['fname'];
 
@@ -162,7 +170,8 @@ class _HomePageState extends State<HomeScreen> {
                                 reportStats('2 Tasks', 'Today'),
                                 Container(
                                   decoration: BoxDecoration(
-                                    color: WellBeingColors.mediumGrey.withOpacity(0.3),
+                                    color: WellBeingColors.mediumGrey
+                                        .withOpacity(0.3),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   height: 40,
@@ -171,7 +180,8 @@ class _HomePageState extends State<HomeScreen> {
                                 reportStats('13 Tasks', 'This Week'),
                                 Container(
                                   decoration: BoxDecoration(
-                                    color: WellBeingColors.mediumGrey.withOpacity(0.3),
+                                    color: WellBeingColors.mediumGrey
+                                        .withOpacity(0.3),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   height: 40,
@@ -198,8 +208,10 @@ class _HomePageState extends State<HomeScreen> {
                             .doc(FirebaseAuth.instance.currentUser!.uid)
                             .collection('goals')
                             .snapshots(),
-                        builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
+                        builder:
+                            (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
                             return const CircularProgressIndicator();
                           }
 
@@ -216,15 +228,18 @@ class _HomePageState extends State<HomeScreen> {
                             return SizedBox(
                               height: 300,
                               child: PageView.builder(
-                                controller: PageController(viewportFraction: 0.85),
+                                controller:
+                                    PageController(viewportFraction: 0.85),
                                 itemCount: goalDocuments.length,
                                 itemBuilder: (context, index) {
-                                  final goalData = goalDocuments[index].data() as Map<String, dynamic>;
+                                  final goalData = goalDocuments[index].data()
+                                      as Map<String, dynamic>;
                                   final String goalName = goalData['name'];
                                   double progress = (index + 1) * 10.0;
                                   final isDone = progress >= 100;
 
-                                  return _buildGoalCard(goalName, progress, isDone);
+                                  return _buildGoalCard(
+                                      goalName, progress, isDone);
                                 },
                               ),
                             );
