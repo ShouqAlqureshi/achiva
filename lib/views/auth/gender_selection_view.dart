@@ -27,14 +27,14 @@ class _GenderSelectionViewState extends State<GenderSelectionView> {
             ),
             textAlign: TextAlign.start,
           ),
-          toolbarHeight: 150,
+          toolbarHeight: 130,
           centerTitle: true,
           backgroundColor: Colors.white),
       backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(50.0),
+            padding: const EdgeInsets.all(20.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -46,7 +46,7 @@ class _GenderSelectionViewState extends State<GenderSelectionView> {
                         BorderRadius.circular(30), // More rounded edges
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withOpacity(0.4),
                         spreadRadius: 3,
                         blurRadius: 10,
                         offset: const Offset(0, 5), // Shadow position
@@ -55,7 +55,7 @@ class _GenderSelectionViewState extends State<GenderSelectionView> {
                   ),
                   padding: const EdgeInsets.all(20),
                   width: 350,
-                  height: 350,
+                  height: 300,
                   child: Column(children: [
                     const SizedBox(height: 40),
                     const Text(
@@ -67,15 +67,20 @@ class _GenderSelectionViewState extends State<GenderSelectionView> {
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 40),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _buildGenderOption(
-                            context, 'Female', Icons.female, userData),
-                        _buildGenderOption(
-                            context, 'Male', Icons.male, userData),
-                      ],
+                    SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.all(10.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildGenderOption(
+                                context, 'Female', Icons.female, userData),
+                            const SizedBox(height: 10),
+                            _buildGenderOption(
+                                context, 'Male', Icons.male, userData),
+                          ],
+                        ),
+                      ),
                     ),
                     if (_errorText !=
                         null) // Display error if gender not selected
@@ -138,8 +143,8 @@ class _GenderSelectionViewState extends State<GenderSelectionView> {
         });
       },
       child: Container(
-        width: 120,
-        height: 120,
+        width: 110,
+        height: 110,
         decoration: BoxDecoration(
           color: Color.fromARGB(255, 71, 71, 71).withOpacity(0.3),
           borderRadius: BorderRadius.circular(20),
