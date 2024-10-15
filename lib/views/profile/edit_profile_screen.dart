@@ -60,9 +60,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       var response = await FirebaseFirestore.instance.collection("Users").get();
       for (var email in response.docs) {
-        emails.add(email.data()["email"]);
+        emails.add(email.data()["email"].toString().toLowerCase());
       }
-      return emails.contains(email);
+      return emails.contains(email.toLowerCase());
     } catch (e) {
       print('Error: $e');
       return false;
@@ -97,17 +97,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       if (widget.layoutCubit.userImage != null) {
                         return CircleAvatar(
                           radius: 64,
-                          backgroundImage: FileImage(widget.layoutCubit.userImage!),
+                          backgroundImage:
+                              FileImage(widget.layoutCubit.userImage!),
                         );
                       } else if (widget.layoutCubit.user!.photo != null) {
                         return CircleAvatar(
                           radius: 64,
-                          backgroundImage: NetworkImage(widget.layoutCubit.user!.photo!),
+                          backgroundImage:
+                              NetworkImage(widget.layoutCubit.user!.photo!),
                         );
-                      } else {return CircleAvatar(
+                      } else {
+                        return CircleAvatar(
                           radius: 64,
                           backgroundColor: Colors.grey[200],
-                          child: const Icon(Icons.person, size: 60, color: Colors.grey),
+                          child: const Icon(Icons.person,
+                              size: 60, color: Colors.grey),
                         );
                       }
                     },
@@ -118,10 +122,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       onTap: () {
                         showImageSourceDialog(
                           context: context,
-                          pickCameraImage: () =>
-                              widget.layoutCubit.pickUserImage(imageSource: ImageSource.camera),
-                          pickGalleryImage: () =>
-                              widget.layoutCubit.pickUserImage(imageSource: ImageSource.gallery),
+                          pickCameraImage: () => widget.layoutCubit
+                              .pickUserImage(imageSource: ImageSource.camera),
+                          pickGalleryImage: () => widget.layoutCubit
+                              .pickUserImage(imageSource: ImageSource.gallery),
                         );
                       },
                       child: Icon(Icons.edit, color: AppColors.kWhiteColor),
@@ -133,8 +137,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             24.vrSpace,
             TextFieldWidget(
               validator: (val) {
-                if (val!.isEmpty) {
+                if (val == null || val.isEmpty) {
                   return "First Name is required";
+                } else if (val.contains(" ")) {
+                  return "whitespace is not allowed in First Name";
                 }
               },
               textInputAction: TextInputAction.next,
@@ -144,9 +150,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             TextFieldWidget(
               validator: (val) {
-                if (val!.isEmpty) {
+                if (val == null || val.isEmpty) {
                   return "Last Name is required";
+                } else if (val.contains(" ")) {
+                  return "whitespace is not allowed in Last Name";
                 }
+                return null;
               },
               textInputAction: TextInputAction.next,
               controller: _lnameController,
@@ -161,6 +170,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 if (!isValidEmail(val)) {
                   return "Please enter a valid email address";
                 }
+                return null;
               },
               textInputAction: TextInputAction.next,
               controller: _emailController,
@@ -191,13 +201,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               listener: (context, state) {
                 if (state is UpdateUserDataWithFailureState) {
                   showSnackBarWidget(
-                      message: state.message, successOrNot: false, context: context);
+                      message: state.message,
+                      successOrNot: false,
+                      context: context);
                 }
                 if (state is UpdateUserDataSuccessfullyState) {
                   showSnackBarWidget(
                       message: "Your information is updated successfully",
                       successOrNot: true,
-                      context: context);Navigator.pop(context);
+                      context: context);
+                  Navigator.pop(context);
                 }
               },
               builder: (context, state) => BtnWidget(
@@ -223,7 +236,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         fname: _fnameController.text.trim(),
                         lname: _lnameController.text.trim(),
                         gender: widget.layoutCubit.chosenGender!,
-                        userID: AppConstants.kUserID ?? widget.layoutCubit.user!.id,
+                        userID:
+                            AppConstants.kUserID ?? widget.layoutCubit.user!.id,
                         email: _emailController.text.trim(),
                       );
                     }
