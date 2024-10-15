@@ -1,3 +1,6 @@
+
+import 'dart:developer';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -17,9 +20,10 @@ class RecurringTaskManager {
     required String? description,
     required String taskName,
     required CollectionReference usergoallistrefrence,
+    required DateTime goalDate,
   }) async {
     // Fetch the goal end date from Firestore
-    DateTime endDate = await _getGoalEndDate(goalName,usergoallistrefrence);
+    DateTime endDate = goalDate;
 
     // Determine the day of week from the start date
     int dayOfWeek = startDate.weekday;
@@ -53,13 +57,15 @@ class RecurringTaskManager {
           redundancyId,
           taskStart,
           taskEnd,
-          location!,
-          recurrenceType!,
-          description!,
+          location ??
+              'Unknown location', // Provide a default value or handle null
+          recurrenceType ?? 'None', // Provide a default value for recurrence
+          description ?? '', // Provide an empty string if description is null
           goalName,
           calcDuration(startTime, endTime),
           usergoallistrefrence,
         );
+
         tasks.add(task);
       }
       currentDate = currentDate.add(Duration(days: 1));
@@ -68,22 +74,22 @@ class RecurringTaskManager {
     return tasks;
   }
 
-  Future<DateTime> _getGoalEndDate(String goalName,CollectionReference usergoallistrefrence) async {
-    try {
-      DocumentSnapshot goalDoc =
-          await usergoallistrefrence.doc(goalName).get();
-      if (goalDoc.exists) {
-        DateTime endDate = DateTime.parse(goalDoc.get('date') as String);
-        
-        return endDate;
-      } else {
-        throw Exception('Goal not found');
-      }
-    } catch (e) {
-      print('Error fetching goal end date: $e');
-      throw e;
-    }
-  }
+  // Future<DateTime> _getGoalEndDate(
+  //     String goalName, CollectionReference usergoallistrefrence) async {
+  //   try {
+  //     DocumentSnapshot goalDoc = await usergoallistrefrence.doc(goalName).get();
+  //     if (goalDoc.exists) {
+  //       DateTime endDate = DateTime.parse(goalDoc.get('date') as String);
+
+  //       return endDate;
+  //     } else {
+  //       throw Exception('Goal not found');
+  //     }
+  //   } catch (e) {
+  //     print('Error fetching goal end date: $e');
+  //     throw e;
+  //   }
+  // }
 
   Future<Map<String, dynamic>> _addTaskToFirestore(
     String taskName,
@@ -91,11 +97,12 @@ class RecurringTaskManager {
     String redundancyId,
     DateTime starttime,
     DateTime endtime,
-    String location,
+    String? location,
     String recurrenceType,
-    String description,
+    String? description,
     String goalName,
-    String duration,usergoallistrefrence,
+    String duration,
+    usergoallistrefrence,
   ) async {
     final String taskId = _uuid.v4();
     final Map<String, dynamic> task = {
@@ -111,7 +118,11 @@ class RecurringTaskManager {
       'duration': duration,
     };
 
-    await usergoallistrefrence.doc(goalName).collection('tasks').doc(taskId).set(task);
+    await usergoallistrefrence
+        .doc(goalName)
+        .collection('tasks')
+        .doc(taskId)
+        .set(task);
     return task;
   }
 }
@@ -119,15 +130,17 @@ class RecurringTaskManager {
 String formatTime(DateTime dateTime) {
   return DateFormat.jm().format(dateTime);
 }
-String calcDuration(TimeOfDay starttime,TimeOfDay endtime) {
-   // Calculate the duration in hours and minutes
-    final startTimeInMinutes = starttime.hour * 60 + starttime.minute;
-    final endTimeInMinutes = endtime.hour * 60 + endtime.minute;
-    final durationInMinutes = endTimeInMinutes - startTimeInMinutes;
-    final hours = durationInMinutes ~/ 60;
-    final minutes = durationInMinutes % 60;
-    return '${hours}h ${minutes}m';
+
+String calcDuration(TimeOfDay starttime, TimeOfDay endtime) {
+  // Calculate the duration in hours and minutes
+  final startTimeInMinutes = starttime.hour * 60 + starttime.minute;
+  final endTimeInMinutes = endtime.hour * 60 + endtime.minute;
+  final durationInMinutes = endTimeInMinutes - startTimeInMinutes;
+  final hours = durationInMinutes ~/ 60;
+  final minutes = durationInMinutes % 60;
+  return '${hours}h ${minutes}m';
 }
+
 // Usage example for testing
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -135,10 +148,10 @@ void main() async {
 
   final taskManager = RecurringTaskManager();
   QuerySnapshot userSnapshot = await FirebaseFirestore.instance
-          .collection('Users')
-          .where('phoneNumber', isEqualTo: "+966552808911")
-          .limit(1)
-          .get();
+      .collection('Users')
+      .where('phoneNumber', isEqualTo: "+966552808911")
+      .limit(1)
+      .get();
   DocumentReference userDocRef;
   userDocRef = userSnapshot.docs.first.reference;
   CollectionReference goalsCollectionRef = userDocRef.collection('goals');
@@ -154,13 +167,14 @@ void main() async {
       description: "Team meeting for Project X",
       taskName: "weekly recurrence test",
       usergoallistrefrence: goalsCollectionRef,
+      goalDate: DateTime(2024),
     );
 
-    print("Created tasks:");
+    log("Created tasks:");
     for (var task in createdTasks) {
-      print(task);
+      log(task as String);
     }
   } catch (e) {
-    print("Error creating recurring tasks: $e");
+    log("Error creating recurring tasks: $e");
   }
 }

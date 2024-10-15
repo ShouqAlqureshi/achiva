@@ -88,8 +88,7 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
                     const SizedBox(height: 20),
                     isLoading
                         ? const Align(
-                            alignment: Alignment
-                                .center,
+                            alignment: Alignment.center,
                             child: CircularProgressIndicator(),
                           )
                         : ElevatedButton(
@@ -121,8 +120,13 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
                                       "phoneNumber": userphonenumber
                                     };
                                     if (isNewUser_) {
-                                      Navigator.pushNamed(context, "/newuser",
-                                          arguments: datatosave);
+                                      Navigator.pushNamedAndRemoveUntil(
+                                        context,
+                                        "/newuser",
+                                        (Route<dynamic> route) =>
+                                            false, // This will remove all previous routes
+                                        arguments: datatosave,
+                                      );
                                     } else {
                                       Navigator.pushNamed(context, "/home");
                                     }
