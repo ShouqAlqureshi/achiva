@@ -313,44 +313,48 @@ class _PostCardState extends State<_PostCard> {
 
   
   void _showReactionsDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Reactions'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView(
-              shrinkWrap: true,
-              children: emojis.map((emoji) {
-                var usersReacted = reactions.entries
-                    .where((entry) => entry.value == emoji)
-                    .map((entry) => entry.key)
-                    .toList();
-                return ListTile(
-                  leading: Text(emoji, style: const TextStyle(fontSize: 24)),
-                  title: Text('${usersReacted.length} ${usersReacted.length == 1 ? 'user' : 'users'}'),
-                  onTap: () {
-                    // Here you can show the list of users who reacted with this emoji
-                    // For simplicity, we're just printing to console
-                    print('Users who reacted with $emoji: $usersReacted');
-                  },
-                );
-              }).toList(),
-            ),
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Reactions'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView(
+            shrinkWrap: true,
+            children: emojis.where((emoji) {
+              // Check if there are any users who reacted with this emoji
+              return reactions.entries.any((entry) => entry.value == emoji);
+            }).map((emoji) {
+              var usersReacted = reactions.entries
+                  .where((entry) => entry.value == emoji)
+                  .map((entry) => entry.key)
+                  .toList();
+              return ListTile(
+                leading: Text(emoji, style: const TextStyle(fontSize: 24)),
+                title: Text('${usersReacted.length}'),
+                onTap: () {
+                  // Here you can show the list of users who reacted with this emoji
+                  // For simplicity, we're just printing to console
+                  print('Users who reacted with $emoji: $usersReacted');
+                },
+              );
+            }).toList(),
           ),
-          actions: [
-            TextButton(
-              child: const Text('Close'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Close'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
 
   void _showEmojiPicker() {
   showDialog(
