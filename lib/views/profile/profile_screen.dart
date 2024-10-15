@@ -40,7 +40,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         title: const Text("Profile"),
-        // leading: const SizedBox(),
+       automaticallyImplyLeading: false,
         actions: [
           BlocBuilder<LayoutCubit, LayoutStates>(builder: (context, state) {
             if (layoutCubit.user != null) {

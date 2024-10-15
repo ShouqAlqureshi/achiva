@@ -158,6 +158,7 @@ class FriendsFeedScreen extends StatelessWidget {
           SliverAppBar(
             pinned: false,
             expandedHeight: 160.0,
+            automaticallyImplyLeading: false,
             flexibleSpace: FlexibleSpaceBar(
               background: _buildRankingDashboard(),
             ),
