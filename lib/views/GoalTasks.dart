@@ -5,13 +5,17 @@ import 'package:intl/intl.dart';
 import 'package:timelines/timelines.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class GoalTasks extends StatelessWidget {
+class GoalTasks extends StatefulWidget {
   final DocumentSnapshot goalDocument;
-  final double progress = 65.0;
   final String userId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
    GoalTasks({Key? key, required this.goalDocument}) : super(key: key);
+@override
+  _GoalTasksState createState() => _GoalTasksState();
+}
 
+class _GoalTasksState extends State<GoalTasks> {
+  final double progress = 65.0;
   void _showTaskDetails(BuildContext context, Map<String, dynamic> task) {
     showDialog(
       context: context,
@@ -70,84 +74,82 @@ class GoalTasks extends StatelessWidget {
     );
   }
 
-  void _toggleTaskCompletion(BuildContext context, DocumentReference taskRef,
-      bool currentStatus, String taskName) async {
-    if (currentStatus) {
-      // Unchecking a completed task
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Uncheck Task'),
-            content:
-                Text('Are you sure you want to mark this task as incomplete?'),
-            actions: <Widget>[
-              TextButton(
-                child: Text('No'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-              TextButton(
-                child: Text('Yes'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  _updateTaskStatus(context, taskRef, false);
-                },
-              ),
-            ],
-          );
-        },
-      );
-    } else {
-      // Checking an uncompleted task
-      await _updateTaskStatus(context, taskRef, true);
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Task Completed!'),
-            content: Text(
-                'Congratulations on completing your task!\nDo you want to make a post about it?'),
-            actions: <Widget>[
-              TextButton(
-                child: Text('No'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-              TextButton(
-                child: Text('Yes'),
-                 onPressed: () {
-                  // String userId = userId;
-                  String goalId = goalDocument.id;
-                  String taskId = taskRef.id;
-              Navigator.of(context).pop(); // Close the dialog
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CreatePostPage(userId: userId, goalId: goalId, taskId: taskId),
-                ),
-              ); // Navigate to the Create Post page if 'Yes' is selected
-            },
-              ),
-            ],
-          );
-        },
-      );
-    }
+void _toggleTaskCompletion(BuildContext context, DocumentReference taskRef,
+    bool currentStatus, String taskName) {
+  if (currentStatus) {
+    // Unchecking a completed task
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Uncheck Task'),
+          content: Text('Are you sure you want to mark this task as incomplete?'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('No'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Yes'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _updateTaskStatus(context, taskRef, false);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  } else {
+    // Checking an uncompleted task
+    _updateTaskStatus(context, taskRef, true);
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Task Completed!'),
+          content: Text('Congratulations on completing your task!\nDo you want to make a post about it?'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('No'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Yes'),
+              onPressed: () {
+                String goalId = widget.goalDocument.id;
+                String taskId = taskRef.id;
+                Navigator.of(context).pop();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CreatePostPage(userId: widget.userId, goalId: goalId, taskId: taskId),
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
+}
 
-  Future<void> _updateTaskStatus(
-      BuildContext context, DocumentReference taskRef, bool isCompleted) async {
-    try {
-      await taskRef.update({'completed': isCompleted});
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error updating task: $e')),
-      );
-    }
+Future<void> _updateTaskStatus(BuildContext context, DocumentReference taskRef, bool isCompleted) async {
+  try {
+    await taskRef.update({'completed': isCompleted});
+    // Trigger a rebuild of the widget tree
+    if (mounted) setState(() {});
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error updating task: $e')),
+    );
   }
+}
 
   void _showAddTaskDialog(BuildContext context) {
     final formKey = GlobalKey<FormState>();
@@ -281,7 +283,7 @@ class GoalTasks extends StatelessWidget {
   void _addTaskToFirestore(
       BuildContext context, Map<String, dynamic> taskData) async {
     try {
-      await goalDocument.reference.collection('tasks').add(taskData);
+      await widget.goalDocument.reference.collection('tasks').add(taskData);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Task added successfully')),
       );
@@ -294,7 +296,7 @@ class GoalTasks extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final goalData = goalDocument.data() as Map<String, dynamic>;
+    final goalData = widget.goalDocument.data() as Map<String, dynamic>;
     final String goalName = goalData['name'];
 
     return Scaffold(
@@ -369,7 +371,7 @@ class GoalTasks extends StatelessWidget {
                           topRight: Radius.circular(30)),
                     ),
                     child: StreamBuilder<QuerySnapshot>(
-                      stream: goalDocument.reference
+                      stream: widget.goalDocument.reference
                           .collection('tasks')
                           .orderBy('startTime')
                           .snapshots(),
