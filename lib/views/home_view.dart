@@ -312,7 +312,14 @@ Widget _buildGoalCard(String goalName, double progress, bool isDone,
       width: 150, // Set width to desired square size
       height: 100, // Set height to the same value as width for square shape
       decoration: BoxDecoration(
-        color: progress < 100 ? Colors.deepPurple : Colors.white,
+        gradient: LinearGradient(
+          colors: [
+            Color.fromARGB(255, 66, 32, 101),
+            Color.fromARGB(255, 77, 64, 98),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.grey,
