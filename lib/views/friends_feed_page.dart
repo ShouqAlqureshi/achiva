@@ -160,10 +160,12 @@ Stream<List<Map<String, dynamic>>> _fetchTaskPosts() async* {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: RefreshIndicator(
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    body: Container(
+      color: Colors.white,
+      child: RefreshIndicator(
         onRefresh: _refreshPosts,
         child: CustomScrollView(
           slivers: [
@@ -188,8 +190,9 @@ Stream<List<Map<String, dynamic>>> _fetchTaskPosts() async* {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
   // Widget for the feed of posts (fetch posts from tasks)
   Widget _buildPostsFeed() {
     return StreamBuilder<List<Map<String, dynamic>>>(
