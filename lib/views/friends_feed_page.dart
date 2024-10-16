@@ -9,110 +9,107 @@ class FriendsFeedScreen extends StatelessWidget {
   const FriendsFeedScreen({super.key});
 
   Stream<List<Map<String, dynamic>>> _fetchTaskPosts() async* {
-    try {
-      User? currentUser = FirebaseAuth.instance.currentUser;
+  try {
+    User? currentUser = FirebaseAuth.instance.currentUser;
 
-      if (currentUser == null) {
-        if (kDebugMode) {
-          print('No user is logged in.');
-        }
-        yield [];
-        return;
+    if (currentUser == null) {
+      if (kDebugMode) {
+        print('No user is logged in.');
       }
+      yield [];
+      return;
+    }
 
-      DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+    // Fetch friends list from the new structure
+    QuerySnapshot friendsSnapshot = await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(currentUser.uid)
+        .collection('friends')
+        .get();
+
+    List<String> friendIds = friendsSnapshot.docs
+        .map((doc) => doc['userId'] as String)
+        .toList();
+
+    // Add current user's ID to the list
+    friendIds.add(currentUser.uid);
+
+    List<Map<String, dynamic>> allPosts = [];
+
+    for (String friendId in friendIds) {
+      QuerySnapshot goalsSnapshot = await FirebaseFirestore.instance
           .collection('Users')
-          .doc(currentUser.uid)
+          .doc(friendId)
+          .collection('goals')
           .get();
 
-      if (!userSnapshot.exists) {
-        if (kDebugMode) {
-          print('User data not found for ID: ${currentUser.uid}');
-        }
-        yield [];
-        return;
-      }
+      for (var goalDoc in goalsSnapshot.docs) {
+        QuerySnapshot tasksSnapshot =
+            await goalDoc.reference.collection('tasks').get();
 
-      List<dynamic> friendsList =
-          (userSnapshot.data() as Map<String, dynamic>)['friends'] ?? [];
-      friendsList.add(currentUser.uid);
+        for (var taskDoc in tasksSnapshot.docs) {
+          QuerySnapshot postsSnapshot = await taskDoc.reference
+              .collection('posts')
+              .orderBy('postDate', descending: true)
+              .get();
 
-      List<Map<String, dynamic>> allPosts = [];
+          for (var postDoc in postsSnapshot.docs) {
+            final postData = postDoc.data() as Map<String, dynamic>;
+            if (kDebugMode) {
+              print('Raw post data: $postData');
+              print('Post ID: ${postDoc.id}');
+            }
 
-      for (String friendId in friendsList) {
-        QuerySnapshot goalsSnapshot = await FirebaseFirestore.instance
-            .collection('Users')
-            .doc(friendId)
-            .collection('goals')
-            .get();
-
-        for (var goalDoc in goalsSnapshot.docs) {
-          QuerySnapshot tasksSnapshot =
-              await goalDoc.reference.collection('tasks').get();
-
-          for (var taskDoc in tasksSnapshot.docs) {
-            QuerySnapshot postsSnapshot = await taskDoc.reference
-                .collection('posts')
-                .orderBy('postDate', descending: true)
-                .get();
-
-            for (var postDoc in postsSnapshot.docs) {
-              final postData = postDoc.data() as Map<String, dynamic>;
-              if (kDebugMode) {
-                print('Raw post data: $postData');
-                print('Post ID: ${postDoc.id}'); // Debug print
-              }
-
-              if (postData.containsKey('content') &&
-                  postData.containsKey('postDate')) {
-                String formattedDate = 'Unknown Date';
-                try {
-                  if (postData['postDate'] is Timestamp) {
-                    DateTime dateTime =
-                        (postData['postDate'] as Timestamp).toDate();
-                    formattedDate =
-                        DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
-                  } else if (postData['postDate'] is String) {
-                    formattedDate = postData['postDate'];
-                  }
-                } catch (e) {
-                  if (kDebugMode) {
-                    print('Error formatting date: $e');
-                  }
+            if (postData.containsKey('content') &&
+                postData.containsKey('postDate')) {
+              String formattedDate = 'Unknown Date';
+              try {
+                if (postData['postDate'] is Timestamp) {
+                  DateTime dateTime =
+                      (postData['postDate'] as Timestamp).toDate();
+                  formattedDate =
+                      DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
+                } else if (postData['postDate'] is String) {
+                  formattedDate = postData['postDate'];
                 }
-
-                final userInfo = await _fetchUserName(friendId);
-
-                allPosts.add({
-                  'id': postDoc.id,
-                  'userName': userInfo['fullName'],
-                  'profilePic': userInfo['profilePic'],
-                  'content': postData['content'].toString(),
-                  'photo': postData['photo']?.toString(),
-                  'timestamp': formattedDate,
-                  'dateTime': (postData['postDate'] as Timestamp).toDate(),
-                });
+              } catch (e) {
+                if (kDebugMode) {
+                  print('Error formatting date: $e');
+                }
               }
+
+              final userInfo = await _fetchUserName(friendId);
+
+              allPosts.add({
+                'id': postDoc.id,
+                'userName': userInfo['fullName'],
+                'profilePic': userInfo['profilePic'],
+                'content': postData['content'].toString(),
+                'photo': postData['photo']?.toString(),
+                'timestamp': formattedDate,
+                'dateTime': (postData['postDate'] as Timestamp).toDate(),
+              });
             }
           }
         }
       }
-
-      allPosts.sort((a, b) => b['dateTime'].compareTo(a['dateTime']));
-
-      if (kDebugMode) {
-        print('All posts: $allPosts'); // Debug print
-      }
-
-      yield allPosts;
-    } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('Error in _fetchTaskPosts: $e');
-        print('Stack trace: $stackTrace');
-      }
-      yield [];
     }
+
+    allPosts.sort((a, b) => b['dateTime'].compareTo(a['dateTime']));
+
+    if (kDebugMode) {
+      print('All posts: $allPosts');
+    }
+
+    yield allPosts;
+  } catch (e, stackTrace) {
+    if (kDebugMode) {
+      print('Error in _fetchTaskPosts: $e');
+      print('Stack trace: $stackTrace');
+    }
+    yield [];
   }
+}
 
   Future<Map<String, String>> _fetchUserName(String userId) async {
     try {
