@@ -5,8 +5,27 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 
-class FriendsFeedScreen extends StatelessWidget {
+class FriendsFeedScreen extends StatefulWidget {
   const FriendsFeedScreen({super.key});
+
+  @override
+  _FriendsFeedScreenState createState() => _FriendsFeedScreenState();
+}
+
+class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
+  late Stream<List<Map<String, dynamic>>> _postsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _postsStream = _fetchTaskPosts();
+  }
+
+  Future<void> _refreshPosts() async {
+    setState(() {
+      _postsStream = _fetchTaskPosts();
+    });
+  }
 
 Stream<List<Map<String, dynamic>>> _fetchTaskPosts() async* {
   try {
@@ -144,28 +163,69 @@ Stream<List<Map<String, dynamic>>> _fetchTaskPosts() async* {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: false,
-            expandedHeight: 160.0,
-            automaticallyImplyLeading: false,
-            flexibleSpace: FlexibleSpaceBar(
-              background: _buildRankingDashboard(),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                "Recent Posts",
-                style: Theme.of(context).textTheme.titleLarge,
+      body: RefreshIndicator(
+        onRefresh: _refreshPosts,
+        child: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              pinned: false,
+              expandedHeight: 160.0,
+              automaticallyImplyLeading: false,
+              flexibleSpace: FlexibleSpaceBar(
+                background: _buildRankingDashboard(),
               ),
             ),
-          ),
-          _buildPostsFeed(),
-        ],
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  "Recent Posts",
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+            ),
+            _buildPostsFeed(),
+          ],
+        ),
       ),
+    );
+  }
+  // Widget for the feed of posts (fetch posts from tasks)
+  Widget _buildPostsFeed() {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _postsStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SliverFillRemaining(
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const SliverFillRemaining(
+            child: Center(child: Text('No posts available.')),
+          );
+        }
+
+        final posts = snapshot.data!;
+
+        return SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final post = posts[index];
+              return _PostCard(
+                userName: post['userName'] ?? 'Unknown User',
+                content: post['content'] ?? 'No content',
+                photoUrl: post['photo'],
+                timestamp: post['timestamp'] ?? 'Unknown time',
+                profilePicUrl: post['profilePic'],
+                postId: post['id'] ?? '',
+              );
+            },
+            childCount: posts.length,
+          ),
+        );
+      },
     );
   }
 
@@ -208,45 +268,8 @@ Stream<List<Map<String, dynamic>>> _fetchTaskPosts() async* {
     );
   }
 
-  // Widget for the feed of posts (fetch posts from tasks)
 
-  Widget _buildPostsFeed() {
-    return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _fetchTaskPosts(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SliverFillRemaining(
-            child: Center(child: CircularProgressIndicator()),
-          );
-        }
 
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const SliverFillRemaining(
-            child: Center(child: Text('No posts available.')),
-          );
-        }
-
-        final posts = snapshot.data!;
-
-        return SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final post = posts[index];
-              return _PostCard(
-                userName: post['userName'] ?? 'Unknown User',
-                content: post['content'] ?? 'No content',
-                photoUrl: post['photo'],
-                timestamp: post['timestamp'] ?? 'Unknown time',
-                profilePicUrl: post['profilePic'],
-                postId: post['id'] ?? '',
-              );
-            },
-            childCount: posts.length,
-          ),
-        );
-      },
-    );
-  }
 }
 
 
@@ -488,7 +511,7 @@ Future<DocumentSnapshot?> _findPostDocument(String postId) async {
     });
   }
 
-    @override
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onLongPress: _showEmojiPicker,
@@ -500,7 +523,7 @@ Future<DocumentSnapshot?> _findPostDocument(String postId) async {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Padding(
+               Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -556,11 +579,21 @@ Future<DocumentSnapshot?> _findPostDocument(String postId) async {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                           Wrap(
+                          Wrap(
                             spacing: 8,
-                            children: reactions.values.toSet().map((emoji) {
-                              return Text(emoji, style: const TextStyle(fontSize: 24));
-                            }).toList(),
+                            children: reactions.entries
+                              .groupBy((entry) => entry.value)
+                              .entries
+                              .map((entry) {
+                                return Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(entry.key, style: const TextStyle(fontSize: 24)),
+                                    const SizedBox(width: 4),
+                                    Text('${entry.value.length}', style: const TextStyle(fontSize: 14)),
+                                  ],
+                                );
+                              }).toList(),
                           ),
                           IconButton(
                             icon: const Icon(Icons.emoji_emotions_outlined),
@@ -683,4 +716,10 @@ class _RankingCard extends StatelessWidget {
       ),
     );
   }
+}
+extension Iterables<E> on Iterable<E> {
+  Map<K, List<E>> groupBy<K>(K Function(E) keyFunction) => fold(
+    <K, List<E>>{},
+    (Map<K, List<E>> map, E element) => map..putIfAbsent(keyFunction(element), () => <E>[]).add(element),
+  );
 }
