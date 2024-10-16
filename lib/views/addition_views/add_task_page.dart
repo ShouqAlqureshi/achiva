@@ -42,114 +42,135 @@ class _AddTaskPageState extends State<AddTaskPage> {
   bool _isEndTimeValid = true;
 
   // Add a task to the list
-Future<void> _createGoalAndAddTask() async {
-  setState(() {
-    _isTaskNameValid = _taskNameController.text.isNotEmpty;
-    _isDateValid = _selectedDate != null;
-    _isStartTimeValid = _startTime != null;
-    _isEndTimeValid = _endTime != null && (_endTime!.hour > _startTime!.hour || 
-        (_endTime!.hour == _startTime!.hour && _endTime!.minute > _startTime!.minute));
-  });
+  Future<void> _createGoalAndAddTask() async {
+    setState(() {
+      _isTaskNameValid = _taskNameController.text.isNotEmpty;
+      _isDateValid = _selectedDate != null;
+      _isStartTimeValid = _startTime != null;
+      _isEndTimeValid = _endTime != null &&
+          (_endTime!.hour > _startTime!.hour ||
+              (_endTime!.hour == _startTime!.hour &&
+                  _endTime!.minute > _startTime!.minute));
+    });
 
-  if (!_isTaskNameValid || !_isDateValid || !_isStartTimeValid || !_isEndTimeValid) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Please fill in all required fields')),
-    );
-    return;
-  }
-
-  try {
-    final User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) throw Exception("User not logged in");
-
-    final String? userPhoneNumber = user.phoneNumber;
-    if (userPhoneNumber == null) {
-      throw Exception("Phone number is not available for the logged-in user.");
-    }
-
-    QuerySnapshot userSnapshot = await FirebaseFirestore.instance
-        .collection('Users')
-        .where('phoneNumber', isEqualTo: userPhoneNumber)
-        .limit(1)
-        .get();
-
-    DocumentReference userDocRef;
-    if (userSnapshot.docs.isEmpty) {
-      userDocRef = await FirebaseFirestore.instance.collection('Users').add({
-        'phoneNumber': userPhoneNumber,
-      });
-    } else {
-      userDocRef = userSnapshot.docs.first.reference;
-    }
-
-    CollectionReference goalsCollectionRef = userDocRef.collection('goals');
-    DocumentSnapshot goalSnapshot = await goalsCollectionRef.doc(widget.goalName).get();
-
-    if (goalSnapshot.exists) {
-      log("The goal name exists, try changing the name");
+    if (!_isTaskNameValid ||
+        !_isDateValid ||
+        !_isStartTimeValid ||
+        !_isEndTimeValid) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("The goal name exists, try changing the name")),
+        const SnackBar(content: Text('Please fill in all required fields')),
       );
       return;
     }
 
-    // Create the goal
-    await goalsCollectionRef.doc(widget.goalName).set({
-      'name': widget.goalName,
-      'date': widget.goalDate.toIso8601String(),
-      'visibility': widget.goalVisibility,
-      'notasks': 1, // Initially set to 1 as we're adding one task
-    });
+    try {
+      final User? user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception("User not logged in");
 
-    // Prepare task data
-    taskData = {
-      'taskName': _taskNameController.text,
-      'description': _descriptionController.text.isNotEmpty ? _descriptionController.text : null,
-      'location': _locationController.text.isNotEmpty ? _locationController.text : null,
-      'date': DateFormat('yyyy-MM-dd').format(_selectedDate!),
-      'startTime': _startTime!.format(context),
-      'endTime': _endTime!.format(context),
-      'recurrence': _selectedRecurrence ?? 'No recurrence',
-    };
-
-    // Add the task
-    if (_selectedRecurrence == "Weekly") {
-      createdTasks = await taskManager.addRecurringTask(
-        goalName: widget.goalName,
-        startDate: _selectedDate!, // Ensure _selectedDate is non-null
-        startTime: _startTime!, // Ensure _startTime is non-null
-        endTime: _endTime!, // Ensure _endTime is non-null
-        location: _locationController.text.isNotEmpty ? _locationController.text : null,
-        recurrenceType: _selectedRecurrence ?? 'No recurrence', // Default to 'No recurrence'
-        description: _descriptionController.text.isNotEmpty ? _descriptionController.text : null,
-        taskName: _taskNameController.text,
-        usergoallistrefrence: goalsCollectionRef,
-        goalDate: widget.goalDate,
-      );
-
-      if (createdTasks.isNotEmpty) {
-        log("Recurring tasks created successfully");
-        await goalsCollectionRef.doc(widget.goalName).update({
-          'notasks': FieldValue.increment(createdTasks.length) // -1 because we already set it to 1 initially
-        });
+      final String? userPhoneNumber = user.phoneNumber;
+      if (userPhoneNumber == null) {
+        throw Exception(
+            "Phone number is not available for the logged-in user.");
       }
-    } else {
-      await goalsCollectionRef.doc(widget.goalName).collection('tasks').add(taskData);
+
+      QuerySnapshot userSnapshot = await FirebaseFirestore.instance
+          .collection('Users')
+          .where('phoneNumber', isEqualTo: userPhoneNumber)
+          .limit(1)
+          .get();
+
+      DocumentReference userDocRef;
+      if (userSnapshot.docs.isEmpty) {
+        userDocRef = await FirebaseFirestore.instance.collection('Users').add({
+          'phoneNumber': userPhoneNumber,
+        });
+      } else {
+        userDocRef = userSnapshot.docs.first.reference;
+      }
+
+      CollectionReference goalsCollectionRef = userDocRef.collection('goals');
+      DocumentSnapshot goalSnapshot =
+          await goalsCollectionRef.doc(widget.goalName).get();
+
+      if (goalSnapshot.exists) {
+        log("The goal name exists, try changing the name");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text("The goal name exists, try changing the name")),
+        );
+        return;
+      }
+
+      // Create the goal
+      await goalsCollectionRef.doc(widget.goalName).set({
+        'name': widget.goalName,
+        'date': widget.goalDate.toIso8601String(),
+        'visibility': widget.goalVisibility,
+        'notasks': 1, // Initially set to 1 as we're adding one task
+      });
+
+      // Prepare task data
+      taskData = {
+        'taskName': _taskNameController.text,
+        'description': _descriptionController.text.isNotEmpty
+            ? _descriptionController.text
+            : null,
+        'location': _locationController.text.isNotEmpty
+            ? _locationController.text
+            : null,
+        'date': DateFormat('yyyy-MM-dd').format(_selectedDate!),
+        'startTime': _startTime!.format(context),
+        'endTime': _endTime!.format(context),
+        'recurrence': _selectedRecurrence ?? 'No recurrence',
+      };
+
+      // Add the task
+      if (_selectedRecurrence == "Weekly") {
+        createdTasks = await taskManager.addRecurringTask(
+          goalName: widget.goalName,
+          startDate: _selectedDate!, // Ensure _selectedDate is non-null
+          startTime: _startTime!, // Ensure _startTime is non-null
+          endTime: _endTime!, // Ensure _endTime is non-null
+          location: _locationController.text.isNotEmpty
+              ? _locationController.text
+              : null,
+          recurrenceType: _selectedRecurrence ??
+              'No recurrence', // Default to 'No recurrence'
+          description: _descriptionController.text.isNotEmpty
+              ? _descriptionController.text
+              : null,
+          taskName: _taskNameController.text,
+          usergoallistrefrence: goalsCollectionRef,
+          goalDate: widget.goalDate,
+        );
+
+        if (createdTasks.isNotEmpty) {
+          log("Recurring tasks created successfully");
+          await goalsCollectionRef.doc(widget.goalName).update({
+            'notasks': FieldValue.increment(createdTasks
+                .length) // -1 because we already set it to 1 initially
+          });
+        }
+      } else {
+        await goalsCollectionRef
+            .doc(widget.goalName)
+            .collection('tasks')
+            .add(taskData);
+      }
+
+      // Show success message only when the goal and task are successfully created
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Goal created and task added successfully')),
+      );
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+    } catch (e) {
+      log("$e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error creating goal and adding task: $e')),
+      );
     }
-
-    // Show success message only when the goal and task are successfully created
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Goal created and task added successfully')),
-    );
-    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
-  } catch (e) {
-    log("$e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error creating goal and adding task: $e')),
-    );
   }
-}
-
 
   // Method to select date
   Future<void> _selectDate(BuildContext context) async {
@@ -179,29 +200,31 @@ Future<void> _createGoalAndAddTask() async {
       });
     }
   }
+
 // Method to select end time
-Future<void> _selectEndTime(BuildContext context) async {
-  final TimeOfDay? pickedTime = await showTimePicker(
-    context: context,
-    initialTime: TimeOfDay.now(),
-  );
-  
-  if (pickedTime != null && pickedTime != _endTime) {
-    // Check if the end time is earlier than the start time
-    if (_startTime != null && pickedTime.hour < _startTime!.hour || 
-        (_startTime!.hour == pickedTime.hour && pickedTime.minute <= _startTime!.minute)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('End Time cannot be earlier than Start Time.')),
-      );
-      return; // Do not update the end time
+  Future<void> _selectEndTime(BuildContext context) async {
+    final TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+
+    if (pickedTime != null && pickedTime != _endTime) {
+      // Check if the end time is earlier than the start time
+      if (_startTime != null && pickedTime.hour < _startTime!.hour ||
+          (_startTime!.hour == pickedTime.hour &&
+              pickedTime.minute <= _startTime!.minute)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('End Time cannot be earlier than Start Time.')),
+        );
+        return; // Do not update the end time
+      }
+
+      setState(() {
+        _endTime = pickedTime;
+      });
     }
-
-    setState(() {
-      _endTime = pickedTime;
-    });
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -229,6 +252,11 @@ Future<void> _selectEndTime(BuildContext context) async {
                     // Task Name
                     TextField(
                       controller: _taskNameController,
+                      maxLength: 50, // Set the maximum number of characters
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(50),
+                        FilteringTextInputFormatter.deny(RegExp(r'^\s*$')),
+                      ],
                       decoration: InputDecoration(
                         labelText: 'Task Name (mandatory)',
                         border: OutlineInputBorder(
@@ -244,6 +272,11 @@ Future<void> _selectEndTime(BuildContext context) async {
                     // Description
                     TextField(
                       controller: _descriptionController,
+                      maxLength: 100, // Set the maximum number of characters
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(100),
+                        FilteringTextInputFormatter.deny(RegExp(r'^\s*$')),
+                      ],
                       decoration: InputDecoration(
                         labelText: 'Description (optional)',
                         border: OutlineInputBorder(
@@ -257,6 +290,11 @@ Future<void> _selectEndTime(BuildContext context) async {
                     // Location
                     TextField(
                       controller: _locationController,
+                      maxLength: 100, // Set the maximum number of characters
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(100),
+                        FilteringTextInputFormatter.deny(RegExp(r'^\s*$')),
+                      ],
                       decoration: InputDecoration(
                         labelText: 'Location (optional)',
                         border: OutlineInputBorder(
