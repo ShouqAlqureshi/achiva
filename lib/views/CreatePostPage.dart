@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:achiva/views/friends_feed_page.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -9,8 +11,11 @@ class CreatePostDialog extends StatefulWidget {
   final String goalId;
   final String taskId;
 
-  CreatePostDialog({required this.userId, required this.goalId, required this.taskId});
-
+CreatePostDialog({
+    required this.userId,
+    required this.goalId,
+    required this.taskId,
+  });
   @override
   _CreatePostDialogState createState() => _CreatePostDialogState();
 }
@@ -68,55 +73,75 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
     }
   }
 
-  void _createPost() async {
-    String postContent = _postContentController.text;
-    if (postContent.isNotEmpty || _imageFile != null) {
-      setState(() {
-        _isUploading = true;
+void _createPost() async {
+  String postContent = _postContentController.text;
+  if (postContent.isNotEmpty || _imageFile != null) {
+    setState(() {
+      _isUploading = true;
+    });
+
+    String? imageUrl;
+    if (_imageFile != null) {
+      imageUrl = await _uploadImage(_imageFile!);
+    }
+
+    try {
+      CollectionReference allPostsCollection = FirebaseFirestore.instance
+          .collection('Users')
+          .doc(widget.userId)
+          .collection('allPosts');
+
+      await allPostsCollection.add({
+        'content': postContent,
+        'postDate': FieldValue.serverTimestamp(),
+        'photo': imageUrl ?? '',
+        'userId': widget.userId,
+        'goalId': widget.goalId,
+        'taskId': widget.taskId,
       });
-
-      String? imageUrl;
-      if (_imageFile != null) {
-        imageUrl = await _uploadImage(_imageFile!);
+      if (kDebugMode) {
+        print('Post created successfully in Firestore.');
       }
+      
+      // Close the dialog and return true to indicate success
+      Navigator.of(context).pop(true);
 
-      try {
-        CollectionReference allPostsCollection = FirebaseFirestore.instance
-            .collection('Users')
-            .doc(widget.userId)
-            .collection('allPosts');
-
-        await allPostsCollection.add({
-          'content': postContent,
-          'postDate': FieldValue.serverTimestamp(),
-          'photo': imageUrl ?? '',
-          'userId': widget.userId,
-          'goalId': widget.goalId,
-          'taskId': widget.taskId,
-        });
-
-        Navigator.of(context).pop(true); // Close dialog with success status
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error creating post. Please try again.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-
-      setState(() {
-        _isUploading = false;
-      });
-    } else {
+      // Show confirmation message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please add some content or an image to your post.'),
-          backgroundColor: Colors.orange,
+          content: Text('Post created successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      if (kDebugMode) {
+        print('Dialog closed with success status.');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error creating post: $e');
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error creating post. Please try again.'),
+          backgroundColor: Colors.red,
         ),
       );
     }
+
+    setState(() {
+      _isUploading = false;
+    });
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Please add some content or an image to your post.'),
+        backgroundColor: Colors.orange,
+      ),
+    );
   }
+}
 
   @override
   Widget build(BuildContext context) {

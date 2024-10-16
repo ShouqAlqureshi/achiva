@@ -137,15 +137,6 @@ void _toggleTaskCompletion(BuildContext context, DocumentReference taskRef,
                   },
                 );
 
-                // Handle the result if needed
-                if (result == true) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Post created successfully!'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
               },
             ),
           ],
