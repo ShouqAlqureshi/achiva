@@ -5,114 +5,125 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 
-class FriendsFeedScreen extends StatelessWidget {
+class FriendsFeedScreen extends StatefulWidget {
   const FriendsFeedScreen({super.key});
 
-  Stream<List<Map<String, dynamic>>> _fetchTaskPosts() async* {
-    try {
-      User? currentUser = FirebaseAuth.instance.currentUser;
+  @override
+  _FriendsFeedScreenState createState() => _FriendsFeedScreenState();
+}
 
-      if (currentUser == null) {
-        if (kDebugMode) {
-          print('No user is logged in.');
-        }
-        yield [];
-        return;
-      }
+class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
+  late Stream<List<Map<String, dynamic>>> _postsStream;
 
-      DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
-          .collection('Users')
-          .doc(currentUser.uid)
-          .get();
+  @override
+  void initState() {
+    super.initState();
+    _postsStream = _fetchTaskPosts();
+  }
 
-      if (!userSnapshot.exists) {
-        if (kDebugMode) {
-          print('User data not found for ID: ${currentUser.uid}');
-        }
-        yield [];
-        return;
-      }
+  Future<void> _refreshPosts() async {
+    setState(() {
+      _postsStream = _fetchTaskPosts();
+    });
+  }
 
-      List<dynamic> friendsList =
-          (userSnapshot.data() as Map<String, dynamic>)['friends'] ?? [];
-      friendsList.add(currentUser.uid);
+Stream<List<Map<String, dynamic>>> _fetchTaskPosts() async* {
+  try {
+    User? currentUser = FirebaseAuth.instance.currentUser;
 
-      List<Map<String, dynamic>> allPosts = [];
-
-      for (String friendId in friendsList) {
-        QuerySnapshot goalsSnapshot = await FirebaseFirestore.instance
-            .collection('Users')
-            .doc(friendId)
-            .collection('goals')
-            .get();
-
-        for (var goalDoc in goalsSnapshot.docs) {
-          QuerySnapshot tasksSnapshot =
-              await goalDoc.reference.collection('tasks').get();
-
-          for (var taskDoc in tasksSnapshot.docs) {
-            QuerySnapshot postsSnapshot = await taskDoc.reference
-                .collection('posts')
-                .orderBy('postDate', descending: true)
-                .get();
-
-            for (var postDoc in postsSnapshot.docs) {
-              final postData = postDoc.data() as Map<String, dynamic>;
-              if (kDebugMode) {
-                print('Raw post data: $postData');
-                print('Post ID: ${postDoc.id}'); // Debug print
-              }
-
-              if (postData.containsKey('content') &&
-                  postData.containsKey('postDate')) {
-                String formattedDate = 'Unknown Date';
-                try {
-                  if (postData['postDate'] is Timestamp) {
-                    DateTime dateTime =
-                        (postData['postDate'] as Timestamp).toDate();
-                    formattedDate =
-                        DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
-                  } else if (postData['postDate'] is String) {
-                    formattedDate = postData['postDate'];
-                  }
-                } catch (e) {
-                  if (kDebugMode) {
-                    print('Error formatting date: $e');
-                  }
-                }
-
-                final userInfo = await _fetchUserName(friendId);
-
-                allPosts.add({
-                  'id': postDoc.id,
-                  'userName': userInfo['fullName'],
-                  'profilePic': userInfo['profilePic'],
-                  'content': postData['content'].toString(),
-                  'photo': postData['photo']?.toString(),
-                  'timestamp': formattedDate,
-                  'dateTime': (postData['postDate'] as Timestamp).toDate(),
-                });
-              }
-            }
-          }
-        }
-      }
-
-      allPosts.sort((a, b) => b['dateTime'].compareTo(a['dateTime']));
-
+    if (currentUser == null) {
       if (kDebugMode) {
-        print('All posts: $allPosts'); // Debug print
-      }
-
-      yield allPosts;
-    } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('Error in _fetchTaskPosts: $e');
-        print('Stack trace: $stackTrace');
+        print('No user is logged in.');
       }
       yield [];
+      return;
     }
+
+    // Fetch friends list
+    QuerySnapshot friendsSnapshot = await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(currentUser.uid)
+        .collection('friends')
+        .get();
+
+    List<String> friendIds = friendsSnapshot.docs
+        .map((doc) => doc['userId'] as String)
+        .toList();
+
+    // Add current user's ID to the list
+    friendIds.add(currentUser.uid);
+
+    List<Map<String, dynamic>> allPosts = [];
+    
+    // Fetch posts for each user (including current user)
+    for (String userId in friendIds) {
+      QuerySnapshot userPostsSnapshot = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(userId)
+          .collection('allPosts')
+          .orderBy('postDate', descending: true)
+          .limit(20)
+          .get();
+
+      for (var postDoc in userPostsSnapshot.docs) {
+        final postData = postDoc.data() as Map<String, dynamic>;
+        final postId = postDoc.id;
+
+        if (kDebugMode) {
+          print('Raw post data: $postData');
+          print('Post ID: $postId');
+        }
+
+        if (postData.containsKey('content') &&
+            postData.containsKey('postDate')) {
+          String formattedDate = 'Unknown Date';
+          try {
+            if (postData['postDate'] is Timestamp) {
+              DateTime dateTime = (postData['postDate'] as Timestamp).toDate();
+              formattedDate = DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
+            } else if (postData['postDate'] is String) {
+              formattedDate = postData['postDate'];
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              print('Error formatting date: $e');
+            }
+          }
+
+          final userInfo = await _fetchUserName(userId);
+
+          allPosts.add({
+            'id': postId,
+            'userName': userInfo['fullName'],
+            'profilePic': userInfo['profilePic'],
+            'content': postData['content'].toString(),
+            'photo': postData['photo']?.toString(),
+            'timestamp': formattedDate,
+            'dateTime': (postData['postDate'] as Timestamp).toDate(),
+          });
+        }
+      }
+    }
+
+    // Sort all posts by date
+    allPosts.sort((a, b) => b['dateTime'].compareTo(a['dateTime']));
+
+    // Limit to the most recent 20 posts
+    allPosts = allPosts.take(20).toList();
+
+    if (kDebugMode) {
+      print('All posts: $allPosts');
+    }
+
+    yield allPosts;
+  } catch (e, stackTrace) {
+    if (kDebugMode) {
+      print('Error in _fetchTaskPosts: $e');
+      print('Stack trace: $stackTrace');
+    }
+    yield [];
   }
+}
 
   Future<Map<String, String>> _fetchUserName(String userId) async {
     try {
@@ -126,8 +137,7 @@ class FriendsFeedScreen extends StatelessWidget {
             userSnapshot.data() as Map<String, dynamic>;
         String firstName = userData['fname'] ?? 'Unknown';
         String lastName = userData['lname'] ?? 'User';
-        String profilePic = userData['photo'] ??
-            ''; // Assuming the profile picture URL is stored in 'profilePic'
+        String profilePic = userData['photo'] ?? '';
 
         return {
           'fullName': '$firstName $lastName',
@@ -136,7 +146,7 @@ class FriendsFeedScreen extends StatelessWidget {
       } else {
         return {
           'fullName': 'Unknown User',
-          'profilePic': '', // No profile picture
+          'profilePic': '',
         };
       }
     } catch (e) {
@@ -145,7 +155,7 @@ class FriendsFeedScreen extends StatelessWidget {
       }
       return {
         'fullName': 'Unknown User',
-        'profilePic': '', // No profile picture
+        'profilePic': '',
       };
     }
   }
@@ -153,29 +163,69 @@ class FriendsFeedScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: false,
-            expandedHeight: 160.0,
-            automaticallyImplyLeading: false,
-            flexibleSpace: FlexibleSpaceBar(
-              background: _buildRankingDashboard(),
-            ),
-            
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                "Recent Posts",
-                style: Theme.of(context).textTheme.titleLarge,
+      body: RefreshIndicator(
+        onRefresh: _refreshPosts,
+        child: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              pinned: false,
+              expandedHeight: 160.0,
+              automaticallyImplyLeading: false,
+              flexibleSpace: FlexibleSpaceBar(
+                background: _buildRankingDashboard(),
               ),
             ),
-          ),
-          _buildPostsFeed(),
-        ],
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  "Recent Posts",
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+            ),
+            _buildPostsFeed(),
+          ],
+        ),
       ),
+    );
+  }
+  // Widget for the feed of posts (fetch posts from tasks)
+  Widget _buildPostsFeed() {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _postsStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SliverFillRemaining(
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const SliverFillRemaining(
+            child: Center(child: Text('No posts available.')),
+          );
+        }
+
+        final posts = snapshot.data!;
+
+        return SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final post = posts[index];
+              return _PostCard(
+                userName: post['userName'] ?? 'Unknown User',
+                content: post['content'] ?? 'No content',
+                photoUrl: post['photo'],
+                timestamp: post['timestamp'] ?? 'Unknown time',
+                profilePicUrl: post['profilePic'],
+                postId: post['id'] ?? '',
+              );
+            },
+            childCount: posts.length,
+          ),
+        );
+      },
     );
   }
 
@@ -218,45 +268,8 @@ class FriendsFeedScreen extends StatelessWidget {
     );
   }
 
-  // Widget for the feed of posts (fetch posts from tasks)
 
-  Widget _buildPostsFeed() {
-    return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _fetchTaskPosts(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SliverFillRemaining(
-            child: Center(child: CircularProgressIndicator()),
-          );
-        }
 
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const SliverFillRemaining(
-            child: Center(child: Text('No posts available.')),
-          );
-        }
-
-        final posts = snapshot.data!;
-
-        return SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final post = posts[index];
-              return _PostCard(
-                userName: post['userName'] ?? 'Unknown User',
-                content: post['content'] ?? 'No content',
-                photoUrl: post['photo'],
-                timestamp: post['timestamp'] ?? 'Unknown time',
-                profilePicUrl: post['profilePic'],
-                postId: post['id'] ?? '',
-              );
-            },
-            childCount: posts.length,
-          ),
-        );
-      },
-    );
-  }
 }
 
 
@@ -298,19 +311,19 @@ class _PostCardState extends State<_PostCard> {
 
   }
 
-  void _fetchReactions() async {
-    try {
-      var postDoc = await _findPostDocument(widget.postId!);
-      if (postDoc == null) return;
+void _fetchReactions() async {
+  try {
+    var postDoc = await _findPostDocument(widget.postId!);
+    if (postDoc == null) return;
 
-      setState(() {
-        var data = postDoc.data() as Map<String, dynamic>?;
-        reactions = data?['reactions'] as Map<String, dynamic>? ?? {};
-      });
-    } catch (error) {
-      print('Failed to fetch reactions: $error');
-    }
+    setState(() {
+      var data = postDoc.data() as Map<String, dynamic>?;
+      reactions = data?['reactions'] as Map<String, dynamic>? ?? {};
+    });
+  } catch (error) {
+    print('Failed to fetch reactions: $error');
   }
+}
 
   
 void _showReactionsDialog() {
@@ -395,82 +408,93 @@ void _showReactionsDialog() {
   );
 }
 
-  void _updateReaction(String emoji) async {
-    try {
-      var postDoc = await _findPostDocument(widget.postId!);
+void _updateReaction(String emoji) async {
+  try {
+    User? currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
 
-      if (postDoc == null) {
-        throw Exception('Post document not found');
+    // Find the post document
+    var postDoc = await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(currentUser.uid)
+        .collection('allPosts')
+        .doc(widget.postId)
+        .get();
+
+    if (!postDoc.exists) {
+      // If not found in current user's posts, search in friends' posts
+      var friendsSnapshot = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(currentUser.uid)
+          .collection('friends')
+          .get();
+
+      for (var friendDoc in friendsSnapshot.docs) {
+        String friendId = friendDoc['userId'];
+        postDoc = await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(friendId)
+            .collection('allPosts')
+            .doc(widget.postId)
+            .get();
+
+        if (postDoc.exists) break;
       }
+    }
 
-      User? currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null) return;
+    if (!postDoc.exists) {
+      throw Exception('Post document not found');
+    }
 
-      // Update the reaction field in the post document
-      await postDoc.reference.update({
-        'reactions.${currentUser.uid}': emoji,
-      });
+    // Update the reaction field in the post document
+    await postDoc.reference.update({
+      'reactions.${currentUser.uid}': emoji,
+    });
 
-      setState(() {
+    setState(() {
       reactions[currentUser.uid] = emoji;
       selectedEmoji = emoji;
     });
-    } catch (error) {
-      print('Failed to update reaction: $error');
-    }
+  } catch (error) {
+    print('Failed to update reaction: $error');
   }
+}
 
-  Future<DocumentSnapshot?> _findPostDocument(String postId) async {
-    User? currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return null;
+Future<DocumentSnapshot?> _findPostDocument(String postId) async {
+  User? currentUser = FirebaseAuth.instance.currentUser;
+  if (currentUser == null) return null;
 
-    // Search in the user's own posts first
-    var userPostsQuery = await FirebaseFirestore.instance
+  // Search in the user's own posts first
+  var postDoc = await FirebaseFirestore.instance
+      .collection('Users')
+      .doc(currentUser.uid)
+      .collection('allPosts')
+      .doc(postId)
+      .get();
+
+  if (postDoc.exists) return postDoc;
+
+  // If not found in user's posts, search in friends' posts
+  var friendsSnapshot = await FirebaseFirestore.instance
+      .collection('Users')
+      .doc(currentUser.uid)
+      .collection('friends')
+      .get();
+
+  for (var friendDoc in friendsSnapshot.docs) {
+    String friendId = friendDoc['userId'];
+    postDoc = await FirebaseFirestore.instance
         .collection('Users')
-        .doc(currentUser.uid)
-        .collection('goals')
+        .doc(friendId)
+        .collection('allPosts')
+        .doc(postId)
         .get();
 
-    for (var goalDoc in userPostsQuery.docs) {
-      var tasksQuery = await goalDoc.reference.collection('tasks').get();
-      for (var taskDoc in tasksQuery.docs) {
-        var postDoc =
-            await taskDoc.reference.collection('posts').doc(postId).get();
-        if (postDoc.exists) {
-          return postDoc;
-        }
-      }
-    }
-
-    // If not found in user's posts, search in friends' posts
-    var userDoc = await FirebaseFirestore.instance
-        .collection('Users')
-        .doc(currentUser.uid)
-        .get();
-    List<dynamic> friendsList =
-        (userDoc.data() as Map<String, dynamic>)['friends'] ?? [];
-
-    for (String friendId in friendsList) {
-      var friendPostsQuery = await FirebaseFirestore.instance
-          .collection('Users')
-          .doc(friendId)
-          .collection('goals')
-          .get();
-
-      for (var goalDoc in friendPostsQuery.docs) {
-        var tasksQuery = await goalDoc.reference.collection('tasks').get();
-        for (var taskDoc in tasksQuery.docs) {
-          var postDoc =
-              await taskDoc.reference.collection('posts').doc(postId).get();
-          if (postDoc.exists) {
-            return postDoc;
-          }
-        }
-      }
-    }
-
-    return null;
+    if (postDoc.exists) return postDoc;
   }
+
+  return null;
+}
 
   // Handle double tap for heart reaction
   void _handleDoubleTap() {
@@ -487,7 +511,7 @@ void _showReactionsDialog() {
     });
   }
 
-    @override
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onLongPress: _showEmojiPicker,
@@ -499,7 +523,7 @@ void _showReactionsDialog() {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Padding(
+               Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -555,11 +579,21 @@ void _showReactionsDialog() {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                           Wrap(
+                          Wrap(
                             spacing: 8,
-                            children: reactions.values.toSet().map((emoji) {
-                              return Text(emoji, style: const TextStyle(fontSize: 24));
-                            }).toList(),
+                            children: reactions.entries
+                              .groupBy((entry) => entry.value)
+                              .entries
+                              .map((entry) {
+                                return Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(entry.key, style: const TextStyle(fontSize: 24)),
+                                    const SizedBox(width: 4),
+                                    Text('${entry.value.length}', style: const TextStyle(fontSize: 14)),
+                                  ],
+                                );
+                              }).toList(),
                           ),
                           IconButton(
                             icon: const Icon(Icons.emoji_emotions_outlined),
@@ -682,4 +716,10 @@ class _RankingCard extends StatelessWidget {
       ),
     );
   }
+}
+extension Iterables<E> on Iterable<E> {
+  Map<K, List<E>> groupBy<K>(K Function(E) keyFunction) => fold(
+    <K, List<E>>{},
+    (Map<K, List<E>> map, E element) => map..putIfAbsent(keyFunction(element), () => <E>[]).add(element),
+  );
 }
