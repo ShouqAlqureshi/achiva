@@ -105,46 +105,70 @@ void _toggleTaskCompletion(BuildContext context, DocumentReference taskRef,
   } else {
     // Checking an uncompleted task
     _updateTaskStatus(context, taskRef, true);
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Task Completed!'),
-          content: Text('Congratulations on completing your task!\nDo you want to make a post about it?'),
-          actions: <Widget>[
-            TextButton(
-              child: Text('No'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('Yes'),
-              onPressed: () async {
-                Navigator.of(context).pop(); // Close the current dialog
-                String goalId = widget.goalDocument.id;
-                String taskId = taskRef.id;
-                
-                // Show the CreatePostDialog
-                bool? result = await showDialog<bool>(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return CreatePostDialog(
-                      userId: widget.userId,
-                      goalId: goalId,
-                      taskId: taskId,
-                    );
-                  },
-                );
+    
+    // Check the visibility of the goal before asking to post
+    if (widget.goalDocument['visibility'] == false) {
+      // If the goal is not visible, show completion message only
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Task Completed!'),
+            content: Text('Congratulations on completing your task!'),
+            actions: <Widget>[
+              TextButton(
+                child: Text('OK'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      // If the goal is visible, ask about posting
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Task Completed!'),
+            content: Text('Congratulations on completing your task!\nDo you want to make a post about it?'),
+            actions: <Widget>[
+              TextButton(
+                child: Text('No'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              TextButton(
+                child: Text('Yes'),
+                onPressed: () async {
+                  Navigator.of(context).pop(); // Close the current dialog
+                  String goalId = widget.goalDocument.id;
+                  String taskId = taskRef.id;
 
-              },
-            ),
-          ],
-        );
-      },
-    );
+                  // Show the CreatePostDialog
+                  bool? result = await showDialog<bool>(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return CreatePostDialog(
+                        userId: widget.userId,
+                        goalId: goalId,
+                        taskId: taskId,
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
   }
 }
+
 
 Future<void> _updateTaskStatus(BuildContext context, DocumentReference taskRef, bool isCompleted) async {
   try {
