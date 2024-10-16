@@ -295,19 +295,19 @@ class _PostCardState extends State<_PostCard> {
 
   }
 
-  void _fetchReactions() async {
-    try {
-      var postDoc = await _findPostDocument(widget.postId!);
-      if (postDoc == null) return;
+void _fetchReactions() async {
+  try {
+    var postDoc = await _findPostDocument(widget.postId!);
+    if (postDoc == null) return;
 
-      setState(() {
-        var data = postDoc.data() as Map<String, dynamic>?;
-        reactions = data?['reactions'] as Map<String, dynamic>? ?? {};
-      });
-    } catch (error) {
-      print('Failed to fetch reactions: $error');
-    }
+    setState(() {
+      var data = postDoc.data() as Map<String, dynamic>?;
+      reactions = data?['reactions'] as Map<String, dynamic>? ?? {};
+    });
+  } catch (error) {
+    print('Failed to fetch reactions: $error');
   }
+}
 
   
 void _showReactionsDialog() {
@@ -392,43 +392,72 @@ void _showReactionsDialog() {
   );
 }
 
-  void _updateReaction(String emoji) async {
-    try {
-      var postDoc = await _findPostDocument(widget.postId!);
+ void _updateReaction(String emoji) async {
+  try {
+    var postDoc = await _findPostDocument(widget.postId!);
 
-      if (postDoc == null) {
-        throw Exception('Post document not found');
-      }
+    if (postDoc == null) {
+      throw Exception('Post document not found');
+    }
 
-      User? currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null) return;
+    User? currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
 
-      // Update the reaction field in the post document
-      await postDoc.reference.update({
-        'reactions.${currentUser.uid}': emoji,
-      });
+    // Update the reaction field in the post document
+    await postDoc.reference.update({
+      'reactions.${currentUser.uid}': emoji,
+    });
 
-      setState(() {
+    setState(() {
       reactions[currentUser.uid] = emoji;
       selectedEmoji = emoji;
     });
-    } catch (error) {
-      print('Failed to update reaction: $error');
+  } catch (error) {
+    print('Failed to update reaction: $error');
+  }
+}
+
+  Future<DocumentSnapshot?> _findPostDocument(String postId) async {
+  User? currentUser = FirebaseAuth.instance.currentUser;
+  if (currentUser == null) return null;
+
+  // Search in the user's own posts first
+  var userPostsQuery = await FirebaseFirestore.instance
+      .collection('Users')
+      .doc(currentUser.uid)
+      .collection('goals')
+      .get();
+
+  for (var goalDoc in userPostsQuery.docs) {
+    var tasksQuery = await goalDoc.reference.collection('tasks').get();
+    for (var taskDoc in tasksQuery.docs) {
+      var postDoc =
+          await taskDoc.reference.collection('posts').doc(postId).get();
+      if (postDoc.exists) {
+        return postDoc;
+      }
     }
   }
 
-  Future<DocumentSnapshot?> _findPostDocument(String postId) async {
-    User? currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return null;
+  // If not found in user's posts, search in friends' posts
+  var friendsSnapshot = await FirebaseFirestore.instance
+      .collection('Users')
+      .doc(currentUser.uid)
+      .collection('friends')
+      .get();
 
-    // Search in the user's own posts first
-    var userPostsQuery = await FirebaseFirestore.instance
+  List<String> friendIds = friendsSnapshot.docs
+      .map((doc) => doc['userId'] as String)
+      .toList();
+
+  for (String friendId in friendIds) {
+    var friendPostsQuery = await FirebaseFirestore.instance
         .collection('Users')
-        .doc(currentUser.uid)
+        .doc(friendId)
         .collection('goals')
         .get();
 
-    for (var goalDoc in userPostsQuery.docs) {
+    for (var goalDoc in friendPostsQuery.docs) {
       var tasksQuery = await goalDoc.reference.collection('tasks').get();
       for (var taskDoc in tasksQuery.docs) {
         var postDoc =
@@ -438,36 +467,10 @@ void _showReactionsDialog() {
         }
       }
     }
-
-    // If not found in user's posts, search in friends' posts
-    var userDoc = await FirebaseFirestore.instance
-        .collection('Users')
-        .doc(currentUser.uid)
-        .get();
-    List<dynamic> friendsList =
-        (userDoc.data() as Map<String, dynamic>)['friends'] ?? [];
-
-    for (String friendId in friendsList) {
-      var friendPostsQuery = await FirebaseFirestore.instance
-          .collection('Users')
-          .doc(friendId)
-          .collection('goals')
-          .get();
-
-      for (var goalDoc in friendPostsQuery.docs) {
-        var tasksQuery = await goalDoc.reference.collection('tasks').get();
-        for (var taskDoc in tasksQuery.docs) {
-          var postDoc =
-              await taskDoc.reference.collection('posts').doc(postId).get();
-          if (postDoc.exists) {
-            return postDoc;
-          }
-        }
-      }
-    }
-
-    return null;
   }
+
+  return null;
+}
 
   // Handle double tap for heart reaction
   void _handleDoubleTap() {
