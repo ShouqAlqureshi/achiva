@@ -1,5 +1,4 @@
 /*
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -36,7 +35,7 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
   }
 
   String? _validatePhoneNumber(String value) {
-    String pattern = r'^\+966\d{9}$';  // Exact 9 digits after +966
+    String pattern = r'^\+966\d{9}$'; // Exact 9 digits after +966
     RegExp regExp = RegExp(pattern);
 
     if (value.isEmpty || value.trim().isEmpty) {
@@ -62,7 +61,6 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
           setState(() {
             _searchResults = results.docs;
             _requestStatuses.clear(); // Clear previous statuses
-            // Initialize the request status for each search result
             for (var doc in _searchResults) {
               _requestStatuses[doc.id] = false; // Not pending initially
             }
@@ -76,6 +74,23 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
           ),
         );
       }
+    }
+  }
+
+  Future<String> _fetchUserProfilePic(String userId) async {
+    try {
+      DocumentSnapshot userSnapshot =
+          await FirebaseFirestore.instance.collection('Users').doc(userId).get();
+
+      if (userSnapshot.exists) {
+        Map<String, dynamic> userData =
+            userSnapshot.data() as Map<String, dynamic>;
+        return userData['photo'] ?? ''; // Fetch the profile picture URL
+      } else {
+        return ''; // No profile picture
+      }
+    } catch (e) {
+      return ''; // Return an empty string if there's an error
     }
   }
 
@@ -191,6 +206,12 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Message above the phone number field
+            Text(
+              'Please enter a phone number starting with +966',
+              style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+            ),
+            SizedBox(height: 8),
             Form(
               key: _formKey,
               child: TextFormField(
@@ -244,65 +265,78 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
                   bool isCurrentUser = friend['phoneNumber'] == _currentUserPhoneNumber;
                   bool isPendingRequest = _requestStatuses[friend.id] ?? false; // Check local request status
 
-                  return Card(
-                    elevation: 3.0,
-                    margin: EdgeInsets.symmetric(vertical: 8.0),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Color.fromARGB(255, 66, 32, 101),
-                            Color.fromARGB(255, 77, 64, 98),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                  return FutureBuilder<String>(
+                    future: _fetchUserProfilePic(friend.id), // Fetch user profile picture
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return CircularProgressIndicator();
+                      }
+
+                      final profilePicUrl = snapshot.data!;
+
+                      return Card(
+                        elevation: 3.0,
+                        margin: EdgeInsets.symmetric(vertical: 8.0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.0),
                         ),
-                        borderRadius: BorderRadius.circular(12.0),
-                      ),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.grey[200],
-                          backgroundImage: friend['photo'] != null
-                              ? NetworkImage(friend['photo']) // Fetch the profile picture from 'photo'
-                              : null,
-                          child: friend['photo'] == null
-                              ? Icon(Icons.person, size: 40, color: Colors.grey)
-                              : null,
-                          radius: 24,
-                        ),
-                        title: Text(
-                          friend['fname'] + ' ' + friend['lname'],
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(
-                          friend['phoneNumber'] ?? 'No Phone Number',
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                        trailing: isCurrentUser
-                            ? null
-                            : isPendingRequest
-                                ? IconButton(
-                                    icon: Icon(Icons.access_time), // Clock icon for pending status
-                                    color: Colors.grey,
-                                    onPressed: () {
-                                      _showDialog('Friend request already sent');
-                                    },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Color.fromARGB(255, 66, 32, 101),
+                                Color.fromARGB(255, 77, 64, 98),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(12.0),
+                          ),
+                          child: ListTile(
+                            leading: profilePicUrl.isNotEmpty
+                                ? CircleAvatar(
+                                    backgroundImage:
+                                        NetworkImage(profilePicUrl),
+                                    radius: 30.0,
                                   )
-                                : IconButton(
-                                    icon: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.person, color: Colors.white),
-                                        Icon(Icons.add, color: Colors.white),
-                                      ],
-                                    ),
-                                    onPressed: () => _sendFriendRequest(friend),
+                                : const CircleAvatar(
+                                    child: Icon(Icons.person),
+                                    radius: 30.0,
                                   ),
-                      ),
-                    ),
+                            title: Text(
+                              friend['fname'] + ' ' + friend['lname'],
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            subtitle: Text(
+                              friend['phoneNumber'] ?? 'No Phone Number',
+                              style: TextStyle(color: Colors.white70),
+                            ),
+                            trailing: isCurrentUser
+                                ? null
+                                : isPendingRequest
+                                    ? IconButton(
+                                        icon: Icon(Icons.access_time), // Clock icon for pending status
+                                        color: Colors.grey,
+                                        onPressed: () {
+                                          _showDialog('Friend request already sent');
+                                        },
+                                      )
+                                    : IconButton(
+                                        icon: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.person, color: Colors.white),
+                                            Icon(Icons.add, color: Colors.white),
+                                          ],
+                                        ),
+                                        onPressed: () => _sendFriendRequest(friend),
+                                      ),
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               ),
@@ -587,6 +621,7 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
                         ),
                         trailing: isCurrentUser
                             ? null
+
                             : isPendingRequest
                                 ? IconButton(
                                     icon: Icon(Icons.access_time), // Clock icon for pending status
@@ -605,6 +640,7 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
                                     ),
                                     onPressed: () => _sendFriendRequest(friend),
                                   ),
+
                       ),
                     ),
                   );
@@ -617,4 +653,3 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
     );
   }
 }
-
