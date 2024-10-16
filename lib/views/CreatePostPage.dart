@@ -1,22 +1,21 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
-class CreatePostPage extends StatefulWidget {
+class CreatePostDialog extends StatefulWidget {
   final String userId;
   final String goalId;
   final String taskId;
 
-  CreatePostPage({required this.userId, required this.goalId, required this.taskId});
+  CreatePostDialog({required this.userId, required this.goalId, required this.taskId});
 
   @override
-  _CreatePostPageState createState() => _CreatePostPageState();
+  _CreatePostDialogState createState() => _CreatePostDialogState();
 }
 
-class _CreatePostPageState extends State<CreatePostPage> {
+class _CreatePostDialogState extends State<CreatePostDialog> {
   final TextEditingController _postContentController = TextEditingController();
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
@@ -69,114 +68,81 @@ class _CreatePostPageState extends State<CreatePostPage> {
     }
   }
 
-void _createPost() async {
-  String postContent = _postContentController.text;
-  if (postContent.isNotEmpty || _imageFile != null) {
-    setState(() {
-      _isUploading = true;
-    });
-
-    String? imageUrl;
-    if (_imageFile != null) {
-      imageUrl = await _uploadImage(_imageFile!);
-    }
-
-    try {
-      // Create a reference to the root-level posts collection (allPosts)
-      CollectionReference allPostsCollection = FirebaseFirestore.instance
-          .collection('Users')
-          .doc(widget.userId)
-          .collection('allPosts');
-
-      // Add the post to the allPosts collection
-      await allPostsCollection.add({
-        'content': postContent,
-        'postDate': FieldValue.serverTimestamp(),
-        'photo': imageUrl ?? '',
-        'userId': widget.userId,
-        'goalId': widget.goalId,
-        'taskId': widget.taskId,
+  void _createPost() async {
+    String postContent = _postContentController.text;
+    if (postContent.isNotEmpty || _imageFile != null) {
+      setState(() {
+        _isUploading = true;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Post created successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      String? imageUrl;
+      if (_imageFile != null) {
+        imageUrl = await _uploadImage(_imageFile!);
+      }
 
-      Future.delayed(Duration(seconds: 2), () {
-        Navigator.of(context).pop();
+      try {
+        CollectionReference allPostsCollection = FirebaseFirestore.instance
+            .collection('Users')
+            .doc(widget.userId)
+            .collection('allPosts');
+
+        await allPostsCollection.add({
+          'content': postContent,
+          'postDate': FieldValue.serverTimestamp(),
+          'photo': imageUrl ?? '',
+          'userId': widget.userId,
+          'goalId': widget.goalId,
+          'taskId': widget.taskId,
+        });
+
+        Navigator.of(context).pop(true); // Close dialog with success status
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating post. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+
+      setState(() {
+        _isUploading = false;
       });
-    } catch (e) {
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error creating post. Please try again.'),
-          backgroundColor: Colors.red,
+          content: Text('Please add some content or an image to your post.'),
+          backgroundColor: Colors.orange,
         ),
       );
     }
-
-    setState(() {
-      _isUploading = false;
-    });
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Please add some content or an image to your post.'),
-        backgroundColor: Colors.orange,
-      ),
-    );
   }
-}
-
-
 
   @override
   Widget build(BuildContext context) {
     bool isNearLimit = _characterCount > _characterLimit - 10 && _characterCount <= _characterLimit;
     bool isOverLimit = _characterCount > _characterLimit;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Create Post', style: TextStyle(color: customPurple)),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: customPurple),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        actions: [
-          _isUploading
-              ? Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(customPurple),
+    return Dialog(
+      child: Container(
+        padding: EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Create Post', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: customPurple)),
+                  IconButton(
+                    icon: Icon(Icons.close, color: customPurple),
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
-                )
-              : TextButton(
-                  onPressed: (_characterCount > 0 && _characterCount <= _characterLimit) || _imageFile != null
-                      ? _createPost
-                      : null,
-                  child: Text(
-                    'Post',
-                    style: TextStyle(
-                      color: (_characterCount > 0 && _characterCount <= _characterLimit) || _imageFile != null
-                          ? customPurple
-                          : Colors.grey,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: TextField(
+                ],
+              ),
+              SizedBox(height: 16),
+              TextField(
                 controller: _postContentController,
                 maxLines: null,
                 maxLength: _characterLimit,
@@ -193,10 +159,8 @@ void _createPost() async {
                   counterText: '',
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
+              SizedBox(height: 8),
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
@@ -224,11 +188,8 @@ void _createPost() async {
                   ),
                 ],
               ),
-            ),
-            if (_imageFile != null)
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Stack(
+              if (_imageFile != null)
+                Stack(
                   alignment: Alignment.topRight,
                   children: [
                     ClipRRect(
@@ -241,8 +202,21 @@ void _createPost() async {
                     ),
                   ],
                 ),
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: (_characterCount > 0 && _characterCount <= _characterLimit) || _imageFile != null
+                    ? _createPost
+                    : null,
+                child: _isUploading
+                    ? CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
+                    : Text('Post'),
+                style: ElevatedButton.styleFrom(
+                  foregroundColor: Colors.white, backgroundColor: customPurple,
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                ),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );
