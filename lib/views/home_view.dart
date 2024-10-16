@@ -138,60 +138,61 @@ class _HomePageState extends State<HomeScreen> {
       ),
     );
   }
+Widget _buildHomePage(BuildContext context) {
+  return Stack(
+    children: [
+      Positioned.fill(
+        child: Column(
+          children: [
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                children: [
+                  StreamBuilder(
+                    stream: FirebaseFirestore.instance
+                        .collection("Users")
+                        .where("id",
+                            isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+                        .snapshots(),
+                    builder:
+                        (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                      if (snapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const CircularProgressIndicator();
+                      }
 
-  Widget _buildHomePage(BuildContext context) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: Column(
-            children: [
-              Container(
-                color: Colors.white,
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  children: [
-                    StreamBuilder(
-                      stream: FirebaseFirestore.instance
-                          .collection("Users")
-                          .where("id",
-                              isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-                          .snapshots(),
-                      builder:
-                          (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const CircularProgressIndicator();
-                        }
+                      if (snapshot.hasError) {
+                        return const Text("Error fetching goals");
+                      }
 
-                        if (snapshot.hasError) {
-                          return const Text("Error fetching goals");
-                        }
+                      if (snapshot.hasData && snapshot.data != null) {
+                        final goalDocuments = snapshot.data!.docs;
+                        final userData = snapshot.data!.docs.first;
+                        final String fname = userData['fname'];
 
-                        if (snapshot.hasData && snapshot.data != null) {
-                          final goalDocuments = snapshot.data!.docs;
-                          if (goalDocuments.isEmpty) {
-                            return const Text("No goals available");
-                          }
-
-
-                          final userData = snapshot.data!.docs.first;
-                          final String fname = userData['fname'];
-
-                          return Text(
-                            'Welcome back to Achiva, $fname!',
-                            style: const TextStyle(
-                              color: WellBeingColors.darkBlueGrey,
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
+                        return Column(
+                          children: [
+                            Text(
+                              'Welcome back to Achiva, $fname!',
+                              style: const TextStyle(
+                                color: WellBeingColors.darkBlueGrey,
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          );
-                        } else {
-                          return const Text("No user data available");
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 15),
-                    Container(
+                            const SizedBox(height: 15),
+                            if (goalDocuments.isEmpty)
+                              // Display a message when there are no goals
+                              Text(
+                                "You have no goals yet. Start adding some!",
+                                style: TextStyle(
+                                  color: WellBeingColors.mediumGrey,
+                                  fontSize: 16,
+                                ),
+                              )
+                            else
+                            Container(
                       height: 105,
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -250,110 +251,131 @@ class _HomePageState extends State<HomeScreen> {
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Container(
-                  color: Colors.white,
-                  child: Column(
-                    children: [
-                      StreamBuilder(
-                        stream: FirebaseFirestore.instance
-                            .collection("Users")
-                            .doc(FirebaseAuth.instance.currentUser!.uid)
-                            .collection('goals')
-                            .snapshots(),
-                        builder:
-                            (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return const CircularProgressIndicator();
-                          }
-
-                          if (snapshot.hasError) {
-                            return const Text("Error fetching goals");
-                          }
-
-                          if (snapshot.hasData && snapshot.data != null) {
-                            final goalDocuments = snapshot.data!.docs;
-                            if (goalDocuments.isEmpty) {
-                              return const Text("No goals available");
-                            }
-
-                            return SizedBox(
-                              height: 300,
-                              child: PageView.builder(
-                                controller:
-                                    PageController(viewportFraction: 0.85),
-                                itemCount: goalDocuments.length,
-                                itemBuilder: (context, index) {
-
-                                  final goalDocument = goalDocuments[index];
-                                  final goalData = goalDocument.data()
-
-                                      as Map<String, dynamic>;
-                                  final String goalName = goalData['name'];
-                                  double progress = (index + 1) * 10.0;
-                                  final isDone = progress >= 100;
-
-                                  return _buildGoalCard(
-
-                                      goalName, progress, isDone, goalDocument);
-
-                                },
-                              ),
-                            );
-                          } else {
-                            return const Text("No goals available");
-                          }
-                        },
-                      ),
-                    ],
+                          ],
+                        );
+                      } else {
+                        return const Text("No user data available");
+                      }
+                    },
                   ),
+                  const SizedBox(height: 15),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Container(
+                color: Colors.white,
+                child: StreamBuilder(
+                  stream: FirebaseFirestore.instance
+                      .collection("Users")
+                      .doc(FirebaseAuth.instance.currentUser!.uid)
+                      .collection('goals')
+                      .snapshots(),
+                  builder:
+                      (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                    if (snapshot.connectionState ==
+                        ConnectionState.waiting) {
+                      return const CircularProgressIndicator();
+                    }
+
+                    if (snapshot.hasError) {
+                      return const Text("Error fetching goals");
+                    }
+
+                    if (snapshot.hasData && snapshot.data != null) {
+                      final goalDocuments = snapshot.data!.docs;
+
+                      if (goalDocuments.isEmpty) {
+                        // Display a white background when there are no goals
+                        return Container(
+                          color: Colors.white,
+                          child: Center(
+                            child: Text(
+                              "No goals available. Please add some goals!",
+                              style: TextStyle(
+                                color: WellBeingColors.mediumGrey,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+
+                      return SizedBox(
+                        height: 300,
+                        child: PageView.builder(
+                          controller:
+                              PageController(viewportFraction: 0.85),
+                          itemCount: goalDocuments.length,
+                          itemBuilder: (context, index) {
+                            final goalDocument = goalDocuments[index];
+                            final goalData = goalDocument.data()
+                                as Map<String, dynamic>;
+                            final String goalName = goalData['name'];
+                            double progress = (index + 1) * 10.0;
+                            final isDone = progress >= 100;
+
+                            return _buildGoalCard(
+                              goalName,
+                              progress,
+                              isDone,
+                              goalDocument,
+                            );
+                          },
+                        ),
+                      );
+                    } else {
+                      return const Text("No goals available");
+                    }
+                  },
                 ),
               ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildGoalCard(String goalName, double progress, bool isDone,
-      DocumentSnapshot goalDocument) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => GoalTasks(goalDocument: goalDocument),
-          ),
-        );
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        margin: const EdgeInsets.symmetric(horizontal: 15),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: progress < 100 ? Colors.deepPurple : Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey,
-              blurRadius: 15,
-              offset: const Offset(0, 3),
             ),
           ],
-          borderRadius: BorderRadius.circular(20),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 23),
-            if (isDone)
-              Container(
-                height: 50,
-                width: 50,
+      ),
+    ],
+  );
+}
+
+
+Widget _buildGoalCard(String goalName, double progress, bool isDone,
+    DocumentSnapshot goalDocument) {
+  return GestureDetector(
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => GoalTasks(goalDocument: goalDocument),
+        ),
+      );
+    },
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 10), // Adjust margin as needed
+      padding: const EdgeInsets.all(20), // Padding around the content
+      width: 150, // Set width to desired square size
+      height: 150, // Set height to the same value as width for square shape
+      decoration: BoxDecoration(
+        color: progress < 100 ? Colors.deepPurple : Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey,
+            blurRadius: 15,
+            offset: const Offset(0, 3),
+          ),
+        ],
+        borderRadius: BorderRadius.circular(20), // Optional: for rounded corners
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 5), // Space before the progress indicator
+          if (isDone)
+            Center(
+              child: Container(
+                height: 40,
+                width: 40,
                 decoration: BoxDecoration(
                   color: WellBeingColors.yellowColor,
                   shape: BoxShape.circle,
@@ -367,68 +389,70 @@ class _HomePageState extends State<HomeScreen> {
                   child: Icon(
                     Icons.check_rounded,
                     color: WellBeingColors.yellowColor,
-                    size: 25,
+                    size: 20, // Adjust size for better fit
                   ),
                 ),
               ),
-            if (!isDone)
-              Row(
-                children: [
-                  Stack(
-                    children: [
-                      Container(
-                        height: 50,
-                        width: 50,
-                        decoration: const BoxDecoration(
-                          color: Colors.transparent,
-                          shape: BoxShape.circle,
-                        ),
+            ),
+          if (!isDone)
+            Row(
+              children: [
+                Stack(
+                  children: [
+                    Container(
+                      height: 40,
+                      width: 40,
+                      decoration: const BoxDecoration(
+                        color: Colors.transparent,
+                        shape: BoxShape.circle,
                       ),
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        child: SizedBox(
-                          height: 50,
-                          width: 50,
-                          child: CircularProgressIndicator(
-                            value: progress / 100,
-                            strokeWidth: 8,
-                            backgroundColor: Colors.white,
-                            strokeCap: StrokeCap.round,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              WellBeingColors.lightMaroon,
-                            ),
+                    ),
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      child: SizedBox(
+                        height: 40,
+                        width: 40,
+                        child: CircularProgressIndicator(
+                          value: progress / 100,
+                          strokeWidth: 6, // Slightly thinner for better aesthetics
+                          backgroundColor: Colors.white,
+                          strokeCap: StrokeCap.round,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            WellBeingColors.lightMaroon,
                           ),
                         ),
                       ),
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        child: Container(
-                          height: 50,
-                          width: 50,
-                          alignment: Alignment.center,
-                          child: Text(
-                            '${progress.round()}%',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.7),
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
+                    ),
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      child: Container(
+                        height: 40,
+                        width: 40,
+                        alignment: Alignment.center,
+                        child: Text(
+                          '${progress.round()}%',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.7),
+                            fontSize: 12, // Slightly smaller for a better fit
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         goalName,
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 20,
+                          fontSize: 18, // Slightly reduced for better balance
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -437,19 +461,23 @@ class _HomePageState extends State<HomeScreen> {
                         'In progress',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 14,
+                          fontSize: 12, // Consistent with other text sizes
                         ),
                       ),
                     ],
                   ),
-                ],
-              ),
-            const Spacer(),
-          ],
-        ),
+                ),
+              ],
+            ),
+          const Spacer(),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
+
+
 
   Widget reportStats(String stat, String label) {
     return Column(
