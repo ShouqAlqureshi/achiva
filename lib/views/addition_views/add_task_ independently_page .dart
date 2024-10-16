@@ -193,18 +193,51 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
     }
   }
 
-  // Method to select end time
-  Future<void> _selectEndTime(BuildContext context) async {
-    final TimeOfDay? pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
+ // Method to select end time
+Future<void> _selectEndTime(BuildContext context) async {
+  // Ensure that the start time is selected before allowing the user to pick an end time
+  if (_startTime == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please select a start time first.')),
     );
-    if (pickedTime != null && pickedTime != _endTime) {
+    return; // Exit the method early if no start time is set
+  }
+
+  final TimeOfDay? pickedTime = await showTimePicker(
+    context: context,
+    initialTime: TimeOfDay.now(),
+  );
+
+  if (pickedTime != null && pickedTime != _endTime) {
+    // Convert both times to DateTime for comparison
+    final DateTime startDateTime = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+      _startTime!.hour,
+      _startTime!.minute,
+    );
+    final DateTime endDateTime = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+
+    // Check if the selected end time is before the start time
+    if (endDateTime.isBefore(startDateTime)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('End time cannot be before start time.')),
+      );
+    } else {
       setState(() {
-        _endTime = pickedTime;
+        _endTime = pickedTime; // Update the end time if valid
       });
     }
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
