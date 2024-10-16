@@ -45,26 +45,28 @@ class IncomingRequestsPage extends StatelessWidget {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(30),
-                child: Column(
-                  mainAxisAlignment:
-                      MainAxisAlignment.center, // Center the column vertically
-                  crossAxisAlignment: CrossAxisAlignment
-                      .center, // Center the column horizontally
-                  children: [
-                    Image.asset(
-                      'lib/images/no-results.png',
-                      fit: BoxFit.contain,
-                      height: 100,
-                    ),
-                    SizedBox(
-                        height:
-                            20), // Add some spacing between the image and text
-                    Text(
-                      'You have no pending friend requests yet.',
-                      style: TextStyle(
-                          fontSize: 16), // Optional: Customize text style
-                    ),
-                  ],
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisAlignment:
+                        MainAxisAlignment.center, // Center the column vertically
+                    crossAxisAlignment: CrossAxisAlignment
+                        .center, // Center the column horizontally
+                    children: [
+                      Image.asset(
+                        'lib/images/no-results.png',
+                        fit: BoxFit.contain,
+                        height: 100,
+                      ),
+                      SizedBox(
+                          height:
+                              40), // Add some spacing between the image and text
+                      Text(
+                        'You have no pending friend requests.',
+                        style: TextStyle(
+                            fontSize: 16), // Optional: Customize text style
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );

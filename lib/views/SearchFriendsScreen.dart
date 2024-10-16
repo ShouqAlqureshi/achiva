@@ -1,3 +1,4 @@
+
 /*
 
 import 'package:flutter/material.dart';
@@ -314,6 +315,7 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
   }
 }
 */
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -587,6 +589,7 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
                         ),
                         trailing: isCurrentUser
                             ? null
+
                             : isPendingRequest
                                 ? IconButton(
                                     icon: Icon(Icons.access_time), // Clock icon for pending status
@@ -605,6 +608,7 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
                                     ),
                                     onPressed: () => _sendFriendRequest(friend),
                                   ),
+
                       ),
                     ),
                   );
