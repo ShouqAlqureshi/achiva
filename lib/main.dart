@@ -9,19 +9,28 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/foundation.dart'; // Import for kDebugMode
 import 'firebase_options.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
 
-  await FirebaseAppCheck.instance.activate(
-    androidProvider: AndroidProvider
-        .playIntegrity, // [DO NOT DO THIS] change for debug for emulators and add debug token in terminal and playIntegrity for android device
-  );
+  // Initialize Firebase
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+
+    // Enable Firebase App Check
+    await FirebaseAppCheck.instance.activate(
+      androidProvider: kDebugMode
+          ? AndroidProvider.debug
+          : AndroidProvider.playIntegrity,
+    );
+  } catch (e) {
+    debugPrint('Firebase Initialization failed: $e');
+  }
 
   runApp(const MyApp());
 }
@@ -66,6 +75,8 @@ class AuthWrapper extends StatelessWidget {
           return const SplashScreen();
         } else if (snapshot.hasData) {
           return const HomeScreen();
+        } else if (snapshot.hasError) {
+          return const Center(child: Text('Error loading data'));
         } else {
           return const PhoneNumAuthView();
         }
@@ -83,7 +94,7 @@ class SplashScreen extends StatelessWidget {
       backgroundColor: Colors.white,
       body: Center(
         child: Image.asset(
-          'lib/images/logo-with-name.png',
+          'lib/images/logo-with-name.png', // Make sure the path is correct
           width: 200,
           height: 200,
         ),
