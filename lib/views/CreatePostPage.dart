@@ -1,22 +1,26 @@
 import 'dart:io';
+import 'package:achiva/views/friends_feed_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
-class CreatePostPage extends StatefulWidget {
+class CreatePostDialog extends StatefulWidget {
   final String userId;
   final String goalId;
   final String taskId;
 
-  CreatePostPage({required this.userId, required this.goalId, required this.taskId});
-
+CreatePostDialog({
+    required this.userId,
+    required this.goalId,
+    required this.taskId,
+  });
   @override
-  _CreatePostPageState createState() => _CreatePostPageState();
+  _CreatePostDialogState createState() => _CreatePostDialogState();
 }
 
-class _CreatePostPageState extends State<CreatePostPage> {
+class _CreatePostDialogState extends State<CreatePostDialog> {
   final TextEditingController _postContentController = TextEditingController();
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
@@ -82,13 +86,11 @@ void _createPost() async {
     }
 
     try {
-      // Create a reference to the root-level posts collection (allPosts)
       CollectionReference allPostsCollection = FirebaseFirestore.instance
           .collection('Users')
           .doc(widget.userId)
           .collection('allPosts');
 
-      // Add the post to the allPosts collection
       await allPostsCollection.add({
         'content': postContent,
         'postDate': FieldValue.serverTimestamp(),
@@ -97,7 +99,14 @@ void _createPost() async {
         'goalId': widget.goalId,
         'taskId': widget.taskId,
       });
+      if (kDebugMode) {
+        print('Post created successfully in Firestore.');
+      }
+      
+      // Close the dialog and return true to indicate success
+      Navigator.of(context).pop(true);
 
+      // Show confirmation message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Post created successfully!'),
@@ -105,10 +114,14 @@ void _createPost() async {
         ),
       );
 
-      Future.delayed(Duration(seconds: 2), () {
-        Navigator.of(context).pop();
-      });
+      if (kDebugMode) {
+        print('Dialog closed with success status.');
+      }
     } catch (e) {
+      if (kDebugMode) {
+        print('Error creating post: $e');
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error creating post. Please try again.'),
@@ -130,53 +143,31 @@ void _createPost() async {
   }
 }
 
-
-
   @override
   Widget build(BuildContext context) {
     bool isNearLimit = _characterCount > _characterLimit - 10 && _characterCount <= _characterLimit;
     bool isOverLimit = _characterCount > _characterLimit;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Create Post', style: TextStyle(color: customPurple)),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: customPurple),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        actions: [
-          _isUploading
-              ? Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(customPurple),
+    return Dialog(
+      child: Container(
+        padding: EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Create Post', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: customPurple)),
+                  IconButton(
+                    icon: Icon(Icons.close, color: customPurple),
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
-                )
-              : TextButton(
-                  onPressed: (_characterCount > 0 && _characterCount <= _characterLimit) || _imageFile != null
-                      ? _createPost
-                      : null,
-                  child: Text(
-                    'Post',
-                    style: TextStyle(
-                      color: (_characterCount > 0 && _characterCount <= _characterLimit) || _imageFile != null
-                          ? customPurple
-                          : Colors.grey,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: TextField(
+                ],
+              ),
+              SizedBox(height: 16),
+              TextField(
                 controller: _postContentController,
                 maxLines: null,
                 maxLength: _characterLimit,
@@ -193,10 +184,8 @@ void _createPost() async {
                   counterText: '',
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
+              SizedBox(height: 8),
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
@@ -224,11 +213,8 @@ void _createPost() async {
                   ),
                 ],
               ),
-            ),
-            if (_imageFile != null)
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Stack(
+              if (_imageFile != null)
+                Stack(
                   alignment: Alignment.topRight,
                   children: [
                     ClipRRect(
@@ -241,8 +227,21 @@ void _createPost() async {
                     ),
                   ],
                 ),
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: (_characterCount > 0 && _characterCount <= _characterLimit) || _imageFile != null
+                    ? _createPost
+                    : null,
+                child: _isUploading
+                    ? CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
+                    : Text('Post'),
+                style: ElevatedButton.styleFrom(
+                  foregroundColor: Colors.white, backgroundColor: customPurple,
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                ),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );

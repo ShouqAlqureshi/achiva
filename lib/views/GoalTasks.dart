@@ -120,16 +120,23 @@ void _toggleTaskCompletion(BuildContext context, DocumentReference taskRef,
             ),
             TextButton(
               child: Text('Yes'),
-              onPressed: () {
+              onPressed: () async {
+                Navigator.of(context).pop(); // Close the current dialog
                 String goalId = widget.goalDocument.id;
                 String taskId = taskRef.id;
-                Navigator.of(context).pop();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CreatePostPage(userId: widget.userId, goalId: goalId, taskId: taskId),
-                  ),
+                
+                // Show the CreatePostDialog
+                bool? result = await showDialog<bool>(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return CreatePostDialog(
+                      userId: widget.userId,
+                      goalId: goalId,
+                      taskId: taskId,
+                    );
+                  },
                 );
+
               },
             ),
           ],

@@ -107,6 +107,7 @@ class FloatingBottomNavigationBarWidget extends StatelessWidget {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
+
               color: const Color.fromARGB(255, 45, 43, 47).withOpacity(0.3),
               spreadRadius: 2,
               blurRadius: 8,

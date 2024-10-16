@@ -260,7 +260,9 @@ Widget _buildHomePage(BuildContext context) {
                         height: 250,
                         child: PageView.builder(
                           controller:
+
                               PageController(viewportFraction: 0.87),
+
                           itemCount: goalDocuments.length,
                           itemBuilder: (context, index) {
                             final goalDocument = goalDocuments[index];
