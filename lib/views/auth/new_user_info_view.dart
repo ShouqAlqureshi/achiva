@@ -324,7 +324,7 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
         context: context,
         builder: (context) {
           return AlertDialog(
-            backgroundColor: const Color.fromARGB(255, 54, 52, 58),
+            backgroundColor: Colors.white,
             title: const Icon(
               Icons.warning_amber_outlined,
               size: 60,
@@ -334,7 +334,7 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
               children: const [
                 Text(
                   "Are you sure you want to cancel registration?",
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.black),
                 ),
                 Text(
                   "By canceling, you will go back to the sign-up page to redo the process.",
@@ -350,20 +350,20 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                 children: [
                   TextButton(
                     style: TextButton.styleFrom(
-                      backgroundColor: Colors.black26,
+                      backgroundColor: Colors.white,
                     ),
                     onPressed: () {
                       Navigator.of(context).pop(false);
                     },
                     child: const Text(
                       "Proceed",
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: Colors.black),
                     ),
                   ),
                   const SizedBox(width: 10), // Add space between buttons
                   TextButton(
                     style: TextButton.styleFrom(
-                      backgroundColor: Colors.black26,
+                      backgroundColor: Colors.white,
                     ),
                     onPressed: () {
                       Navigator.of(context).pop(true);

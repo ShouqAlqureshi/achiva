@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -79,8 +78,10 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
 
   Future<String> _fetchUserProfilePic(String userId) async {
     try {
-      DocumentSnapshot userSnapshot =
-          await FirebaseFirestore.instance.collection('Users').doc(userId).get();
+      DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(userId)
+          .get();
 
       if (userSnapshot.exists) {
         Map<String, dynamic> userData =
@@ -155,13 +156,17 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
+          backgroundColor: Colors.white,
           content: Text(message),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('OK'),
+              child: Text(
+                'OK',
+                style: TextStyle(color: Colors.black),
+              ),
             ),
           ],
         );
@@ -228,7 +233,8 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12.0),
-                    borderSide: BorderSide(color: const Color.fromARGB(255, 51, 25, 57)),
+                    borderSide: BorderSide(
+                        color: const Color.fromARGB(255, 51, 25, 57)),
                   ),
                   contentPadding: EdgeInsets.symmetric(
                     vertical: 12.0,
@@ -262,11 +268,14 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
                 itemCount: _searchResults.length,
                 itemBuilder: (context, index) {
                   DocumentSnapshot friend = _searchResults[index];
-                  bool isCurrentUser = friend['phoneNumber'] == _currentUserPhoneNumber;
-                  bool isPendingRequest = _requestStatuses[friend.id] ?? false; // Check local request status
+                  bool isCurrentUser =
+                      friend['phoneNumber'] == _currentUserPhoneNumber;
+                  bool isPendingRequest = _requestStatuses[friend.id] ??
+                      false; // Check local request status
 
                   return FutureBuilder<String>(
-                    future: _fetchUserProfilePic(friend.id), // Fetch user profile picture
+                    future: _fetchUserProfilePic(
+                        friend.id), // Fetch user profile picture
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) {
                         return CircularProgressIndicator();
@@ -317,21 +326,26 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
                                 ? null
                                 : isPendingRequest
                                     ? IconButton(
-                                        icon: Icon(Icons.access_time), // Clock icon for pending status
+                                        icon: Icon(Icons
+                                            .access_time), // Clock icon for pending status
                                         color: Colors.grey,
                                         onPressed: () {
-                                          _showDialog('Friend request already sent');
+                                          _showDialog(
+                                              'Friend request already sent');
                                         },
                                       )
                                     : IconButton(
                                         icon: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Icon(Icons.person, color: Colors.white),
-                                            Icon(Icons.add, color: Colors.white),
+                                            Icon(Icons.person,
+                                                color: Colors.white),
+                                            Icon(Icons.add,
+                                                color: Colors.white),
                                           ],
                                         ),
-                                        onPressed: () => _sendFriendRequest(friend),
+                                        onPressed: () =>
+                                            _sendFriendRequest(friend),
                                       ),
                           ),
                         ),
