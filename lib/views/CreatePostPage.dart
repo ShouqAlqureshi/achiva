@@ -69,64 +69,68 @@ class _CreatePostPageState extends State<CreatePostPage> {
     }
   }
 
-  void _createPost() async {
-    String postContent = _postContentController.text;
-    if (postContent.isNotEmpty || _imageFile != null) {
-      setState(() {
-        _isUploading = true;
+void _createPost() async {
+  String postContent = _postContentController.text;
+  if (postContent.isNotEmpty || _imageFile != null) {
+    setState(() {
+      _isUploading = true;
+    });
+
+    String? imageUrl;
+    if (_imageFile != null) {
+      imageUrl = await _uploadImage(_imageFile!);
+    }
+
+    try {
+      // Create a reference to the root-level posts collection (allPosts)
+      CollectionReference allPostsCollection = FirebaseFirestore.instance
+          .collection('Users')
+          .doc(widget.userId)
+          .collection('allPosts');
+
+      // Add the post to the allPosts collection
+      await allPostsCollection.add({
+        'content': postContent,
+        'postDate': FieldValue.serverTimestamp(),
+        'photo': imageUrl ?? '',
+        'userId': widget.userId,
+        'goalId': widget.goalId,
+        'taskId': widget.taskId,
       });
 
-      String? imageUrl;
-      if (_imageFile != null) {
-        imageUrl = await _uploadImage(_imageFile!);
-      }
-
-      try {
-        await FirebaseFirestore.instance
-            .collection('Users')
-            .doc(widget.userId)
-            .collection('goals')
-            .doc(widget.goalId)
-            .collection('tasks')
-            .doc(widget.taskId)
-            .collection('posts')
-            .add({
-          'content': postContent,
-          'postDate': FieldValue.serverTimestamp(),
-          'photo': imageUrl ?? '',
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Post created successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        Future.delayed(Duration(seconds: 2), () {
-          Navigator.of(context).pop();
-        });
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error creating post. Please try again.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-
-      setState(() {
-        _isUploading = false;
-      });
-    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please add some content or an image to your post.'),
-          backgroundColor: Colors.orange,
+          content: Text('Post created successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      Future.delayed(Duration(seconds: 2), () {
+        Navigator.of(context).pop();
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error creating post. Please try again.'),
+          backgroundColor: Colors.red,
         ),
       );
     }
+
+    setState(() {
+      _isUploading = false;
+    });
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Please add some content or an image to your post.'),
+        backgroundColor: Colors.orange,
+      ),
+    );
   }
+}
+
+
 
   @override
   Widget build(BuildContext context) {

@@ -8,7 +8,7 @@ import 'package:http/http.dart' as http;
 class FriendsFeedScreen extends StatelessWidget {
   const FriendsFeedScreen({super.key});
 
-  Stream<List<Map<String, dynamic>>> _fetchTaskPosts() async* {
+Stream<List<Map<String, dynamic>>> _fetchTaskPosts() async* {
   try {
     User? currentUser = FirebaseAuth.instance.currentUser;
 
@@ -20,7 +20,7 @@ class FriendsFeedScreen extends StatelessWidget {
       return;
     }
 
-    // Fetch friends list from the new structure
+    // Fetch friends list
     QuerySnapshot friendsSnapshot = await FirebaseFirestore.instance
         .collection('Users')
         .doc(currentUser.uid)
@@ -35,67 +35,62 @@ class FriendsFeedScreen extends StatelessWidget {
     friendIds.add(currentUser.uid);
 
     List<Map<String, dynamic>> allPosts = [];
-
-    for (String friendId in friendIds) {
-      QuerySnapshot goalsSnapshot = await FirebaseFirestore.instance
+    
+    // Fetch posts for each user (including current user)
+    for (String userId in friendIds) {
+      QuerySnapshot userPostsSnapshot = await FirebaseFirestore.instance
           .collection('Users')
-          .doc(friendId)
-          .collection('goals')
+          .doc(userId)
+          .collection('allPosts')
+          .orderBy('postDate', descending: true)
+          .limit(20)
           .get();
 
-      for (var goalDoc in goalsSnapshot.docs) {
-        QuerySnapshot tasksSnapshot =
-            await goalDoc.reference.collection('tasks').get();
+      for (var postDoc in userPostsSnapshot.docs) {
+        final postData = postDoc.data() as Map<String, dynamic>;
+        final postId = postDoc.id;
 
-        for (var taskDoc in tasksSnapshot.docs) {
-          QuerySnapshot postsSnapshot = await taskDoc.reference
-              .collection('posts')
-              .orderBy('postDate', descending: true)
-              .get();
+        if (kDebugMode) {
+          print('Raw post data: $postData');
+          print('Post ID: $postId');
+        }
 
-          for (var postDoc in postsSnapshot.docs) {
-            final postData = postDoc.data() as Map<String, dynamic>;
-            if (kDebugMode) {
-              print('Raw post data: $postData');
-              print('Post ID: ${postDoc.id}');
+        if (postData.containsKey('content') &&
+            postData.containsKey('postDate')) {
+          String formattedDate = 'Unknown Date';
+          try {
+            if (postData['postDate'] is Timestamp) {
+              DateTime dateTime = (postData['postDate'] as Timestamp).toDate();
+              formattedDate = DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
+            } else if (postData['postDate'] is String) {
+              formattedDate = postData['postDate'];
             }
-
-            if (postData.containsKey('content') &&
-                postData.containsKey('postDate')) {
-              String formattedDate = 'Unknown Date';
-              try {
-                if (postData['postDate'] is Timestamp) {
-                  DateTime dateTime =
-                      (postData['postDate'] as Timestamp).toDate();
-                  formattedDate =
-                      DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
-                } else if (postData['postDate'] is String) {
-                  formattedDate = postData['postDate'];
-                }
-              } catch (e) {
-                if (kDebugMode) {
-                  print('Error formatting date: $e');
-                }
-              }
-
-              final userInfo = await _fetchUserName(friendId);
-
-              allPosts.add({
-                'id': postDoc.id,
-                'userName': userInfo['fullName'],
-                'profilePic': userInfo['profilePic'],
-                'content': postData['content'].toString(),
-                'photo': postData['photo']?.toString(),
-                'timestamp': formattedDate,
-                'dateTime': (postData['postDate'] as Timestamp).toDate(),
-              });
+          } catch (e) {
+            if (kDebugMode) {
+              print('Error formatting date: $e');
             }
           }
+
+          final userInfo = await _fetchUserName(userId);
+
+          allPosts.add({
+            'id': postId,
+            'userName': userInfo['fullName'],
+            'profilePic': userInfo['profilePic'],
+            'content': postData['content'].toString(),
+            'photo': postData['photo']?.toString(),
+            'timestamp': formattedDate,
+            'dateTime': (postData['postDate'] as Timestamp).toDate(),
+          });
         }
       }
     }
 
+    // Sort all posts by date
     allPosts.sort((a, b) => b['dateTime'].compareTo(a['dateTime']));
+
+    // Limit to the most recent 20 posts
+    allPosts = allPosts.take(20).toList();
 
     if (kDebugMode) {
       print('All posts: $allPosts');
@@ -123,8 +118,7 @@ class FriendsFeedScreen extends StatelessWidget {
             userSnapshot.data() as Map<String, dynamic>;
         String firstName = userData['fname'] ?? 'Unknown';
         String lastName = userData['lname'] ?? 'User';
-        String profilePic = userData['photo'] ??
-            ''; // Assuming the profile picture URL is stored in 'profilePic'
+        String profilePic = userData['photo'] ?? '';
 
         return {
           'fullName': '$firstName $lastName',
@@ -133,7 +127,7 @@ class FriendsFeedScreen extends StatelessWidget {
       } else {
         return {
           'fullName': 'Unknown User',
-          'profilePic': '', // No profile picture
+          'profilePic': '',
         };
       }
     } catch (e) {
@@ -142,7 +136,7 @@ class FriendsFeedScreen extends StatelessWidget {
       }
       return {
         'fullName': 'Unknown User',
-        'profilePic': '', // No profile picture
+        'profilePic': '',
       };
     }
   }
@@ -159,7 +153,6 @@ class FriendsFeedScreen extends StatelessWidget {
             flexibleSpace: FlexibleSpaceBar(
               background: _buildRankingDashboard(),
             ),
-            
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -392,16 +385,43 @@ void _showReactionsDialog() {
   );
 }
 
- void _updateReaction(String emoji) async {
+void _updateReaction(String emoji) async {
   try {
-    var postDoc = await _findPostDocument(widget.postId!);
-
-    if (postDoc == null) {
-      throw Exception('Post document not found');
-    }
-
     User? currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return;
+
+    // Find the post document
+    var postDoc = await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(currentUser.uid)
+        .collection('allPosts')
+        .doc(widget.postId)
+        .get();
+
+    if (!postDoc.exists) {
+      // If not found in current user's posts, search in friends' posts
+      var friendsSnapshot = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(currentUser.uid)
+          .collection('friends')
+          .get();
+
+      for (var friendDoc in friendsSnapshot.docs) {
+        String friendId = friendDoc['userId'];
+        postDoc = await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(friendId)
+            .collection('allPosts')
+            .doc(widget.postId)
+            .get();
+
+        if (postDoc.exists) break;
+      }
+    }
+
+    if (!postDoc.exists) {
+      throw Exception('Post document not found');
+    }
 
     // Update the reaction field in the post document
     await postDoc.reference.update({
@@ -417,27 +437,19 @@ void _showReactionsDialog() {
   }
 }
 
-  Future<DocumentSnapshot?> _findPostDocument(String postId) async {
+Future<DocumentSnapshot?> _findPostDocument(String postId) async {
   User? currentUser = FirebaseAuth.instance.currentUser;
   if (currentUser == null) return null;
 
   // Search in the user's own posts first
-  var userPostsQuery = await FirebaseFirestore.instance
+  var postDoc = await FirebaseFirestore.instance
       .collection('Users')
       .doc(currentUser.uid)
-      .collection('goals')
+      .collection('allPosts')
+      .doc(postId)
       .get();
 
-  for (var goalDoc in userPostsQuery.docs) {
-    var tasksQuery = await goalDoc.reference.collection('tasks').get();
-    for (var taskDoc in tasksQuery.docs) {
-      var postDoc =
-          await taskDoc.reference.collection('posts').doc(postId).get();
-      if (postDoc.exists) {
-        return postDoc;
-      }
-    }
-  }
+  if (postDoc.exists) return postDoc;
 
   // If not found in user's posts, search in friends' posts
   var friendsSnapshot = await FirebaseFirestore.instance
@@ -446,27 +458,16 @@ void _showReactionsDialog() {
       .collection('friends')
       .get();
 
-  List<String> friendIds = friendsSnapshot.docs
-      .map((doc) => doc['userId'] as String)
-      .toList();
-
-  for (String friendId in friendIds) {
-    var friendPostsQuery = await FirebaseFirestore.instance
+  for (var friendDoc in friendsSnapshot.docs) {
+    String friendId = friendDoc['userId'];
+    postDoc = await FirebaseFirestore.instance
         .collection('Users')
         .doc(friendId)
-        .collection('goals')
+        .collection('allPosts')
+        .doc(postId)
         .get();
 
-    for (var goalDoc in friendPostsQuery.docs) {
-      var tasksQuery = await goalDoc.reference.collection('tasks').get();
-      for (var taskDoc in tasksQuery.docs) {
-        var postDoc =
-            await taskDoc.reference.collection('posts').doc(postId).get();
-        if (postDoc.exists) {
-          return postDoc;
-        }
-      }
-    }
+    if (postDoc.exists) return postDoc;
   }
 
   return null;
