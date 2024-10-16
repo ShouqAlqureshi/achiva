@@ -29,7 +29,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final TextEditingController _lnameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   GlobalKey<FormState> formState = GlobalKey<FormState>();
-
+bool isFormSubmited = false;
   void setUserDataToTextFields() {
     widget.layoutCubit.userImage = null;
     _fnameController.text = widget.layoutCubit.user!.fname;
@@ -81,175 +81,181 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         backgroundColor: Colors.white,
         title: const Text("Edit Profile"),
       ),
-      body: Form(
-        key: formState,
-        child: ListView(
-          padding: AppConstants.kScaffoldPadding.copyWith(bottom: 24),
-          children: [
-            Center(
-              child: Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  BlocBuilder<LayoutCubit, LayoutStates>(
-                    buildWhen: (past, currentState) =>
-                        currentState is PickedUserImageSuccessfullyState,
-                    builder: (context, state) {
-                      if (widget.layoutCubit.userImage != null) {
-                        return CircleAvatar(
-                          radius: 64,
-                          backgroundImage:
-                              FileImage(widget.layoutCubit.userImage!),
-                        );
-                      } else if (widget.layoutCubit.user!.photo != null) {
-                        return CircleAvatar(
-                          radius: 64,
-                          backgroundImage:
-                              NetworkImage(widget.layoutCubit.user!.photo!),
-                        );
-                      } else {
-                        return CircleAvatar(
-                          radius: 64,
-                          backgroundColor: Colors.grey[200],
-                          child: const Icon(Icons.person,
-                              size: 60, color: Colors.grey),
-                        );
-                      }
-                    },
+      body: Stack(
+        children: [
+          Form(
+            key: formState,
+            child: ListView(
+              padding: AppConstants.kScaffoldPadding.copyWith(bottom: 24),
+              children: [
+                Center(
+                  child: Stack(
+                    alignment: Alignment.bottomRight,
+                    children: [
+                      BlocBuilder<LayoutCubit, LayoutStates>(
+                        buildWhen: (past, currentState) =>
+                            currentState is PickedUserImageSuccessfullyState,
+                        builder: (context, state) {
+                          if (widget.layoutCubit.userImage != null) {
+                            return CircleAvatar(
+                              radius: 64,
+                              backgroundImage: FileImage(widget.layoutCubit.userImage!),
+                            );
+                          } else if (widget.layoutCubit.user!.photo != null) {
+                            return CircleAvatar(
+                              radius: 64,
+                              backgroundImage: NetworkImage(widget.layoutCubit.user!.photo!),
+                            );
+                          } else {return CircleAvatar(
+                              radius: 64,
+                              backgroundColor: Colors.grey[200],
+                              child: const Icon(Icons.person, size: 60, color: Colors.grey),
+                            );
+                          }
+                        },
+                      ),
+                      CircleAvatar(
+                        backgroundColor: AppColors.kLightGrey,
+                        child: InkWell(
+                          onTap: () {
+                            showImageSourceDialog(
+                              context: context,
+                              pickCameraImage: () =>
+                                  widget.layoutCubit.pickUserImage(imageSource: ImageSource.camera),
+                              pickGalleryImage: () =>
+                                  widget.layoutCubit.pickUserImage(imageSource: ImageSource.gallery),
+                            );
+                          },
+                          child: Icon(Icons.edit, color: AppColors.kWhiteColor),
+                        ),
+                      ),
+                    ],
                   ),
-                  CircleAvatar(
-                    backgroundColor: AppColors.kLightGrey,
-                    child: InkWell(
-                      onTap: () {
-                        showImageSourceDialog(
-                          context: context,
-                          pickCameraImage: () => widget.layoutCubit
-                              .pickUserImage(imageSource: ImageSource.camera),
-                          pickGalleryImage: () => widget.layoutCubit
-                              .pickUserImage(imageSource: ImageSource.gallery),
-                        );
-                      },
-                      child: Icon(Icons.edit, color: AppColors.kWhiteColor),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            24.vrSpace,
-            TextFieldWidget(
-              validator: (val) {
-                if (val == null || val.isEmpty) {
-                  return "First Name is required";
-                } else if (val.contains(" ")) {
-                  return "whitespace is not allowed in First Name";
-                }
-              },
-              textInputAction: TextInputAction.next,
-              controller: _fnameController,
-              hint: "First Name",
-              prefixIconData: Icons.account_circle,
-            ),
-            TextFieldWidget(
-              validator: (val) {
-                if (val == null || val.isEmpty) {
-                  return "Last Name is required";
-                } else if (val.contains(" ")) {
-                  return "whitespace is not allowed in Last Name";
-                }
-                return null;
-              },
-              textInputAction: TextInputAction.next,
-              controller: _lnameController,
-              hint: "Last Name",
-              prefixIconData: Icons.account_circle,
-            ),
-            TextFieldWidget(
-              validator: (val) {
-                if (val!.isEmpty) {
-                  return "Email is required";
-                }
-                if (!isValidEmail(val)) {
-                  return "Please enter a valid email address";
-                }
-                return null;
-              },
-              textInputAction: TextInputAction.next,
-              controller: _emailController,
-              hint: "Email",
-              prefixIconData: Icons.email,
-            ),
-            BlocBuilder<LayoutCubit, LayoutStates>(
-              buildWhen: (past, current) => current is ChangeGenderStatusState,
-              builder: (context, state) {
-                return DropDownBtnWidget(
-                  items: const ["male", "female"],
-                  hint: "Choose your gender",
-                  value: widget.layoutCubit.chosenGender,
-                  onChanged: (value) {
-                    setState(() {
-                      widget.layoutCubit.changeGenderStatus(value: value);
-                    });
-                  },
-                );
-              },
-            ),
-            8.vrSpace,
-            BlocConsumer<LayoutCubit, LayoutStates>(
-              listenWhen: (past, current) =>
-                  current is UpdateUserDataWithFailureState ||
-                  current is UpdateUserDataSuccessfullyState ||
-                  current is UpdateUserDataLoadingState,
-              listener: (context, state) {
-                if (state is UpdateUserDataWithFailureState) {
-                  showSnackBarWidget(
-                      message: state.message,
-                      successOrNot: false,
-                      context: context);
-                }
-                if (state is UpdateUserDataSuccessfullyState) {
-                  showSnackBarWidget(
-                      message: "Your information is updated successfully",
-                      successOrNot: true,
-                      context: context);
-                  Navigator.pop(context);
-                }
-              },
-              builder: (context, state) => BtnWidget(
-                minWidth: double.infinity,
-                onTap: () async {
-                  if (_fnameController.text.isNotEmpty &&
-                      _lnameController.text.isNotEmpty &&
-                      _emailController.text.isNotEmpty &&
-                      widget.layoutCubit.chosenGender == null) {
-                    showSnackBarWidget(
-                        message: "Please, Choose your gender",
-                        successOrNot: false,
-                        context: context);
-                  } else if (await checkIfEmailExists(_emailController.text) &&
-                      _emailController.text != widget.layoutCubit.user!.email) {
-                    showSnackBarWidget(
-                        message: "Email already exists",
-                        successOrNot: false,
-                        context: context);
-                  } else {
-                    if (formState.currentState!.validate()) {
-                      widget.layoutCubit.updateUserData(
-                        fname: _fnameController.text.trim(),
-                        lname: _lnameController.text.trim(),
-                        gender: widget.layoutCubit.chosenGender!,
-                        userID:
-                            AppConstants.kUserID ?? widget.layoutCubit.user!.id,
-                        email: _emailController.text.trim(),
-                      );
+                ),
+                24.vrSpace,
+                TextFieldWidget(
+                  validator: (val) {
+                    if (val == null || val.isEmpty) {
+                      return "First Name is required";
+                    } else if (val.contains(" ")) {
+                      return "whitespace is not allowed in First Name";
                     }
-                  }
-                },
-                title: state is UpdateUserDataLoadingState
-                    ? "Update data loading"
-                    : "Update",
-              ),
+                  },
+                  textInputAction: TextInputAction.next,
+                  controller: _fnameController,
+                  hint: "First Name",
+                  prefixIconData: Icons.account_circle,
+                ),
+                TextFieldWidget(
+                  validator: (val) {
+                    if (val == null || val.isEmpty) {
+                      return "Last Name is required";
+                    } else if (val.contains(" ")) {
+                      return "whitespace is not allowed in Last Name";
+                    }
+                    return null;
+                  },
+                  textInputAction: TextInputAction.next,
+                  controller: _lnameController,
+                  hint: "Last Name",
+                  prefixIconData: Icons.account_circle,
+                ),
+                TextFieldWidget(
+                  validator: (val) {
+                    if (val!.isEmpty) {
+                      return "Email is required";
+                    }
+                    if (!isValidEmail(val)) {
+                      return "Please enter a valid email address";
+                    }
+                    return null;
+                  },
+                  textInputAction: TextInputAction.next,
+                  controller: _emailController,
+                  hint: "Email",
+                  prefixIconData: Icons.email,
+                ),
+                BlocBuilder<LayoutCubit, LayoutStates>(
+                  buildWhen: (past, current) => current is ChangeGenderStatusState,
+                  builder: (context, state) {
+                    return DropDownBtnWidget(
+                      items: const ["male", "female"],
+                      hint: "Choose your gender",
+                      value: widget.layoutCubit.chosenGender,
+                      onChanged: (value) {
+                        setState(() {
+                          widget.layoutCubit.changeGenderStatus(value: value);
+                        });
+                      },
+                    );
+                  },
+                ),
+                8.vrSpace,
+                BlocConsumer<LayoutCubit, LayoutStates>(
+                  listenWhen: (past, current) =>
+                      current is UpdateUserDataWithFailureState ||
+                      current is UpdateUserDataSuccessfullyState ||
+                      current is UpdateUserDataLoadingState,
+                  listener: (context, state) {
+                    if (state is UpdateUserDataWithFailureState) {
+                      showSnackBarWidget(
+                          message: state.message, successOrNot: false, context: context);
+                    }
+                    if (state is UpdateUserDataSuccessfullyState) {
+                      showSnackBarWidget(
+                          message: "Your information is updated successfully",
+                          successOrNot: true,
+                          context: context);Navigator.pop(context);
+                    }
+                  },
+                  builder: (context, state) =>
+                  state is UpdateUserDataLoadingState 
+                  ?
+                 const Align(
+                            alignment: Alignment
+                                .center,
+                            child: CircularProgressIndicator(),
+                          ):BtnWidget(
+                    minWidth: double.infinity,
+                    onTap: () async {
+                     
+                      if (_fnameController.text.isNotEmpty &&
+                          _lnameController.text.isNotEmpty &&
+                          _emailController.text.isNotEmpty &&
+                          widget.layoutCubit.chosenGender == null) {
+                        showSnackBarWidget(
+                            message: "Please, Choose your gender",
+                            successOrNot: false,
+                            context: context);
+                      } else if (await checkIfEmailExists(_emailController.text) &&
+                          _emailController.text != widget.layoutCubit.user!.email) {
+                        showSnackBarWidget(
+                            message: "Email already exists",
+                            successOrNot: false,
+                            context: context);
+                      } else {
+                        if (formState.currentState!.validate()) {
+                          widget.layoutCubit.updateUserData(
+                            fname: _fnameController.text.trim(),
+                            lname: _lnameController.text.trim(),
+                            gender: widget.layoutCubit.chosenGender!,
+                            userID: AppConstants.kUserID ?? widget.layoutCubit.user!.id,
+                            email: _emailController.text.trim(),
+                          );
+                        }
+                      }
+                    
+                    },
+                    title: state is UpdateUserDataLoadingState
+                        ? "Update data loading"
+                        : "Update",
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+       
+        ],
       ),
     );
   }
