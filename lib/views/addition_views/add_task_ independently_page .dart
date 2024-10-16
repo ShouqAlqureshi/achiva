@@ -20,7 +20,8 @@ class AddTaskIndependentlyPage extends StatefulWidget {
   });
 
   @override
-  _AddTaskIndependentlyPageState createState() => _AddTaskIndependentlyPageState();
+  _AddTaskIndependentlyPageState createState() =>
+      _AddTaskIndependentlyPageState();
 }
 
 class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
@@ -89,8 +90,7 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
       if (!goalSnapshot.exists) {
         log("the goal name does not exists.");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text("the goal name does not exists.")),
+          SnackBar(content: Text("the goal name does not exists.")),
         );
         return;
       }
@@ -119,8 +119,7 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
 
       // Add the task
       if (_selectedRecurrence == "Weekly") {
-         createdTasks =
-            await taskManager.addRecurringTask(
+        createdTasks = await taskManager.addRecurringTask(
           goalName: widget.goalName,
           startDate: _selectedDate!, // Ensure _selectedDate is non-null
           startTime: _startTime!, // Ensure _startTime is non-null
@@ -140,9 +139,9 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
 
         if (createdTasks.isNotEmpty) {
           log("Recurring tasks created successfully");
-          await goalsCollectionRef.doc(widget.goalName).update({
-            'notasks': FieldValue.increment(createdTasks.length ) 
-          });
+          await goalsCollectionRef
+              .doc(widget.goalName)
+              .update({'notasks': FieldValue.increment(createdTasks.length)});
         }
       } else {
         await goalsCollectionRef
@@ -152,8 +151,7 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('task added successfully')),
+        const SnackBar(content: Text('task added successfully')),
       );
       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
     } catch (e) {
@@ -193,51 +191,51 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
     }
   }
 
- // Method to select end time
-Future<void> _selectEndTime(BuildContext context) async {
-  // Ensure that the start time is selected before allowing the user to pick an end time
-  if (_startTime == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Please select a start time first.')),
-    );
-    return; // Exit the method early if no start time is set
-  }
-
-  final TimeOfDay? pickedTime = await showTimePicker(
-    context: context,
-    initialTime: TimeOfDay.now(),
-  );
-
-  if (pickedTime != null && pickedTime != _endTime) {
-    // Convert both times to DateTime for comparison
-    final DateTime startDateTime = DateTime(
-      DateTime.now().year,
-      DateTime.now().month,
-      DateTime.now().day,
-      _startTime!.hour,
-      _startTime!.minute,
-    );
-    final DateTime endDateTime = DateTime(
-      DateTime.now().year,
-      DateTime.now().month,
-      DateTime.now().day,
-      pickedTime.hour,
-      pickedTime.minute,
-    );
-
-    // Check if the selected end time is before the start time
-    if (endDateTime.isBefore(startDateTime)) {
+  // Method to select end time
+  Future<void> _selectEndTime(BuildContext context) async {
+    // Ensure that the start time is selected before allowing the user to pick an end time
+    if (_startTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('End time cannot be before start time.')),
+        const SnackBar(content: Text('Please select a start time first.')),
       );
-    } else {
-      setState(() {
-        _endTime = pickedTime; // Update the end time if valid
-      });
+      return; // Exit the method early if no start time is set
+    }
+
+    final TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+
+    if (pickedTime != null && pickedTime != _endTime) {
+      // Convert both times to DateTime for comparison
+      final DateTime startDateTime = DateTime(
+        DateTime.now().year,
+        DateTime.now().month,
+        DateTime.now().day,
+        _startTime!.hour,
+        _startTime!.minute,
+      );
+      final DateTime endDateTime = DateTime(
+        DateTime.now().year,
+        DateTime.now().month,
+        DateTime.now().day,
+        pickedTime.hour,
+        pickedTime.minute,
+      );
+
+      // Check if the selected end time is before the start time
+      if (endDateTime.isBefore(startDateTime)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('End time cannot be before start time.')),
+        );
+      } else {
+        setState(() {
+          _endTime = pickedTime; // Update the end time if valid
+        });
+      }
     }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -265,6 +263,11 @@ Future<void> _selectEndTime(BuildContext context) async {
                     // Task Name
                     TextField(
                       controller: _taskNameController,
+                      maxLength: 100, // Set the maximum number of characters
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(100),
+                        FilteringTextInputFormatter.deny(RegExp(r'^\s*$')),
+                      ],
                       decoration: InputDecoration(
                         labelText: 'Task Name (mandatory)',
                         border: OutlineInputBorder(
@@ -280,6 +283,11 @@ Future<void> _selectEndTime(BuildContext context) async {
                     // Description
                     TextField(
                       controller: _descriptionController,
+                      maxLength: 100, // Set the maximum number of characters
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(100),
+                        FilteringTextInputFormatter.deny(RegExp(r'^\s*$')),
+                      ],
                       decoration: InputDecoration(
                         labelText: 'Description (optional)',
                         border: OutlineInputBorder(
@@ -293,6 +301,11 @@ Future<void> _selectEndTime(BuildContext context) async {
                     // Location
                     TextField(
                       controller: _locationController,
+                      maxLength: 100, // Set the maximum number of characters
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(100),
+                        FilteringTextInputFormatter.deny(RegExp(r'^\s*$')),
+                      ],
                       decoration: InputDecoration(
                         labelText: 'Location (optional)',
                         border: OutlineInputBorder(
@@ -397,7 +410,6 @@ Future<void> _selectEndTime(BuildContext context) async {
               ),
               const SizedBox(height: 16),
 
-              
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
