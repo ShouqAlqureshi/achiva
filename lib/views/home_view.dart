@@ -54,13 +54,9 @@ class _HomePageState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: _currentIndex == 0 ? AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
-        title: const Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [],
-        ),
         actions: [
           IconButton(
             icon: const Icon(
@@ -75,50 +71,8 @@ class _HomePageState extends State<HomeScreen> {
               );
             },
           ),
-
-//       appBar: AppBar(
-//   automaticallyImplyLeading: false,
-//   backgroundColor: Colors.white,
-//   title: Row(
-//     mainAxisAlignment: MainAxisAlignment.end,
-//     children: [
-//       const SizedBox(
-//         height: 50,
-//         width: 50,
-//         child: Icon(
-//           CupertinoIcons.search,
-//           size: 32,
-//           color: CoursesColors.darkGreen,
-//         ),
-//       ),
-//     ],
-//   ),
-// ),
-          //   // onSelected: (value) async {
-          //   //   // if (value == MenuAction.logout) {
-          //   //   //   try {
-          //   //   //     final shouldLogout = await showLogOutDialog(context);
-          //   //   //     if (shouldLogout) {
-          //   //   //       await FirebaseAuth.instance.signOut();
-          //   //   //       Navigator.of(context)
-          //   //   //           .pushNamedAndRemoveUntil('/phoneauth', (_) => false);
-          //   //   //     }
-          //   //   //   } on UserNotLoggedInAuthException catch (_) {
-          //   //   //     showErrorDialog(context, "User is not logged in");
-          //   //   //   }
-          //   //   // }
-          //   // },
-          //   itemBuilder: (context) {
-          //     return const [
-          //       PopupMenuItem<MenuAction>(
-          //         value: MenuAction.logout,
-          //         child: Text("Log out"),
-          //       ),
-          //     ];
-          //   },
-          // ),
         ],
-      ),
+      ) : null,
       body: PageView(
         controller: _pageController,
         physics:
@@ -199,7 +153,7 @@ Widget _buildHomePage(BuildContext context) {
                       decoration: BoxDecoration(
                         border: Border.all(
                           color: Colors.grey[400]!,
-                          width: .4,
+                          width: 1,
                         ),
                         borderRadius: BorderRadius.circular(18),
                       ),
@@ -213,6 +167,7 @@ Widget _buildHomePage(BuildContext context) {
                                 style: TextStyle(
                                   color: WellBeingColors.mediumGrey,
                                   fontSize: 14,
+                                  fontWeight:FontWeight.w400,
                                 ),
                               ),
                               const Spacer(),
@@ -258,7 +213,7 @@ Widget _buildHomePage(BuildContext context) {
                       }
                     },
                   ),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 2),
                 ],
               ),
             ),
@@ -302,10 +257,10 @@ Widget _buildHomePage(BuildContext context) {
                       }
 
                       return SizedBox(
-                        height: 300,
+                        height: 250,
                         child: PageView.builder(
                           controller:
-                              PageController(viewportFraction: 0.85),
+                              PageController(viewportFraction: 0.8),
                           itemCount: goalDocuments.length,
                           itemBuilder: (context, index) {
                             final goalDocument = goalDocuments[index];
@@ -352,10 +307,10 @@ Widget _buildGoalCard(String goalName, double progress, bool isDone,
     },
     child: AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 10), // Adjust margin as needed
+      margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 35), // Adjust margin as needed
       padding: const EdgeInsets.all(20), // Padding around the content
       width: 150, // Set width to desired square size
-      height: 150, // Set height to the same value as width for square shape
+      height: 100, // Set height to the same value as width for square shape
       decoration: BoxDecoration(
         color: progress < 100 ? Colors.deepPurple : Colors.white,
         boxShadow: [
@@ -452,11 +407,11 @@ Widget _buildGoalCard(String goalName, double progress, bool isDone,
                         goalName,
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 18, // Slightly reduced for better balance
+                          fontSize: 20, 
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 3),
                       const Text(
                         'In progress',
                         style: TextStyle(
