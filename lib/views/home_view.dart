@@ -139,168 +139,186 @@ class _HomePageState extends State<HomeScreen> {
     );
   }
 
-Widget _buildHomePage(BuildContext context) {
-  return Container(
-    color: Colors.white,
-    child: Column(
+  Widget _buildHomePage(BuildContext context) {
+    return Stack(
       children: [
-        Container(
-          padding: const EdgeInsets.all(20.0),
+        Positioned.fill(
           child: Column(
             children: [
-              StreamBuilder(
-                stream: FirebaseFirestore.instance
-                    .collection("Users")
-                    .where("id", isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-                    .snapshots(),
-                builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const CircularProgressIndicator();
-                  }
-                  if (snapshot.hasError) {
-                    return const Text("Error fetching user data");
-                  }
-                  if (snapshot.hasData && snapshot.data != null && snapshot.data!.docs.isNotEmpty) {
-                    final userData = snapshot.data!.docs.first;
-                    final String fname = userData['fname'];
-                    return Text(
-                      'Welcome back to Achiva, $fname!',
-                      style: const TextStyle(
-                        color: WellBeingColors.darkBlueGrey,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    );
-                  } else {
-                    return const Text("Welcome to Achiva!",
-                      style: TextStyle(
-                        color: WellBeingColors.darkBlueGrey,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    );
-                  }
-                },
-              ),
-              const SizedBox(height: 15),
-              _buildProductivityCard(),
-            ],
-          ),
-        ),
-        Expanded(
-          child: StreamBuilder(
-            stream: FirebaseFirestore.instance
-                .collection("Users")
-                .doc(FirebaseAuth.instance.currentUser!.uid)
-                .collection('goals')
-                .snapshots(),
-            builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.hasError) {
-                return const Center(child: Text("Error fetching goals"));
-              }
-              
-              return SizedBox(
-                height: 300, // Fixed height for goal cards section
-                child: snapshot.hasData && snapshot.data != null && snapshot.data!.docs.isNotEmpty
-                  ? PageView.builder(
-                      controller: PageController(viewportFraction: 0.85),
-                      itemCount: snapshot.data!.docs.length,
-                      itemBuilder: (context, index) {
-                        final goalDocument = snapshot.data!.docs[index];
-                        final goalData = goalDocument.data() as Map<String, dynamic>;
-                        final String goalName = goalData['name'];
-                        double progress = (index + 1) * 10.0;
-                        final isDone = progress >= 100;
-                        return _buildGoalCard(goalName, progress, isDone, goalDocument);
-                      },
-                    )
-                  : Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const SizedBox(height: 16),
-                          Text(
-                            "No goals yet. Start by adding a new goal!",
-                            style: TextStyle(
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  children: [
+                    StreamBuilder(
+                      stream: FirebaseFirestore.instance
+                          .collection("Users")
+                          .where("id",
+                              isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+                          .snapshots(),
+                      builder:
+                          (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const CircularProgressIndicator();
+                        }
+
+                        if (snapshot.hasError) {
+                          return const Text("Error fetching goals");
+                        }
+
+                        if (snapshot.hasData && snapshot.data != null) {
+                          final goalDocuments = snapshot.data!.docs;
+                          if (goalDocuments.isEmpty) {
+                            return const Text("No goals available");
+                          }
+
+
+                          final userData = snapshot.data!.docs.first;
+                          final String fname = userData['fname'];
+
+                          return Text(
+                            'Welcome back to Achiva, $fname!',
+                            style: const TextStyle(
                               color: WellBeingColors.darkBlueGrey,
-                              fontSize: 18,
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
                             ),
-                            textAlign: TextAlign.center,
+                          );
+                        } else {
+                          return const Text("No user data available");
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 15),
+                    Container(
+                      height: 105,
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Colors.grey[400]!,
+                          width: .4,
+                        ),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 13),
+                          Row(
+                            children: [
+                              Text(
+                                'Your productivity',
+                                style: TextStyle(
+                                  color: WellBeingColors.mediumGrey,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const Spacer(),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 5),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                reportStats('2 Tasks', 'Today'),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: WellBeingColors.mediumGrey
+                                        .withOpacity(0.3),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  height: 40,
+                                  width: 1.2,
+                                ),
+                                reportStats('13 Tasks', 'This Week'),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: WellBeingColors.mediumGrey
+                                        .withOpacity(0.3),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  height: 40,
+                                  width: 1.2,
+                                ),
+                                reportStats('56 🚀', 'Steark'),
+                              ],
+                            ),
                           ),
                         ],
                       ),
                     ),
-              );
-            },
-          ),
-        ),
-      ],
-    ),
-  );
-}
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  color: Colors.white,
+                  child: Column(
+                    children: [
+                      StreamBuilder(
+                        stream: FirebaseFirestore.instance
+                            .collection("Users")
+                            .doc(FirebaseAuth.instance.currentUser!.uid)
+                            .collection('goals')
+                            .snapshots(),
+                        builder:
+                            (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const CircularProgressIndicator();
+                          }
 
-Widget _buildProductivityCard() {
-  return Container(
-    height: 105,
-    width: double.infinity,
-    padding: const EdgeInsets.symmetric(horizontal: 20),
-    decoration: BoxDecoration(
-      border: Border.all(
-        color: Colors.grey[400]!,
-        width: .4,
-      ),
-      borderRadius: BorderRadius.circular(18),
-    ),
-    child: Column(
-      children: [
-        const SizedBox(height: 13),
-        Row(
-          children: [
-            Text(
-              'Your productivity',
-              style: TextStyle(
-                color: WellBeingColors.mediumGrey,
-                fontSize: 14,
-              ),
-            ),
-            const Spacer(),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 5),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              reportStats('0 Tasks', 'Today'),
-              Container(
-                decoration: BoxDecoration(
-                  color: WellBeingColors.mediumGrey.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(10),
+                          if (snapshot.hasError) {
+                            return const Text("Error fetching goals");
+                          }
+
+                          if (snapshot.hasData && snapshot.data != null) {
+                            final goalDocuments = snapshot.data!.docs;
+                            if (goalDocuments.isEmpty) {
+                              return const Text("No goals available");
+                            }
+
+                            return SizedBox(
+                              height: 300,
+                              child: PageView.builder(
+                                controller:
+                                    PageController(viewportFraction: 0.85),
+                                itemCount: goalDocuments.length,
+                                itemBuilder: (context, index) {
+
+                                  final goalDocument = goalDocuments[index];
+                                  final goalData = goalDocument.data()
+
+                                      as Map<String, dynamic>;
+                                  final String goalName = goalData['name'];
+                                  double progress = (index + 1) * 10.0;
+                                  final isDone = progress >= 100;
+
+                                  return _buildGoalCard(
+
+                                      goalName, progress, isDone, goalDocument);
+
+                                },
+                              ),
+                            );
+                          } else {
+                            return const Text("No goals available");
+                          }
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-                height: 40,
-                width: 1.2,
               ),
-              reportStats('0 Tasks', 'This Week'),
-              Container(
-                decoration: BoxDecoration(
-                  color: WellBeingColors.mediumGrey.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                height: 40,
-                width: 1.2,
-              ),
-              reportStats('0 🚀', 'Streak'),
             ],
           ),
         ),
       ],
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildGoalCard(String goalName, double progress, bool isDone,
       DocumentSnapshot goalDocument) {
