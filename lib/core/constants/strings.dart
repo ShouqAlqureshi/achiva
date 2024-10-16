@@ -13,3 +13,4 @@ class AppStrings {
   static const String kInternetLostMessage = "Internet connect lost, check it and try again!";
   static const String kServerFailureMessage = "Server Failure, try again later!";
 }
+

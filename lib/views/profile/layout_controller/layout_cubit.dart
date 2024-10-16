@@ -143,6 +143,7 @@ class LayoutCubit extends Cubit<LayoutStates> {
           .get()
           .then((data) async {
         for (var item in data.docs) {
+          log("user: ${item.id ?? 'null'}");
           UserModel? user = await getUserById(userId: item.id);
           if (user != null) {
             myFriends.add(user);
@@ -163,7 +164,7 @@ class LayoutCubit extends Cubit<LayoutStates> {
   Future<UserModel?> getUserById({required String userId}) async {
     var snapshot = await FirebaseFirestore.instance
         .collection("Users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .doc(userId)
         .get();
     if (snapshot.exists && snapshot.data() != null) {
       return UserModel.fromJson(json: snapshot.data()!);
@@ -366,22 +367,16 @@ class LayoutCubit extends Cubit<LayoutStates> {
 
   removeFrieand({required String userId}) async {
     try {
-      await cloudFirestore
-          .collection(AppStrings.kUsersCollectionName)
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .collection(AppStrings.kFriendsCollectionName)
-          .doc(userId)
-          .delete()
-          .then(
-        (doc) {
-          log("Document deleted");
-          getMyFriends();
-        },
-        onError: (e) {
-          log("Error updating document $e");
-          emit(GetUserGoalsWithFailureState(failure: ServerFailure()));
-        },
-      );
+      log("delete doc: $userId from: ${AppStrings.kUsersCollectionName}/${FirebaseAuth.instance.currentUser!.uid}/${AppStrings.kFriendsCollectionName}");
+        await cloudFirestore
+        .collection(AppStrings.kUsersCollectionName)
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .collection(AppStrings.kFriendsCollectionName)
+        .doc(userId)
+        .delete();
+
+    log("Document deleted");
+    getMyFriends();
     } catch (e) {
       log("$e");
       emit(GetUserGoalsWithFailureState(failure: ServerFailure()));
