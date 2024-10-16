@@ -96,11 +96,18 @@ class FloatingBottomNavigationBarWidget extends StatelessWidget {
         width: 60,
         height: 60,
         decoration: BoxDecoration(
-          color: Colors.deepPurple,
+        gradient: LinearGradient(
+          colors: [
+            Color.fromARGB(255, 66, 32, 101),
+            Color.fromARGB(255, 77, 64, 98),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: Colors.deepPurple.withOpacity(0.3),
+              color: const Color.fromARGB(255, 54, 32, 91).withOpacity(0.3),
               spreadRadius: 2,
               blurRadius: 8,
               offset: const Offset(0, 4),
