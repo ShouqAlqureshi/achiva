@@ -388,9 +388,9 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
     RegExp regExp = RegExp(pattern);
 
     if (value.isEmpty || value.trim().isEmpty) {
-      return 'Phone number cannot be empty or contain only spaces';
+      return 'Phone number cannot be empty';
     } else if (!regExp.hasMatch(value)) {
-      return 'Phone number must start with +966 and contain exactly 9 digits';
+      return 'Phone number must start with +966, 9 digits';
     }
     return null;
   }
