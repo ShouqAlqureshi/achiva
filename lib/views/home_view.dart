@@ -92,6 +92,8 @@ class _HomePageState extends State<HomeScreen> {
       ),
     );
   }
+
+  
 Widget _buildHomePage(BuildContext context) {
   return Stack(
     children: [
@@ -113,7 +115,7 @@ Widget _buildHomePage(BuildContext context) {
                         (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                       if (snapshot.connectionState ==
                           ConnectionState.waiting) {
-                        return const CircularProgressIndicator();
+                        // return const CircularProgressIndicator();
                       }
 
                       if (snapshot.hasError) {
@@ -230,7 +232,7 @@ Widget _buildHomePage(BuildContext context) {
                       (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                     if (snapshot.connectionState ==
                         ConnectionState.waiting) {
-                      return const CircularProgressIndicator();
+                      // return const CircularProgressIndicator();
                     }
 
                     if (snapshot.hasError) {

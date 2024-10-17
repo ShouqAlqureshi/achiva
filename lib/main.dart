@@ -5,12 +5,13 @@ import 'package:achiva/views/auth/profile_picture_picker.dart';
 import 'package:achiva/views/auth/sms_verification_authview.dart';
 import 'package:achiva/views/home_view.dart';
 import 'package:achiva/views/profile/layout_controller/layout_cubit.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'firebase_options.dart';
-import 'package:firebase_app_check/firebase_app_check.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,7 +41,7 @@ class MyApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
         ),
-        home: const AuthWrapper(),
+        home: const PhoneNumAuthView(),
         routes: {
           '/otp': (context) => const VerfyCodeView(),
           '/home': (context) => const HomeScreen(),
