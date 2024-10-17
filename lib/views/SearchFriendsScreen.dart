@@ -247,7 +247,7 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
               child: TextFormField(
                 controller: _searchController,
                 inputFormatters: [
-                  LengthLimitingTextInputFormatter(14),
+                  LengthLimitingTextInputFormatter(13),
                   FilteringTextInputFormatter.deny(RegExp(r'\s')),
                 ],
                 style: TextStyle(fontSize: 18),

@@ -131,9 +131,9 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                         ),
                         const SizedBox(height: 15),
                         TextField(
-                          maxLength: 30,
+                          maxLength: 13,
                           inputFormatters: [
-                            LengthLimitingTextInputFormatter(50),
+                            LengthLimitingTextInputFormatter(13),
                             FilteringTextInputFormatter.deny(RegExp(r'\s')),
                           ],
                           onChanged: (value) {
