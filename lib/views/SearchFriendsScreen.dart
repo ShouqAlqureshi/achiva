@@ -1,7 +1,7 @@
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/services.dart';
 
 class SearchFriendsScreen extends StatefulWidget {
@@ -92,7 +92,8 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
         .get();
 
     setState(() {
-      _requestStatuses[friendId] = requestDoc.exists; // Set status based on existence
+      _requestStatuses[friendId] =
+          requestDoc.exists; // Set status based on existence
     });
   }
 
@@ -238,17 +239,21 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
           children: [
             // Message above the phone number field
             Text(
-              'Please enter a phone number starting with +966',
+              'Please enter a phone number in this format:+966[5xxxxxxxx]"',
               style: TextStyle(fontSize: 14, color: Colors.grey[700]),
             ),
             SizedBox(height: 8),
             Form(
               key: _formKey,
               child: TextFormField(
-                 keyboardType: TextInputType.phone,
+                keyboardType: TextInputType.phone,
+                style: TextStyle(fontSize: 18),
+                controller: _searchController,
                 inputFormatters: [
+                  LengthLimitingTextInputFormatter(14),
                   FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
-                ],      style: TextStyle(fontSize: 18),
+                  FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                ],
                 decoration: InputDecoration(
                   labelText: 'Enter Phone Number',
                   labelStyle: TextStyle(
@@ -290,7 +295,8 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
                   ),
                 ),
                 validator: (value) => _validatePhoneNumber(value!),
-                onChanged: (value) => _removeWhitespace(), // Remove spaces on change
+                onChanged: (value) =>
+                    _removeWhitespace(), // Remove spaces on change
               ),
             ),
             SizedBox(height: 16),
@@ -309,7 +315,12 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
                         friend.id), // Fetch user profile picture
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) {
-                        return CircularProgressIndicator();
+                        return Align(
+                          alignment: Alignment.center,
+                          child: CircularProgressIndicator(
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.grey)),
+                        );
                       }
 
                       final profilePicUrl = snapshot.data!;
