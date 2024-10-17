@@ -179,8 +179,6 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
           ),
         );
 
-        Navigator.of(context)
-            .pushNamedAndRemoveUntil('/phoneauth', (route) => false);
       } else {
         log('No user is currently signed in.');
       }
