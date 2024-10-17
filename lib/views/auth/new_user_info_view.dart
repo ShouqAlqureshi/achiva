@@ -380,13 +380,16 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                       fontSize: 13,
                     ),
                   ),
+
                 ),
               ],
             ),
+
           ],
         );
       },
     ).then((value) => value ?? false);
+
   }
 
   Future<void> deleteUserAccount() async {

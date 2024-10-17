@@ -61,6 +61,8 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
         photoUrl =
             "https://firebasestorage.googleapis.com/gs://achiva444.appspot.com/defaultPictures/chicken.png";
         datatosave.addAll({
+
+
           'id': FirebaseAuth.instance.currentUser!.uid,
         });
       }
@@ -213,7 +215,8 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
         backgroundColor: Colors.white,
         title: const Text(
           'Select image source',
-          style: TextStyle(color: Color.fromARGB(255, 30, 12, 48)),
+
+          style: TextStyle(color: Colors.black),
         ),
         actions: [
           TextButton(
@@ -221,10 +224,8 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
               Navigator.of(context).pop();
               _pickImage(ImageSource.camera);
             },
-            child: const Text(
-              'Camera',
-              style: TextStyle(color: Color.fromARGB(255, 30, 12, 48)),
-            ),
+
+            child: const Text('Camera', style: TextStyle(color: Colors.black)),
           ),
           TextButton(
             onPressed: () {
@@ -235,6 +236,7 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
               'Gallery',
               style: TextStyle(color: Color.fromARGB(255, 30, 12, 48)),
             ),
+
           ),
         ],
       ),

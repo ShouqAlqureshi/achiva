@@ -156,7 +156,7 @@ Future<bool> showLogOutDialog(BuildContext context) async {
             onPressed: () => Navigator.of(context).pop(false), // No
             child: const Text(
               'Cancel',
-              style: TextStyle(color: Colors.blue), // Customize button color if desired
+              style: TextStyle(color: Colors.black), // Customize button color if desired
             ),
           ),
           TextButton(
