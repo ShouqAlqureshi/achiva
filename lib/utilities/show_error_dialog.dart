@@ -8,15 +8,15 @@ Future<void> showErrorDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: const Color.fromARGB(255, 54, 52, 58),
+          backgroundColor: Colors.white,
           title: const Text(
             "Oops..",
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: Colors.black),
           ),
           content: Text(
             text,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: Colors.black),
           ),
           actions: [
             TextButton(
@@ -25,7 +25,7 @@ Future<void> showErrorDialog(
               },
               child: const Text(
                 "Ok",
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: Colors.black),
               ),
             )
           ],

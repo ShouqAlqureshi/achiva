@@ -88,9 +88,10 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
                     const SizedBox(height: 20),
                     isLoading
                         ? const Align(
-                            alignment: Alignment
-                                .center,
-                            child: CircularProgressIndicator(),
+                            alignment: Alignment.center,
+                            child: CircularProgressIndicator(
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.grey)),
                           )
                         : ElevatedButton(
                             onPressed: () async {
@@ -121,10 +122,16 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
                                       "phoneNumber": userphonenumber
                                     };
                                     if (isNewUser_) {
-                                      Navigator.pushNamed(context, "/newuser",
-                                          arguments: datatosave);
+                                      Navigator.pushNamedAndRemoveUntil(
+                                        context,
+                                        "/newuser",
+                                        (Route<dynamic> route) =>
+                                            false, // This will remove all previous routes
+                                        arguments: datatosave,
+                                      );
                                     } else {
-                                      Navigator.pushNamed(context, "/home");
+                                      Navigator.pushNamedAndRemoveUntil(
+                                          context, "/home", (route) => false);
                                     }
                                   } on FirebaseAuthException catch (e) {
                                     log(e.toString());

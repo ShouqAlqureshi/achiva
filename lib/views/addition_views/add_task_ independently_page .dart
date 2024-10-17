@@ -1,5 +1,3 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'dart:developer';
 
 import 'package:achiva/views/addition_views/add_redundence_tasks.dart';
@@ -9,12 +7,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart'; // Needed for input formatters
 
-class AddTaskPage extends StatefulWidget {
+class AddTaskIndependentlyPage extends StatefulWidget {
   final String goalName;
   final DateTime goalDate;
   final bool goalVisibility;
 
-  const AddTaskPage({
+  const AddTaskIndependentlyPage({
     super.key,
     required this.goalName,
     required this.goalDate,
@@ -22,10 +20,11 @@ class AddTaskPage extends StatefulWidget {
   });
 
   @override
-  _AddTaskPageState createState() => _AddTaskPageState();
+  _AddTaskIndependentlyPageState createState() =>
+      _AddTaskIndependentlyPageState();
 }
 
-class _AddTaskPageState extends State<AddTaskPage> {
+class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
   final TextEditingController _taskNameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
@@ -34,8 +33,8 @@ class _AddTaskPageState extends State<AddTaskPage> {
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
   List<Map<String, dynamic>> createdTasks = [];
-  final taskManager = RecurringTaskManager();
   Map<String, dynamic> taskData = {};
+  final taskManager = RecurringTaskManager();
   bool _isTaskNameValid = true;
   bool _isDateValid = true;
   bool _isStartTimeValid = true;
@@ -47,12 +46,8 @@ class _AddTaskPageState extends State<AddTaskPage> {
       _isTaskNameValid = _taskNameController.text.isNotEmpty;
       _isDateValid = _selectedDate != null;
       _isStartTimeValid = _startTime != null;
-      _isEndTimeValid = _endTime != null &&
-          (_endTime!.hour > _startTime!.hour ||
-              (_endTime!.hour == _startTime!.hour &&
-                  _endTime!.minute > _startTime!.minute));
+      _isEndTimeValid = _endTime != null;
     });
-
     if (!_isTaskNameValid ||
         !_isDateValid ||
         !_isStartTimeValid ||
@@ -92,15 +87,13 @@ class _AddTaskPageState extends State<AddTaskPage> {
       DocumentSnapshot goalSnapshot =
           await goalsCollectionRef.doc(widget.goalName).get();
 
-      if (goalSnapshot.exists) {
-        log("The goal name exists, try changing the name");
+      if (!goalSnapshot.exists) {
+        log("the goal name does not exists.");
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text("The goal name exists, try changing the name")),
+          SnackBar(content: Text("the goal name does not exists.")),
         );
         return;
       }
-
       // Create the goal
       await goalsCollectionRef.doc(widget.goalName).set({
         'name': widget.goalName,
@@ -133,12 +126,12 @@ class _AddTaskPageState extends State<AddTaskPage> {
           endTime: _endTime!, // Ensure _endTime is non-null
           location: _locationController.text.isNotEmpty
               ? _locationController.text
-              : null,
+              : null, // Safely pass null if location is empty
           recurrenceType: _selectedRecurrence ??
               'No recurrence', // Default to 'No recurrence'
           description: _descriptionController.text.isNotEmpty
               ? _descriptionController.text
-              : null,
+              : null, // Safely pass null if description is empty
           taskName: _taskNameController.text,
           usergoallistrefrence: goalsCollectionRef,
           goalDate: widget.goalDate,
@@ -146,10 +139,9 @@ class _AddTaskPageState extends State<AddTaskPage> {
 
         if (createdTasks.isNotEmpty) {
           log("Recurring tasks created successfully");
-          await goalsCollectionRef.doc(widget.goalName).update({
-            'notasks': FieldValue.increment(createdTasks
-                .length) // -1 because we already set it to 1 initially
-          });
+          await goalsCollectionRef
+              .doc(widget.goalName)
+              .update({'notasks': FieldValue.increment(createdTasks.length)});
         }
       } else {
         await goalsCollectionRef
@@ -158,16 +150,14 @@ class _AddTaskPageState extends State<AddTaskPage> {
             .add(taskData);
       }
 
-      // Show success message only when the goal and task are successfully created
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Goal created and task added successfully')),
+        const SnackBar(content: Text('task added successfully')),
       );
       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
     } catch (e) {
       log("$e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error creating goal and adding task: $e')),
+        SnackBar(content: Text('Error adding task: $e')),
       );
     }
   }
@@ -201,28 +191,49 @@ class _AddTaskPageState extends State<AddTaskPage> {
     }
   }
 
-// Method to select end time
+  // Method to select end time
   Future<void> _selectEndTime(BuildContext context) async {
+    // Ensure that the start time is selected before allowing the user to pick an end time
+    if (_startTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a start time first.')),
+      );
+      return; // Exit the method early if no start time is set
+    }
+
     final TimeOfDay? pickedTime = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
     );
 
     if (pickedTime != null && pickedTime != _endTime) {
-      // Check if the end time is earlier than the start time
-      if (_startTime != null && pickedTime.hour < _startTime!.hour ||
-          (_startTime!.hour == pickedTime.hour &&
-              pickedTime.minute <= _startTime!.minute)) {
+      // Convert both times to DateTime for comparison
+      final DateTime startDateTime = DateTime(
+        DateTime.now().year,
+        DateTime.now().month,
+        DateTime.now().day,
+        _startTime!.hour,
+        _startTime!.minute,
+      );
+      final DateTime endDateTime = DateTime(
+        DateTime.now().year,
+        DateTime.now().month,
+        DateTime.now().day,
+        pickedTime.hour,
+        pickedTime.minute,
+      );
+
+      // Check if the selected end time is before the start time
+      if (endDateTime.isBefore(startDateTime)) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('End Time cannot be earlier than Start Time.')),
+              content: Text('End time cannot be before start time.')),
         );
-        return; // Do not update the end time
+      } else {
+        setState(() {
+          _endTime = pickedTime; // Update the end time if valid
+        });
       }
-
-      setState(() {
-        _endTime = pickedTime;
-      });
     }
   }
 
@@ -252,9 +263,9 @@ class _AddTaskPageState extends State<AddTaskPage> {
                     // Task Name
                     TextField(
                       controller: _taskNameController,
-                      maxLength: 50, // Set the maximum number of characters
+                      maxLength: 100, // Set the maximum number of characters
                       inputFormatters: [
-                        LengthLimitingTextInputFormatter(50),
+                        LengthLimitingTextInputFormatter(100),
                         FilteringTextInputFormatter.deny(RegExp(r'^\s*$')),
                       ],
                       decoration: InputDecoration(
@@ -373,7 +384,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
                     // Recurrence
                     DropdownButtonFormField<String>(
                       value: _selectedRecurrence,
-                      dropdownColor: Colors.white,
                       decoration: InputDecoration(
                         labelText: 'Recurrence',
                         border: OutlineInputBorder(
@@ -400,7 +410,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
               ),
               const SizedBox(height: 16),
 
-              // Row for Add Task and Save Goal Buttons, make them closer to each other
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -420,39 +429,9 @@ class _AddTaskPageState extends State<AddTaskPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 20), // Space between buttons
                 ],
               ),
               const SizedBox(height: 16),
-
-              // // Display Subtasks as cards centered
-              // ListView.builder(
-              //   shrinkWrap: true,
-              //   physics: const NeverScrollableScrollPhysics(),
-              //   itemCount:
-              //       _selectedRecurrence == "Weekly" ? createdTasks.length : 1,
-              //   itemBuilder: (context, index) {
-              //     final task = _selectedRecurrence == "Weekly"
-              //         ? createdTasks[index]
-              //         : taskData;
-              //     return Center(
-              //       // Center the card
-              //       child: Card(
-              //         color: Colors.deepPurple,
-              //         shape: RoundedRectangleBorder(
-              //           borderRadius: BorderRadius.circular(10),
-              //         ),
-              //         elevation: 4,
-              //         margin: const EdgeInsets.symmetric(vertical: 8.0),
-              //         child: ListTile(
-              //           title: Text(task['taskName']),
-              //           subtitle: Text(
-              //               'Date: ${task['date']} | Duration: ${task['duration']}| Recurrence: ${task['recurrence'] ?? "No recurrence"}'),
-              //         ),
-              //       ),
-              //     );
-              //   },
-              // ),
             ],
           ),
         ),
