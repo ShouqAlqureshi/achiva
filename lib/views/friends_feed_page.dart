@@ -163,38 +163,54 @@ Stream<List<Map<String, dynamic>>> _fetchTaskPosts() async* {
 @override
 Widget build(BuildContext context) {
   return Scaffold(
-    body: Container(
-      color: Colors.white,
-      child: RefreshIndicator(
-        onRefresh: _refreshPosts,
-        child: CustomScrollView(
-          slivers: [
-            SliverAppBar(
-              pinned: false,
-              expandedHeight: 160.0,
-              automaticallyImplyLeading: false,
-              flexibleSpace: FlexibleSpaceBar(
-                background: _buildRankingDashboard(),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  "Recent Posts",
-                  style: Theme.of(context).textTheme.titleLarge,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+            colors: [
+                  Color.fromARGB(255, 66, 32, 101),
+                  Color.fromARGB(255, 77, 64, 98),
+                ],              
+          ),
+        ),
+        child: RefreshIndicator(
+          onRefresh: _refreshPosts,
+          child: CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                pinned: false,
+                expandedHeight: 160.0,
+                automaticallyImplyLeading: false,
+                backgroundColor: Colors.transparent,
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Center(
+                    child: _buildRankingDashboard(),
+                  ),
                 ),
               ),
-            ),
-            _buildPostsFeed(),
-          ],
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    "Recent Posts",
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              _buildPostsFeed(),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
+
   // Widget for the feed of posts (fetch posts from tasks)
-  Widget _buildPostsFeed() {
+ Widget _buildPostsFeed() {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: _postsStream,
       builder: (context, snapshot) {
@@ -204,9 +220,9 @@ Widget build(BuildContext context) {
           );
         }
 
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const SliverFillRemaining(
-            child: Center(child: Text('No posts available.')),
+            child: Center(child: Text('No posts available.', style: TextStyle(color: Colors.white))),
           );
         }
 
@@ -216,13 +232,15 @@ Widget build(BuildContext context) {
           delegate: SliverChildBuilderDelegate(
             (context, index) {
               final post = posts[index];
-              return _PostCard(
+              return  Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: _PostCard(
                 userName: post['userName'] ?? 'Unknown User',
                 content: post['content'] ?? 'No content',
                 photoUrl: post['photo'],
                 timestamp: post['timestamp'] ?? 'Unknown time',
                 profilePicUrl: post['profilePic'],
-                postId: post['id'] ?? '',
+                postId: post['id'] ?? '',),
               );
             },
             childCount: posts.length,
@@ -233,12 +251,16 @@ Widget build(BuildContext context) {
   }
 
   // Widget for the ranking dashboard
-   Widget _buildRankingDashboard() {
+    Widget _buildRankingDashboard() {
     return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16.0),
       padding: const EdgeInsets.all(16.0),
-      color: Colors.deepPurpleAccent,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(16.0),
+      ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
@@ -270,10 +292,12 @@ Widget build(BuildContext context) {
       ),
     );
   }
-
-
-
 }
+
+
+
+
+
 
 
 
@@ -521,11 +545,15 @@ Future<DocumentSnapshot?> _findPostDocument(String postId) async {
       onDoubleTap: _handleDoubleTap,
       child: Stack(
         children: [
-          Card(
-            margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+           Card(
+            margin: EdgeInsets.zero,
+            color: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.0),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              children:  [
                Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Row(

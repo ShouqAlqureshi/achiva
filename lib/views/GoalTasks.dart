@@ -2,6 +2,7 @@ import 'package:achiva/views/CreatePostPage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:timelines/timelines.dart';
 
@@ -21,6 +22,7 @@ class _GoalTasksState extends State<GoalTasks> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          backgroundColor: Colors.white,
           contentPadding: EdgeInsets.only(left: 24, right: 24, bottom: 24),
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -29,7 +31,7 @@ class _GoalTasksState extends State<GoalTasks> {
               Align(
                 alignment: Alignment.topRight,
                 child: IconButton(
-                  icon: Icon(Icons.close),
+                  icon: Icon(Icons.close, color: Colors.black),
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
@@ -37,32 +39,38 @@ class _GoalTasksState extends State<GoalTasks> {
                   constraints: BoxConstraints(),
                 ),
               ),
-              Text(task['taskName'] ?? 'Task Details'),
+              Text(
+                task['taskName'] ?? 'Task Details',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
-                Text('Date: ${task['date'] ?? 'Not set'}'),
-                Text('Description: ${task['description'] ?? 'No description'}'),
-                Text('Duration: ${task['duration'] ?? 'Not set'}'),
-                Text('Start Time: ${task['startTime'] ?? 'Not set'}'),
-                Text('End Time: ${task['endTime'] ?? 'Not set'}'),
-                Text('Location: ${task['location'] ?? 'No location'}'),
-                Text('Recurrence: ${task['recurrence'] ?? 'No recurrence'}'),
+                Text('Date: ${task['date'] ?? 'Not set'}', style: TextStyle(color: Colors.black)),
+                Text('Description: ${task['description'] ?? 'No description'}', style: TextStyle(color: Colors.black)),
+                Text('Duration: ${task['duration'] ?? 'Not set'}', style: TextStyle(color: Colors.black)),
+                Text('Start Time: ${task['startTime'] ?? 'Not set'}', style: TextStyle(color: Colors.black)),
+                Text('End Time: ${task['endTime'] ?? 'Not set'}', style: TextStyle(color: Colors.black)),
+                Text('Location: ${task['location'] ?? 'No location'}', style: TextStyle(color: Colors.black)),
+                Text('Recurrence: ${task['recurrence'] ?? 'No recurrence'}', style: TextStyle(color: Colors.black)),
               ],
             ),
           ),
           actions: <Widget>[
             TextButton(
-              child: Text('Edit'),
+              child: Text('Edit', style: TextStyle(color: Colors.black)),
               onPressed: () {
                 // TODO: Implement edit functionality
                 Navigator.of(context).pop();
               },
             ),
             TextButton(
-              child: Text('Delete'),
+              child: Text('Delete', style: TextStyle(color: Colors.black)),
               onPressed: () {
                 // TODO: Implement delete functionality
                 Navigator.of(context).pop();
@@ -73,53 +81,29 @@ class _GoalTasksState extends State<GoalTasks> {
       },
     );
   }
-
 void _toggleTaskCompletion(BuildContext context, DocumentReference taskRef,
-    bool currentStatus, String taskName) {
-  if (currentStatus) {
-    // Unchecking a completed task
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Uncheck Task'),
-          content: Text('Are you sure you want to mark this task as incomplete?'),
-          actions: <Widget>[
-            TextButton(
-              child: Text('No'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('Yes'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                _updateTaskStatus(context, taskRef, false);
-              },
-            ),
-          ],
-        );
-      },
-    );
-  } else {
-    // Checking an uncompleted task
-    _updateTaskStatus(context, taskRef, true);
-    
-    // Check the visibility of the goal before asking to post
-    if (widget.goalDocument['visibility'] == false) {
-      // If the goal is not visible, show completion message only
+      bool currentStatus, String taskName) {
+    if (currentStatus) {
+      // Unchecking a completed task
       showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: Text('Task Completed!'),
-            content: Text('Congratulations on completing your task!'),
+            backgroundColor: Colors.white,
+            title: Text('Uncheck Task', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            content: Text('Are you sure you want to mark this task as incomplete?', style: TextStyle(color: Colors.black)),
             actions: <Widget>[
               TextButton(
-                child: Text('OK'),
+                child: Text('No', style: TextStyle(color: Colors.black)),
                 onPressed: () {
                   Navigator.of(context).pop();
+                },
+              ),
+              TextButton(
+                child: Text('Yes', style: TextStyle(color: Colors.black)),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _updateTaskStatus(context, taskRef, false);
                 },
               ),
             ],
@@ -127,47 +111,73 @@ void _toggleTaskCompletion(BuildContext context, DocumentReference taskRef,
         },
       );
     } else {
-      // If the goal is visible, ask about posting
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Task Completed!'),
-            content: Text('Congratulations on completing your task!\nDo you want to make a post about it?'),
-            actions: <Widget>[
-              TextButton(
-                child: Text('No'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-              TextButton(
-                child: Text('Yes'),
-                onPressed: () async {
-                  Navigator.of(context).pop(); // Close the current dialog
-                  String goalId = widget.goalDocument.id;
-                  String taskId = taskRef.id;
+      // Checking an uncompleted task
+      _updateTaskStatus(context, taskRef, true);
+      
+      // Check the visibility of the goal before asking to post
+      if (widget.goalDocument['visibility'] == false) {
+        // If the goal is not visible, show completion message only
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              title: Text('Task Completed!', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+              content: Text('Congratulations on completing your task!', style: TextStyle(color: Colors.black)),
+              actions: <Widget>[
+                TextButton(
+                  child: Text('OK', style: TextStyle(color: Colors.black)),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      } else {
+        // If the goal is visible, ask about posting
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              title: Text('Task Completed!', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+              content: Text('Congratulations on completing your task!\nDo you want to make a post about it?', style: TextStyle(color: Colors.black)),
+              actions: <Widget>[
+                TextButton(
+                  child: Text('No', style: TextStyle(color: Colors.black)),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                TextButton(
+                  child: Text('Yes', style: TextStyle(color: Colors.black)),
+                  onPressed: () async {
+                    Navigator.of(context).pop(); // Close the current dialog
+                    String goalId = widget.goalDocument.id;
+                    String taskId = taskRef.id;
 
-                  // Show the CreatePostDialog
-                  bool? result = await showDialog<bool>(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return CreatePostDialog(
-                        userId: widget.userId,
-                        goalId: goalId,
-                        taskId: taskId,
-                      );
-                    },
-                  );
-                },
-              ),
-            ],
-          );
-        },
-      );
+                    // Show the CreatePostDialog
+                    bool? result = await showDialog<bool>(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return CreatePostDialog(
+                          userId: widget.userId,
+                          goalId: goalId,
+                          taskId: taskId,
+                        );
+                      },
+                    );
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
     }
   }
-}
 
 
 Future<void> _updateTaskStatus(BuildContext context, DocumentReference taskRef, bool isCompleted) async {
@@ -204,9 +214,10 @@ void _showAddTaskDialog(BuildContext context) {
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
+          
         ),
         child: Container(
-          width: MediaQuery.of(context).size.width * 0.8, // Make the dialog wider
+          width: MediaQuery.of(context).size.width * 0.8,
           padding: EdgeInsets.all(20),
           child: SingleChildScrollView(
             child: Column(
@@ -216,7 +227,8 @@ void _showAddTaskDialog(BuildContext context) {
                   'Add New Task',
                   style: TextStyle(
                     fontSize: 24,
-                    fontWeight: FontWeight.w400,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black,
                   ),
                 ),
                 SizedBox(height: 20),
@@ -226,131 +238,172 @@ void _showAddTaskDialog(BuildContext context) {
                     children: [
                       TextFormField(
                         controller: taskNameController,
+                        maxLength: 100,
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(100),
+                          FilteringTextInputFormatter.deny(RegExp(r'^\s*$')),
+                        ],
                         decoration: InputDecoration(
                           labelText: 'Task Name (mandatory)',
                           errorText: isTaskNameValid ? null : 'Task Name is required',
-                          border: OutlineInputBorder(),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
                         ),
                         validator: (value) => value!.isEmpty ? 'Please enter a task name' : null,
                       ),
                       SizedBox(height: 16),
                       TextFormField(
                         controller: descriptionController,
+                        maxLength: 100,
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(100),
+                          FilteringTextInputFormatter.deny(RegExp(r'^\s*$')),
+                        ],
                         decoration: InputDecoration(
                           labelText: 'Description (optional)',
-                          border: OutlineInputBorder(),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
                         ),
                         maxLines: 3,
                       ),
                       SizedBox(height: 16),
                       TextFormField(
                         controller: locationController,
+                        maxLength: 100,
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(100),
+                          FilteringTextInputFormatter.deny(RegExp(r'^\s*$')),
+                        ],
                         decoration: InputDecoration(
                           labelText: 'Location (optional)',
-                          border: OutlineInputBorder(),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
                         ),
                       ),
                       SizedBox(height: 16),
-                      TextFormField(
-                        decoration: InputDecoration(
-                          labelText: 'Date (mandatory)',
-                          border: OutlineInputBorder(),
-                        ),
-                        readOnly: true,
-                        controller: TextEditingController(
-                          text: selectedDate != null ? DateFormat('yyyy-MM-dd').format(selectedDate!) : '',
-                        ),
-                        onTap: () async {
-                          final DateTime now = DateTime.now();
-                          final DateTime? pickedDate = await showDatePicker(
-                            context: context,
-                            initialDate: now,
-                            firstDate: now,
-                            lastDate: DateTime(now.year + 1),
-                          );
-                          if (pickedDate != null && pickedDate != selectedDate) {
-                            selectedDate = pickedDate;
-                            isDateValid = true;
-                          }
-                        },
-                        validator: (value) => selectedDate == null ? 'Please select a date' : null,
-                      ),
-                      SizedBox(height: 16),
-                      TextFormField(
-                        decoration: InputDecoration(
-                          labelText: 'Start Time (mandatory)',
-                          border: OutlineInputBorder(),
-                        ),
-                        readOnly: true,
-                        controller: TextEditingController(
-                          text: startTime != null ? startTime!.format(context) : '',
-                        ),
-                        onTap: () async {
-                          final TimeOfDay? pickedTime = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.now(),
-                          );
-                          if (pickedTime != null && pickedTime != startTime) {
-                            startTime = pickedTime;
-                            isStartTimeValid = true;
-                          }
-                        },
-                        validator: (value) => startTime == null ? 'Please select a start time' : null,
-                      ),
-                      SizedBox(height: 16),
-                      TextFormField(
-                        decoration: InputDecoration(
-                          labelText: 'End Time (mandatory)',
-                          border: OutlineInputBorder(),
-                        ),
-                        readOnly: true,
-                        controller: TextEditingController(
-                          text: endTime != null ? endTime!.format(context) : '',
-                        ),
-                        onTap: () async {
-                          if (startTime == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Please select a start time first.')),
-                            );
-                            return;
-                          }
-                          final TimeOfDay? pickedTime = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.now(),
-                          );
-                          if (pickedTime != null && pickedTime != endTime) {
-                            final DateTime startDateTime = DateTime(
-                              DateTime.now().year,
-                              DateTime.now().month,
-                              DateTime.now().day,
-                              startTime!.hour,
-                              startTime!.minute,
-                            );
-                            final DateTime endDateTime = DateTime(
-                              DateTime.now().year,
-                              DateTime.now().month,
-                              DateTime.now().day,
-                              pickedTime.hour,
-                              pickedTime.minute,
-                            );
-                            if (endDateTime.isBefore(startDateTime)) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('End time cannot be before start time.')),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              selectedDate != null
+                                  ? 'Date: ${DateFormat('yyyy-MM-dd').format(selectedDate!)}'
+                                  : 'Select Date (mandatory)',
+                              style: TextStyle(
+                                color: isDateValid ? Colors.black : Colors.red,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.calendar_today),
+                            onPressed: () async {
+                              final DateTime now = DateTime.now();
+                              final DateTime? pickedDate = await showDatePicker(
+                                context: context,
+                                initialDate: now,
+                                firstDate: now,
+                                lastDate: DateTime(now.year + 1),
                               );
-                            } else {
-                              endTime = pickedTime;
-                              isEndTimeValid = true;
-                            }
-                          }
-                        },
-                        validator: (value) => endTime == null ? 'Please select an end time' : null,
+                              if (pickedDate != null && pickedDate != selectedDate) {
+                                selectedDate = pickedDate;
+                                isDateValid = true;
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              startTime != null
+                                  ? 'Start Time: ${startTime!.format(context)}'
+                                  : 'Select Start Time (mandatory)',
+                              style: TextStyle(
+                                color: isStartTimeValid ? Colors.black : Colors.red,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.access_time),
+                            onPressed: () async {
+                              final TimeOfDay? pickedTime = await showTimePicker(
+                                context: context,
+                                initialTime: TimeOfDay.now(),
+                              );
+                              if (pickedTime != null && pickedTime != startTime) {
+                                startTime = pickedTime;
+                                isStartTimeValid = true;
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              endTime != null
+                                  ? 'End Time: ${endTime!.format(context)}'
+                                  : 'Select End Time (mandatory)',
+                              style: TextStyle(
+                                color: isEndTimeValid ? Colors.black : Colors.red,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.access_time),
+                            onPressed: () async {
+                              if (startTime == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please select a start time first.')),
+                                );
+                                return;
+                              }
+                              final TimeOfDay? pickedTime = await showTimePicker(
+                                context: context,
+                                initialTime: TimeOfDay.now(),
+                              );
+                              if (pickedTime != null && pickedTime != endTime) {
+                                final DateTime startDateTime = DateTime(
+                                  DateTime.now().year,
+                                  DateTime.now().month,
+                                  DateTime.now().day,
+                                  startTime!.hour,
+                                  startTime!.minute,
+                                );
+                                final DateTime endDateTime = DateTime(
+                                  DateTime.now().year,
+                                  DateTime.now().month,
+                                  DateTime.now().day,
+                                  pickedTime.hour,
+                                  pickedTime.minute,
+                                );
+                                if (endDateTime.isBefore(startDateTime)) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('End time cannot be before start time.')),
+                                  );
+                                } else {
+                                  endTime = pickedTime;
+                                  isEndTimeValid = true;
+                                }
+                              }
+                            },
+                          ),
+                        ],
                       ),
                       SizedBox(height: 16),
                       DropdownButtonFormField<String>(
                         value: selectedRecurrence,
                         decoration: InputDecoration(
                           labelText: 'Recurrence',
-                          border: OutlineInputBorder(),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
                         ),
                         items: [
                           DropdownMenuItem(value: null, child: Text('No recurrence')),
@@ -373,7 +426,14 @@ void _showAddTaskDialog(BuildContext context) {
                     ),
                     SizedBox(width: 16),
                     ElevatedButton(
-                      child: Text('Add'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurple,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      child: Text(
+                        'Add',
+                        style: TextStyle(color: Colors.white),
+                      ),
                       onPressed: () async {
                         if (formKey.currentState!.validate()) {
                           try {
@@ -413,7 +473,12 @@ void _showAddTaskDialog(BuildContext context) {
                               'completed': false,
                             };
 
-                            await tasksCollectionRef.add(taskData);
+                            if (selectedRecurrence == "Weekly") {
+                              // Implement weekly recurrence logic here
+                              // You may need to create a RecurringTaskManager class similar to the one in the AddTaskIndependentlyPage
+                            } else {
+                              await tasksCollectionRef.add(taskData);
+                            }
 
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Task added successfully')),

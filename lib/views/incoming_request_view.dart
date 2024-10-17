@@ -22,6 +22,7 @@ class IncomingRequestsPage extends StatelessWidget {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text('Friend Requests'),
+        centerTitle: true,  // This centers the title
         backgroundColor: Colors.white,
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -189,7 +190,7 @@ class IncomingRequestsPage extends StatelessWidget {
 
 class FriendRequestCard extends StatelessWidget {
   final String name;
-  final String? pictureUrl; // Nullable to handle cases where no photo exists
+  final String? pictureUrl;
   final VoidCallback onAccept;
   final VoidCallback onReject;
 
@@ -204,50 +205,71 @@ class FriendRequestCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      // color: Colors.deepPurple,  for dark mode
       margin: EdgeInsets.all(10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(1)),
-      child: Padding(
-        padding: EdgeInsets.all(10),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 30,
-              backgroundImage: pictureUrl != null
-                  ? NetworkImage(pictureUrl!)
-                  : null, // Use image if available
-              child: pictureUrl == null
-                  ? Icon(Icons.account_circle,
-                      size: 60) // Default icon if no photo
-                  : null,
-            ),
-            SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                name,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                  // color: Colors.white, for dark mode
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), // Made corners more rounded
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [
+              Color.fromARGB(255, 66, 32, 101),
+              Color.fromARGB(255, 77, 64, 98),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(15), // Increased padding slightly
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 30,
+                backgroundColor: Colors.white.withOpacity(0.9),
+                backgroundImage: pictureUrl != null
+                    ? NetworkImage(pictureUrl!)
+                    : null,
+                child: pictureUrl == null
+                    ? Icon(Icons.account_circle,
+                        size: 60, color: Colors.grey[400])
+                    : null,
+              ),
+              SizedBox(width: 15),
+              Expanded(
+                child: Text(
+                  name,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white, // Changed text color to white for contrast
+                  ),
                 ),
               ),
-            ),
-            ElevatedButton(
-              onPressed: onAccept,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color.fromARGB(255, 71, 141, 74),
+              ElevatedButton(
+                onPressed: onAccept,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color.fromARGB(255, 71, 141, 74),
+                  padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text('Accept', style: TextStyle(color: Colors.white)),
               ),
-              child: Text('Accept', style: TextStyle(color: Colors.white)),
-            ),
-            SizedBox(width: 10),
-            ElevatedButton(
-              onPressed: onReject,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color.fromARGB(255, 186, 38, 27),
+              SizedBox(width: 10),
+              ElevatedButton(
+                onPressed: onReject,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color.fromARGB(255, 186, 38, 27),
+                  padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text('Reject', style: TextStyle(color: Colors.white)),
               ),
-              child: Text('Reject', style: TextStyle(color: Colors.white)),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
