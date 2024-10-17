@@ -1,14 +1,21 @@
+import 'package:achiva/views/CreatePostPage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:timelines/timelines.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
-class GoalTasks extends StatelessWidget {
+class GoalTasks extends StatefulWidget {
   final DocumentSnapshot goalDocument;
+  final String userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+   GoalTasks({Key? key, required this.goalDocument}) : super(key: key);
+@override
+  _GoalTasksState createState() => _GoalTasksState();
+}
+
+class _GoalTasksState extends State<GoalTasks> {
   final double progress = 65.0;
-
-  const GoalTasks({Key? key, required this.goalDocument}) : super(key: key);
-
   void _showTaskDetails(BuildContext context, Map<String, dynamic> task) {
     showDialog(
       context: context,
@@ -67,29 +74,52 @@ class GoalTasks extends StatelessWidget {
     );
   }
 
-  void _toggleTaskCompletion(BuildContext context, DocumentReference taskRef,
-      bool currentStatus, String taskName) async {
-    if (currentStatus) {
-      // Unchecking a completed task
+void _toggleTaskCompletion(BuildContext context, DocumentReference taskRef,
+    bool currentStatus, String taskName) {
+  if (currentStatus) {
+    // Unchecking a completed task
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Uncheck Task'),
+          content: Text('Are you sure you want to mark this task as incomplete?'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('No'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Yes'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _updateTaskStatus(context, taskRef, false);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  } else {
+    // Checking an uncompleted task
+    _updateTaskStatus(context, taskRef, true);
+    
+    // Check the visibility of the goal before asking to post
+    if (widget.goalDocument['visibility'] == false) {
+      // If the goal is not visible, show completion message only
       showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: Text('Uncheck Task'),
-            content:
-                Text('Are you sure you want to mark this task as incomplete?'),
+            title: Text('Task Completed!'),
+            content: Text('Congratulations on completing your task!'),
             actions: <Widget>[
               TextButton(
-                child: Text('No'),
+                child: Text('OK'),
                 onPressed: () {
                   Navigator.of(context).pop();
-                },
-              ),
-              TextButton(
-                child: Text('Yes'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  _updateTaskStatus(context, taskRef, false);
                 },
               ),
             ],
@@ -97,15 +127,13 @@ class GoalTasks extends StatelessWidget {
         },
       );
     } else {
-      // Checking an uncompleted task
-      await _updateTaskStatus(context, taskRef, true);
+      // If the goal is visible, ask about posting
       showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
             title: Text('Task Completed!'),
-            content: Text(
-                'Congratulations on completing your task!\nDo you want to make a post about it?'),
+            content: Text('Congratulations on completing your task!\nDo you want to make a post about it?'),
             actions: <Widget>[
               TextButton(
                 child: Text('No'),
@@ -115,10 +143,22 @@ class GoalTasks extends StatelessWidget {
               ),
               TextButton(
                 child: Text('Yes'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  // TODO: Implement post creation functionality
-                  print('Create a post about completing: $taskName');
+                onPressed: () async {
+                  Navigator.of(context).pop(); // Close the current dialog
+                  String goalId = widget.goalDocument.id;
+                  String taskId = taskRef.id;
+
+                  // Show the CreatePostDialog
+                  bool? result = await showDialog<bool>(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return CreatePostDialog(
+                        userId: widget.userId,
+                        goalId: goalId,
+                        taskId: taskId,
+                      );
+                    },
+                  );
                 },
               ),
             ],
@@ -127,137 +167,276 @@ class GoalTasks extends StatelessWidget {
       );
     }
   }
+}
 
-  Future<void> _updateTaskStatus(
-      BuildContext context, DocumentReference taskRef, bool isCompleted) async {
-    try {
-      await taskRef.update({'completed': isCompleted});
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error updating task: $e')),
-      );
-    }
-  }
 
-  void _showAddTaskDialog(BuildContext context) {
-    final formKey = GlobalKey<FormState>();
-    String taskName = '';
-    String? date;
-    TimeOfDay? startTime;
-    TimeOfDay? endTime;
-    String location = '';
-    String recurrence = '';
-    String description = '';
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Add New Task'),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'Task Name'),
-                    validator: (value) =>
-                        value!.isEmpty ? 'Please enter a task name' : null,
-                    onSaved: (value) => taskName = value!,
-                  ),
-                TextFormField(
-  decoration: InputDecoration(labelText: 'Date'),
-  readOnly: true,
-  onTap: () async {
-    DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime(DateTime.now().year + 1),
+Future<void> _updateTaskStatus(BuildContext context, DocumentReference taskRef, bool isCompleted) async {
+  try {
+    await taskRef.update({'completed': isCompleted});
+    // Trigger a rebuild of the widget tree
+    if (mounted) setState(() {});
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error updating task: $e')),
     );
-    
-    if (pickedDate != null) {
-      // Format the date to a string (e.g., 'yyyy-MM-dd')
-      date = DateFormat('yyyy-MM-dd').format(pickedDate);
-    }
-  },
-  validator: (value) {
-    return date == null ? 'Please select a date' : null;
-  },
-  controller: TextEditingController(text: date), // Show the selected date
-),
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'Start Time'),
-                    readOnly: true,
-                    onTap: () async {
-                      startTime = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.now(),
-                      );
-                    },
-                    validator: (value) =>
-                        startTime == null ? 'Please select a start time' : null,
+  }
+}
+
+void _showAddTaskDialog(BuildContext context) {
+  final formKey = GlobalKey<FormState>();
+  final TextEditingController taskNameController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
+  final TextEditingController locationController = TextEditingController();
+  String? selectedRecurrence;
+  DateTime? selectedDate;
+  TimeOfDay? startTime;
+  TimeOfDay? endTime;
+
+  bool isTaskNameValid = true;
+  bool isDateValid = true;
+  bool isStartTimeValid = true;
+  bool isEndTimeValid = true;
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.8, // Make the dialog wider
+          padding: EdgeInsets.all(20),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Add New Task',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w400,
                   ),
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'End Time'),
-                    readOnly: true,
-                    onTap: () async {
-                      endTime = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.now(),
-                      );
-                    },
-                    validator: (value) =>
-                        endTime == null ? 'Please select an end time' : null,
+                ),
+                SizedBox(height: 20),
+                Form(
+                  key: formKey,
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: taskNameController,
+                        decoration: InputDecoration(
+                          labelText: 'Task Name (mandatory)',
+                          errorText: isTaskNameValid ? null : 'Task Name is required',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) => value!.isEmpty ? 'Please enter a task name' : null,
+                      ),
+                      SizedBox(height: 16),
+                      TextFormField(
+                        controller: descriptionController,
+                        decoration: InputDecoration(
+                          labelText: 'Description (optional)',
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: 3,
+                      ),
+                      SizedBox(height: 16),
+                      TextFormField(
+                        controller: locationController,
+                        decoration: InputDecoration(
+                          labelText: 'Location (optional)',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      TextFormField(
+                        decoration: InputDecoration(
+                          labelText: 'Date (mandatory)',
+                          border: OutlineInputBorder(),
+                        ),
+                        readOnly: true,
+                        controller: TextEditingController(
+                          text: selectedDate != null ? DateFormat('yyyy-MM-dd').format(selectedDate!) : '',
+                        ),
+                        onTap: () async {
+                          final DateTime now = DateTime.now();
+                          final DateTime? pickedDate = await showDatePicker(
+                            context: context,
+                            initialDate: now,
+                            firstDate: now,
+                            lastDate: DateTime(now.year + 1),
+                          );
+                          if (pickedDate != null && pickedDate != selectedDate) {
+                            selectedDate = pickedDate;
+                            isDateValid = true;
+                          }
+                        },
+                        validator: (value) => selectedDate == null ? 'Please select a date' : null,
+                      ),
+                      SizedBox(height: 16),
+                      TextFormField(
+                        decoration: InputDecoration(
+                          labelText: 'Start Time (mandatory)',
+                          border: OutlineInputBorder(),
+                        ),
+                        readOnly: true,
+                        controller: TextEditingController(
+                          text: startTime != null ? startTime!.format(context) : '',
+                        ),
+                        onTap: () async {
+                          final TimeOfDay? pickedTime = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.now(),
+                          );
+                          if (pickedTime != null && pickedTime != startTime) {
+                            startTime = pickedTime;
+                            isStartTimeValid = true;
+                          }
+                        },
+                        validator: (value) => startTime == null ? 'Please select a start time' : null,
+                      ),
+                      SizedBox(height: 16),
+                      TextFormField(
+                        decoration: InputDecoration(
+                          labelText: 'End Time (mandatory)',
+                          border: OutlineInputBorder(),
+                        ),
+                        readOnly: true,
+                        controller: TextEditingController(
+                          text: endTime != null ? endTime!.format(context) : '',
+                        ),
+                        onTap: () async {
+                          if (startTime == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Please select a start time first.')),
+                            );
+                            return;
+                          }
+                          final TimeOfDay? pickedTime = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.now(),
+                          );
+                          if (pickedTime != null && pickedTime != endTime) {
+                            final DateTime startDateTime = DateTime(
+                              DateTime.now().year,
+                              DateTime.now().month,
+                              DateTime.now().day,
+                              startTime!.hour,
+                              startTime!.minute,
+                            );
+                            final DateTime endDateTime = DateTime(
+                              DateTime.now().year,
+                              DateTime.now().month,
+                              DateTime.now().day,
+                              pickedTime.hour,
+                              pickedTime.minute,
+                            );
+                            if (endDateTime.isBefore(startDateTime)) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('End time cannot be before start time.')),
+                              );
+                            } else {
+                              endTime = pickedTime;
+                              isEndTimeValid = true;
+                            }
+                          }
+                        },
+                        validator: (value) => endTime == null ? 'Please select an end time' : null,
+                      ),
+                      SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        value: selectedRecurrence,
+                        decoration: InputDecoration(
+                          labelText: 'Recurrence',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: [
+                          DropdownMenuItem(value: null, child: Text('No recurrence')),
+                          DropdownMenuItem(value: 'Weekly', child: Text('Weekly recurrence')),
+                        ],
+                        onChanged: (String? newValue) {
+                          selectedRecurrence = newValue;
+                        },
+                      ),
+                    ],
                   ),
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'Location'),
-                    onSaved: (value) => location = value!,
-                  ),
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'Recurrence'),
-                    onSaved: (value) => recurrence = value!,
-                  ),
-                  TextFormField(
-                    decoration: InputDecoration(labelText: 'Description'),
-                    maxLines: 3,
-                    onSaved: (value) => description = value!,
-                  ),
-                ],
-              ),
+                ),
+                SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      child: Text('Cancel'),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    SizedBox(width: 16),
+                    ElevatedButton(
+                      child: Text('Add'),
+                      onPressed: () async {
+                        if (formKey.currentState!.validate()) {
+                          try {
+                            final User? user = FirebaseAuth.instance.currentUser;
+                            if (user == null) throw Exception("User not logged in");
+
+                            final String? userPhoneNumber = user.phoneNumber;
+                            if (userPhoneNumber == null) {
+                              throw Exception("Phone number is not available for the logged-in user.");
+                            }
+
+                            QuerySnapshot userSnapshot = await FirebaseFirestore.instance
+                                .collection('Users')
+                                .where('phoneNumber', isEqualTo: userPhoneNumber)
+                                .limit(1)
+                                .get();
+
+                            DocumentReference userDocRef;
+                            if (userSnapshot.docs.isEmpty) {
+                              userDocRef = await FirebaseFirestore.instance.collection('Users').add({
+                                'phoneNumber': userPhoneNumber,
+                              });
+                            } else {
+                              userDocRef = userSnapshot.docs.first.reference;
+                            }
+
+                            CollectionReference tasksCollectionRef = userDocRef.collection('tasks');
+
+                            Map<String, dynamic> taskData = {
+                              'taskName': taskNameController.text,
+                              'description': descriptionController.text.isNotEmpty ? descriptionController.text : null,
+                              'location': locationController.text.isNotEmpty ? locationController.text : null,
+                              'date': DateFormat('yyyy-MM-dd').format(selectedDate!),
+                              'startTime': startTime!.format(context),
+                              'endTime': endTime!.format(context),
+                              'recurrence': selectedRecurrence ?? 'No recurrence',
+                              'completed': false,
+                            };
+
+                            await tasksCollectionRef.add(taskData);
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Task added successfully')),
+                            );
+                            Navigator.of(context).pop();
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error adding task: $e')),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          actions: [
-            TextButton(
-              child: Text('Cancel'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            TextButton(
-              child: Text('Add'),
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  formKey.currentState!.save();
-                  _addTaskToFirestore(context, {
-                    'taskName': taskName,
-                    'date': date!,
-                    'startTime': startTime!.format(context),
-                    'endTime': endTime!.format(context),
-                    'location': location,
-                    'recurrence': recurrence,
-                    'description': description,
-                    'duration': _calculateDuration(startTime!, endTime!),
-                    'completed': false,
-                  });
-                  Navigator.of(context).pop();
-                }
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 
   String _calculateDuration(TimeOfDay start, TimeOfDay end) {
     final startMinutes = start.hour * 60 + start.minute;
@@ -271,7 +450,7 @@ class GoalTasks extends StatelessWidget {
   void _addTaskToFirestore(
       BuildContext context, Map<String, dynamic> taskData) async {
     try {
-      await goalDocument.reference.collection('tasks').add(taskData);
+      await widget.goalDocument.reference.collection('tasks').add(taskData);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Task added successfully')),
       );
@@ -284,7 +463,7 @@ class GoalTasks extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final goalData = goalDocument.data() as Map<String, dynamic>;
+    final goalData = widget.goalDocument.data() as Map<String, dynamic>;
     final String goalName = goalData['name'];
 
     return Scaffold(
@@ -359,7 +538,7 @@ class GoalTasks extends StatelessWidget {
                           topRight: Radius.circular(30)),
                     ),
                     child: StreamBuilder<QuerySnapshot>(
-                      stream: goalDocument.reference
+                      stream: widget.goalDocument.reference
                           .collection('tasks')
                           .orderBy('startTime')
                           .snapshots(),

@@ -54,21 +54,19 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
 
         photoUrl = await uploadTask.ref.getDownloadURL();
         debugPrint(photoUrl);
-         datatosave.addAll({
-        "photo": photoUrl,
-        'id': FirebaseAuth.instance.currentUser!.uid,
-      });
+        datatosave.addAll({
+          "photo": photoUrl,
+          'id': FirebaseAuth.instance.currentUser!.uid,
+        });
       } else {
         // Use the default 'chicken.png' photo
         photoUrl =
             "https://firebasestorage.googleapis.com/gs://achiva444.appspot.com/defaultPictures/chicken.png";
-             datatosave.addAll({
-        // "photo": photoUrl,
-        'id': FirebaseAuth.instance.currentUser!.uid,
-      });
+        datatosave.addAll({
+          // "photo": photoUrl,
+          'id': FirebaseAuth.instance.currentUser!.uid,
+        });
       }
-
-     
 
       log(datatosave.toString());
       usercollection.set(datatosave);
@@ -202,21 +200,25 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Select image source'),
+        backgroundColor: Colors.white,
+        title: const Text(
+          'Select image source',
+          style: TextStyle(color: Colors.black),
+        ),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
               _pickImage(ImageSource.camera);
             },
-            child: const Text('Camera'),
+            child: const Text('Camera', style: TextStyle(color: Colors.black)),
           ),
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
               _pickImage(ImageSource.gallery);
             },
-            child: const Text('Gallery'),
+            child: const Text('Gallery', style: TextStyle(color: Colors.black)),
           ),
         ],
       ),

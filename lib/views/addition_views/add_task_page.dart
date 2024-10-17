@@ -47,8 +47,12 @@ class _AddTaskPageState extends State<AddTaskPage> {
       _isTaskNameValid = _taskNameController.text.isNotEmpty;
       _isDateValid = _selectedDate != null;
       _isStartTimeValid = _startTime != null;
-      _isEndTimeValid = _endTime != null;
+      _isEndTimeValid = _endTime != null &&
+          (_endTime!.hour > _startTime!.hour ||
+              (_endTime!.hour == _startTime!.hour &&
+                  _endTime!.minute > _startTime!.minute));
     });
+
     if (!_isTaskNameValid ||
         !_isDateValid ||
         !_isStartTimeValid ||
@@ -89,13 +93,14 @@ class _AddTaskPageState extends State<AddTaskPage> {
           await goalsCollectionRef.doc(widget.goalName).get();
 
       if (goalSnapshot.exists) {
-        log("the goal name exists, try changing the name");
+        log("The goal name exists, try changing the name");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text("the goal name exists, try changing the name")),
+          const SnackBar(
+              content: Text("The goal name exists, try changing the name")),
         );
         return;
       }
+
       // Create the goal
       await goalsCollectionRef.doc(widget.goalName).set({
         'name': widget.goalName,
@@ -121,20 +126,19 @@ class _AddTaskPageState extends State<AddTaskPage> {
 
       // Add the task
       if (_selectedRecurrence == "Weekly") {
-       createdTasks =
-            await taskManager.addRecurringTask(
+        createdTasks = await taskManager.addRecurringTask(
           goalName: widget.goalName,
           startDate: _selectedDate!, // Ensure _selectedDate is non-null
           startTime: _startTime!, // Ensure _startTime is non-null
           endTime: _endTime!, // Ensure _endTime is non-null
           location: _locationController.text.isNotEmpty
               ? _locationController.text
-              : null, // Safely pass null if location is empty
+              : null,
           recurrenceType: _selectedRecurrence ??
               'No recurrence', // Default to 'No recurrence'
           description: _descriptionController.text.isNotEmpty
               ? _descriptionController.text
-              : null, // Safely pass null if description is empty
+              : null,
           taskName: _taskNameController.text,
           usergoallistrefrence: goalsCollectionRef,
           goalDate: widget.goalDate,
@@ -143,7 +147,8 @@ class _AddTaskPageState extends State<AddTaskPage> {
         if (createdTasks.isNotEmpty) {
           log("Recurring tasks created successfully");
           await goalsCollectionRef.doc(widget.goalName).update({
-            'notasks': FieldValue.increment(createdTasks.length) // -1 because we already set it to 1 initially
+            'notasks': FieldValue.increment(createdTasks
+                .length) // -1 because we already set it to 1 initially
           });
         }
       } else {
@@ -153,6 +158,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
             .add(taskData);
       }
 
+      // Show success message only when the goal and task are successfully created
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Goal created and task added successfully')),
@@ -195,13 +201,25 @@ class _AddTaskPageState extends State<AddTaskPage> {
     }
   }
 
-  // Method to select end time
+// Method to select end time
   Future<void> _selectEndTime(BuildContext context) async {
     final TimeOfDay? pickedTime = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
     );
+
     if (pickedTime != null && pickedTime != _endTime) {
+      // Check if the end time is earlier than the start time
+      if (_startTime != null && pickedTime.hour < _startTime!.hour ||
+          (_startTime!.hour == pickedTime.hour &&
+              pickedTime.minute <= _startTime!.minute)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('End Time cannot be earlier than Start Time.')),
+        );
+        return; // Do not update the end time
+      }
+
       setState(() {
         _endTime = pickedTime;
       });
@@ -234,6 +252,11 @@ class _AddTaskPageState extends State<AddTaskPage> {
                     // Task Name
                     TextField(
                       controller: _taskNameController,
+                      maxLength: 50, // Set the maximum number of characters
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(50),
+                        FilteringTextInputFormatter.deny(RegExp(r'^\s*$')),
+                      ],
                       decoration: InputDecoration(
                         labelText: 'Task Name (mandatory)',
                         border: OutlineInputBorder(
@@ -249,6 +272,11 @@ class _AddTaskPageState extends State<AddTaskPage> {
                     // Description
                     TextField(
                       controller: _descriptionController,
+                      maxLength: 100, // Set the maximum number of characters
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(100),
+                        FilteringTextInputFormatter.deny(RegExp(r'^\s*$')),
+                      ],
                       decoration: InputDecoration(
                         labelText: 'Description (optional)',
                         border: OutlineInputBorder(
@@ -262,6 +290,11 @@ class _AddTaskPageState extends State<AddTaskPage> {
                     // Location
                     TextField(
                       controller: _locationController,
+                      maxLength: 100, // Set the maximum number of characters
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(100),
+                        FilteringTextInputFormatter.deny(RegExp(r'^\s*$')),
+                      ],
                       decoration: InputDecoration(
                         labelText: 'Location (optional)',
                         border: OutlineInputBorder(

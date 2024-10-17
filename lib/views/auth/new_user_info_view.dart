@@ -22,7 +22,7 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
   bool isFormSubmitted = false;
   Validators validation = Validators();
   final FirebaseAuth _auth = FirebaseAuth.instance;
-
+  bool isloading = false;
   @override
   void initState() {
     super.initState();
@@ -267,6 +267,16 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                     style: TextStyle(color: Colors.white),
                   ),
                 ),
+                if (isloading)
+                  Align(
+                    alignment: Alignment.center,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                          backgroundColor: Colors.black,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.grey)),
+                    ),
+                  ),
                 const SizedBox(height: 10),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -279,7 +289,13 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                   onPressed: () async {
                     final iscanceld = await showCancelDialog(context);
                     if (iscanceld) {
+                      setState(() {
+                        isloading = true;
+                      });
                       await deleteUserAccount();
+                      setState(() {
+                        isloading = false;
+                      });
                     }
                   },
                   child: const Text(
@@ -308,14 +324,17 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
         context: context,
         builder: (context) {
           return AlertDialog(
-            backgroundColor: const Color.fromARGB(255, 54, 52, 58),
-            title: const Icon(Icons.exit_to_app),
+            backgroundColor: Colors.white,
+            title: const Icon(
+              Icons.warning_amber_outlined,
+              size: 60,
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: const [
                 Text(
                   "Are you sure you want to cancel registration?",
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.black),
                 ),
                 Text(
                   "By canceling, you will go back to the sign-up page to redo the process.",
@@ -329,30 +348,28 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                 mainAxisAlignment: MainAxisAlignment
                     .spaceBetween, // Align buttons with space between
                 children: [
-                  Expanded(
-                    child: TextButton(
-                      style: TextButton.styleFrom(
-                        backgroundColor: Colors.black26,
-                      ),
-                      onPressed: () {
-                        Navigator.of(context).pop(false);
-                      },
-                      child: const Text(
-                        "No, Proceed",
-                        style: TextStyle(color: Colors.white),
-                      ),
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.white,
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop(false);
+                    },
+                    child: const Text(
+                      "Proceed",
+                      style: TextStyle(color: Colors.black),
                     ),
                   ),
                   const SizedBox(width: 10), // Add space between buttons
                   TextButton(
                     style: TextButton.styleFrom(
-                      backgroundColor: Colors.black26,
+                      backgroundColor: Colors.white,
                     ),
                     onPressed: () {
                       Navigator.of(context).pop(true);
                     },
                     child: const Text(
-                      "Yes, cancel Registration",
+                      "cancel Registration",
                       style: TextStyle(
                         color: Color.fromARGB(255, 183, 43, 43),
                         fontSize: 13,
@@ -376,10 +393,10 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
             content: Text('Registration process is canceled successfully.'),
           ),
         );
-        Navigator.of(context).pushNamed(
-          '/phoneauth',
-        );
-      } else { 
+
+        Navigator.of(context)
+            .pushNamedAndRemoveUntil('/phoneauth', (route) => false);
+      } else {
         log('No user is currently signed in.');
       }
     } catch (e) {
