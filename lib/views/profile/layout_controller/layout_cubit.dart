@@ -374,6 +374,13 @@ class LayoutCubit extends Cubit<LayoutStates> {
         .collection(AppStrings.kFriendsCollectionName)
         .doc(userId)
         .delete();
+        
+ await cloudFirestore
+        .collection(AppStrings.kUsersCollectionName)
+        .doc(userId)
+        .collection(AppStrings.kFriendsCollectionName)
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .delete();
 
     log("Document deleted");
     getMyFriends();
@@ -383,3 +390,4 @@ class LayoutCubit extends Cubit<LayoutStates> {
     }
   }
 }
+
