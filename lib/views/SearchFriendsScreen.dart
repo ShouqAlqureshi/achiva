@@ -245,12 +245,14 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
             Form(
               key: _formKey,
               child: TextFormField(
+                keyboardType: TextInputType.phone,
+                style: TextStyle(fontSize: 18),
                 controller: _searchController,
                 inputFormatters: [
                   LengthLimitingTextInputFormatter(14),
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
                   FilteringTextInputFormatter.deny(RegExp(r'\s')),
                 ],
-                style: TextStyle(fontSize: 18),
                 decoration: InputDecoration(
                   labelText: 'Enter Phone Number',
                   labelStyle: TextStyle(
