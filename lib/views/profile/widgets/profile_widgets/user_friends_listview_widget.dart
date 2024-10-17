@@ -83,8 +83,32 @@ class _UserFriendsListviewWidgetState extends State<UserFriendsListviewWidget> {
                           backgroundColor: Colors.red,
                         ),
                         onPressed: () async {
-                          await widget.layoutCubit.removeFrieand(userId: user.id);
-                        },
+    // Show a confirmation dialog
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Remove Friend"),
+          content: Text("Are you sure you want to remove ${user.fname} ${user.lname} from your friends?"),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false), // Close the dialog and return false
+              child: Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true), // Close the dialog and return true
+              child: Text("Remove"),
+            ),
+          ],
+        );
+      },
+    );
+
+    // If the user confirmed, proceed with the removal
+    if (confirm == true) {
+      await widget.layoutCubit.removeFrieand(userId: user.id);
+    }
+  },
                         child: Text(
                           "remove",
                           style: TextStyle(color: Colors.white),
@@ -126,3 +150,4 @@ class _UserFriendsListviewWidgetState extends State<UserFriendsListviewWidget> {
     );
   }
 }
+
