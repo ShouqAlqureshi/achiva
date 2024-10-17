@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -38,14 +39,15 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
     RegExp regExp = RegExp(pattern);
 
     if (value.isEmpty || value.trim().isEmpty) {
-      return 'Phone number cannot be empty or contain only spaces';
+      return 'Phone number cannot be empty';
     } else if (!regExp.hasMatch(value)) {
-      return 'Phone number must start with +966 and contain exactly 9 digits';
+      return 'you must start with +966, 9 digits';
     }
     return null;
   }
 
-  void _searchFriendsByPhoneNumber() async {
+  // Modify this to check request status when loading search results
+  Future<void> _searchFriendsByPhoneNumber() async {
     if (_formKey.currentState!.validate()) {
       String query = _searchController.text.trim();
       try {
@@ -60,10 +62,11 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
           setState(() {
             _searchResults = results.docs;
             _requestStatuses.clear(); // Clear previous statuses
-            for (var doc in _searchResults) {
-              _requestStatuses[doc.id] = false; // Not pending initially
-            }
           });
+          for (var doc in _searchResults) {
+            String friendId = doc.id;
+            await _checkFriendRequestStatus(friendId); // Check request status
+          }
         }
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -74,6 +77,22 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
         );
       }
     }
+  }
+
+  // Check if a friend request is already sent
+  Future<void> _checkFriendRequestStatus(String friendId) async {
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+
+    DocumentSnapshot requestDoc = await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(friendId)
+        .collection('friendRequests')
+        .doc(userId)
+        .get();
+
+    setState(() {
+      _requestStatuses[friendId] = requestDoc.exists; // Set status based on existence
+    });
   }
 
   Future<String> _fetchUserProfilePic(String userId) async {
@@ -149,6 +168,11 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
         ),
       );
     }
+  }
+
+  // Prevent spaces in the phone number field
+  void _removeWhitespace() {
+    _searchController.text = _searchController.text.replaceAll(' ', '');
   }
 
   void _showDialog(String message) {
@@ -255,11 +279,15 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
                     ),
                     child: IconButton(
                       icon: Icon(Icons.search, color: Colors.white),
-                      onPressed: _searchFriendsByPhoneNumber,
+                      onPressed: () {
+                        _removeWhitespace(); // Remove whitespaces before search
+                        _searchFriendsByPhoneNumber();
+                      },
                     ),
                   ),
                 ),
                 validator: (value) => _validatePhoneNumber(value!),
+                onChanged: (value) => _removeWhitespace(), // Remove spaces on change
               ),
             ),
             SizedBox(height: 16),
@@ -270,8 +298,8 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
                   DocumentSnapshot friend = _searchResults[index];
                   bool isCurrentUser =
                       friend['phoneNumber'] == _currentUserPhoneNumber;
-                  bool isPendingRequest = _requestStatuses[friend.id] ??
-                      false; // Check local request status
+
+                  bool isPendingRequest = _requestStatuses[friend.id] ?? false;
 
                   return FutureBuilder<String>(
                     future: _fetchUserProfilePic(
@@ -361,6 +389,7 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
     );
   }
 }
+
 
 
 // import 'package:flutter/material.dart';
@@ -668,3 +697,4 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
 //     );
 //   }
 // }
+
