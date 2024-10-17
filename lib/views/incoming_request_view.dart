@@ -22,7 +22,7 @@ class IncomingRequestsPage extends StatelessWidget {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text('Friend Requests'),
-        centerTitle: true,  // This centers the title
+        centerTitle: true, // This centers the title
         backgroundColor: Colors.white,
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -48,8 +48,8 @@ class IncomingRequestsPage extends StatelessWidget {
                 padding: const EdgeInsets.all(30),
                 child: SingleChildScrollView(
                   child: Column(
-                    mainAxisAlignment:
-                        MainAxisAlignment.center, // Center the column vertically
+                    mainAxisAlignment: MainAxisAlignment
+                        .center, // Center the column vertically
                     crossAxisAlignment: CrossAxisAlignment
                         .center, // Center the column horizontally
                     children: [
@@ -145,14 +145,14 @@ class IncomingRequestsPage extends StatelessWidget {
         .doc(currentUserId)
         .collection('friendRequests')
         .doc(requestId)
-        .update({'status': 'accepted'}); // user 1
+        .delete(); // user 1
 
     FirebaseFirestore.instance
         .collection('Users')
         .doc(userId)
         .collection('sentRequests')
         .doc(currentUserId)
-        .update({'status': 'accepted'}); // user 2
+        .delete(); // user 2
 
     FirebaseFirestore.instance
         .collection('Users')
@@ -177,14 +177,14 @@ class IncomingRequestsPage extends StatelessWidget {
         .doc(currentUserId)
         .collection('friendRequests')
         .doc(requestId)
-        .update({'status': 'rejected'}); // user 1
+        .delete(); // user 1
 
     FirebaseFirestore.instance
         .collection('Users')
         .doc(userId)
         .collection('sentRequests')
         .doc(currentUserId)
-        .update({'status': 'rejected'}); // user 2
+        .delete(); // user 2
   }
 }
 
@@ -206,7 +206,8 @@ class FriendRequestCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: EdgeInsets.all(10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), // Made corners more rounded
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15)), // Made corners more rounded
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -226,9 +227,8 @@ class FriendRequestCard extends StatelessWidget {
               CircleAvatar(
                 radius: 30,
                 backgroundColor: Colors.white.withOpacity(0.9),
-                backgroundImage: pictureUrl != null
-                    ? NetworkImage(pictureUrl!)
-                    : null,
+                backgroundImage:
+                    pictureUrl != null ? NetworkImage(pictureUrl!) : null,
                 child: pictureUrl == null
                     ? Icon(Icons.account_circle,
                         size: 60, color: Colors.grey[400])
@@ -241,7 +241,8 @@ class FriendRequestCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w500,
-                    color: Colors.white, // Changed text color to white for contrast
+                    color: Colors
+                        .white, // Changed text color to white for contrast
                   ),
                 ),
               ),
