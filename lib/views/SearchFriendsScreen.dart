@@ -249,7 +249,7 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
                 style: TextStyle(fontSize: 18),
                 controller: _searchController,
                 inputFormatters: [
-                  LengthLimitingTextInputFormatter(14),
+                  LengthLimitingTextInputFormatter(13),
                   FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
                   FilteringTextInputFormatter.deny(RegExp(r'\s')),
                 ],
