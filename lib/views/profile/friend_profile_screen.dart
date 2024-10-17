@@ -70,6 +70,16 @@ class FriendProfileScreen extends StatelessWidget {
                 ],
               ),
             ),
+            // Add a heading for the goals section
+            Text(
+              "Goals",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.kBlack,
+              ),
+            ),
+            8.vrSpace, // Space before the goals list
             FutureBuilder<List<GoalModel>>(
               future: LayoutCubit().getGoalsByUserId(userId: userModel.id),
               builder: (context, snapshot) {
@@ -82,7 +92,7 @@ class FriendProfileScreen extends StatelessWidget {
                     snapshot.data == null ||
                     !snapshot.hasData) {
                   return Center(
-                    child: Text("no Goals Fond"),
+                    child: Text("No Goals Found"),
                   );
                 }
                 List<GoalModel> goals = snapshot.data!;
