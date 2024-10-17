@@ -101,7 +101,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     fontWeight: FontWeight.bold),
               ),
               4.vrSpace,
-              Text(layoutCubit.user!.email,
+              Text(layoutCubit.user!.phoneNumber,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       fontSize: 16,

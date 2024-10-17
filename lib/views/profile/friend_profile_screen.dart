@@ -47,7 +47,7 @@ class FriendProfileScreen extends StatelessWidget {
             ),
             4.vrSpace,
             Text(
-              userModel.email,
+              userModel.phoneNumber,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
