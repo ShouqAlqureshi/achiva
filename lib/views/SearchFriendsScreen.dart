@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 
 class SearchFriendsScreen extends StatefulWidget {
   @override
@@ -244,8 +245,10 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
             Form(
               key: _formKey,
               child: TextFormField(
-                controller: _searchController,
-                style: TextStyle(fontSize: 18),
+                 keyboardType: TextInputType.phone,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
+                ],      style: TextStyle(fontSize: 18),
                 decoration: InputDecoration(
                   labelText: 'Enter Phone Number',
                   labelStyle: TextStyle(
