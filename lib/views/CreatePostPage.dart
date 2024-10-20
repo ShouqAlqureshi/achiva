@@ -242,18 +242,42 @@ void _createPost() async {
                     ),
                   SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: (_characterCount > 0 && _characterCount <= _characterLimit) || _imageFile != null
-                        ? _createPost
-                        : null,
-                    child: _isUploading
-                        ? CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
-                        : Text('Post'),
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      backgroundColor: customPurple,
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
+  onPressed: (_characterCount > 0 && _characterCount <= _characterLimit) || _imageFile != null
+      ? _createPost
+      : null, // Button is disabled when no content or image
+  style: ElevatedButton.styleFrom(
+    padding: EdgeInsets.zero, // Ensures full button is covered by gradient or color
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+  ),
+  child: Ink(
+    decoration: BoxDecoration(
+      gradient: (_characterCount > 0 && _characterCount <= _characterLimit) || _imageFile != null
+          ? LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                Color.fromARGB(255, 66, 32, 101),
+                Color.fromARGB(255, 77, 64, 98),
+              ],
+            )
+          : null, // No gradient when disabled
+      color: (_characterCount == 0 && _imageFile == null)
+          ? Colors.grey // Gray color when input is empty
+          : null,
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Container(
+      padding: EdgeInsets.symmetric(vertical: 12),
+      alignment: Alignment.center,
+      child: _isUploading
+          ? CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
+          : Text('Post', style: TextStyle(color: Colors.white)),
+    ),
+  ),
+)
+
                 ],
               ),
             ),

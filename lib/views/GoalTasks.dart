@@ -182,7 +182,20 @@ void _toggleTaskCompletion(BuildContext context, DocumentReference taskRef,
 
 Future<void> _updateTaskStatus(BuildContext context, DocumentReference taskRef, bool isCompleted) async {
   try {
-    await taskRef.update({'completed': isCompleted});
+    if (isCompleted) {
+      // Marking the task as completed, add 'completedDate'
+      await taskRef.update({
+        'completed': true,
+        'completedDate': FieldValue.serverTimestamp(), // Add current timestamp as completedDate
+      });
+    } else {
+      // Unmarking the task, remove 'completedDate'
+      await taskRef.update({
+        'completed': false,
+        'completedDate': FieldValue.delete(), // Remove the completedDate field
+      });
+    }
+    
     // Trigger a rebuild of the widget tree
     if (mounted) setState(() {});
   } catch (e) {
@@ -191,6 +204,7 @@ Future<void> _updateTaskStatus(BuildContext context, DocumentReference taskRef, 
     );
   }
 }
+
 
 void _showAddTaskDialog(BuildContext context) {
   final formKey = GlobalKey<FormState>();
