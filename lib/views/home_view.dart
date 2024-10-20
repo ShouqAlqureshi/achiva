@@ -60,7 +60,7 @@ class _HomePageState extends State<HomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(
-              CupertinoIcons.search,
+              CupertinoIcons.person_add,
               size: 32,
               color: CoursesColors.darkGreen,
             ),
