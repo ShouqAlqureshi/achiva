@@ -42,9 +42,20 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
         });
         resetAuthState();
       },
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+                    Color.fromARGB(255, 30, 12, 48),
+              Color.fromARGB(255, 77, 64, 98),
+            ],
+          begin: Alignment.centerLeft,
+           end: Alignment.centerRight,
+          ),
+        ),
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
             title: Image.asset(
               'lib/images/logo-with-name.png',
               fit: BoxFit.contain,
@@ -52,134 +63,182 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
             ),
             toolbarHeight: 150,
             centerTitle: true,
-            backgroundColor: Colors.white),
-        body: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.deepPurple,
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        spreadRadius: 3,
-                        blurRadius: 10,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.all(20),
-                  width: 450,
-                  height: 450,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Text(
-                        "Welcome to ",
-                        style: TextStyle(
-                          fontSize: 30,
-                          fontWeight: FontWeight.w500,
-                          color: Color.fromARGB(255, 240, 238, 249),
+            backgroundColor: Colors.transparent,
+            flexibleSpace: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color.fromARGB(255, 30, 12, 48),
+                    Color.fromARGB(255, 77, 64, 98),
+                  ],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+              ),
+            ),
+          ),
+          body: SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.1),
+                          spreadRadius: 3,
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
                         ),
-                        textAlign: TextAlign.start,
-                      ),
-                      const Text(
-                        "Achiva,",
-                        style: TextStyle(
-                          fontSize: 30,
-                          fontWeight: FontWeight.w500,
-                          color: Color.fromARGB(255, 240, 238, 249),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(20),
+                    width: 450,
+                    height: 450,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          "Welcome to ",
+                          style: TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87,
+                          ),
+                          textAlign: TextAlign.start,
                         ),
-                        textAlign: TextAlign.start,
-                      ),
-                      const SizedBox(height: 30),
-                      Text("follow this format:+966[number]",
+                        const Text(
+                          "Achiva,",
+                          style: TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87,
+                          ),
+                          textAlign: TextAlign.start,
+                        ),
+                        const SizedBox(height: 30),
+                        const Text(
+                          "follow this format:+966[5xxxxxxxx]",
                           textAlign: TextAlign.start,
                           style: TextStyle(
-                              color: const Color.fromARGB(255, 54, 53, 53),
-                              fontSize: 14)),
-                      const SizedBox(height: 15),
-                      TextField(
-                        maxLength: 30,
-                        inputFormatters: [
-                          LengthLimitingTextInputFormatter(50),
-                          FilteringTextInputFormatter.deny(RegExp(r'\s')),
-                        ],
-                        onChanged: (value) {
-                          setState(() {
-                            isPhonenumTouched = true;
-                          });
-                        },
-                        autofocus: true,
-                        controller: _phonenumber,
-                        enableSuggestions: false,
-                        autocorrect: false,
-                        keyboardType: TextInputType.phone,
-                        decoration: InputDecoration(
-                          fillColor: Colors.white.withOpacity(0.25),
-                          filled: true,
-                          counterText: '',
-                          hintText: "Enter your phone number",
-                          prefixIcon: const Icon(Icons.phone),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30),
-                            borderSide: (isPhonenumTouched ||
-                                        isFormSubmitted) &&
-                                    (validation
-                                            .validatePhoneNum(_phonenumber.text)
-                                            ?.isNotEmpty ??
-                                        false)
-                                ? const BorderSide(
-                                    color: Color.fromARGB(255, 195, 24, 12))
-                                : BorderSide.none,
+                            color: Color.fromARGB(255, 54, 53, 53),
+                            fontSize: 14,
                           ),
-                          errorText: (isPhonenumTouched || isFormSubmitted)
-                              ? validation.validatePhoneNum(_phonenumber.text)
-                              : null,
                         ),
-                      ),
-                      const SizedBox(height: 15),
-                      isloading
-                          ? const Align(
-                              alignment: Alignment.center,
-                              child: Center(
-                                child: CircularProgressIndicator(
+                        const SizedBox(height: 15),
+                        TextField(
+                          maxLength: 13,
+                          inputFormatters: [
+                            LengthLimitingTextInputFormatter(13),
+                            FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                          ],
+                          onChanged: (value) {
+                            setState(() {
+                              isPhonenumTouched = true;
+                            });
+                          },
+                          autofocus: true,
+                          controller: _phonenumber,
+                          enableSuggestions: false,
+                          autocorrect: false,
+                          keyboardType: TextInputType.phone,
+                          decoration: InputDecoration(
+                            fillColor: Colors.grey.withOpacity(0.1),
+                            filled: true,
+                            counterText: '',
+                            hintText: "Enter your phone number",
+                            prefixIcon: const Icon(Icons.phone),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(30),
+                              borderSide: (isPhonenumTouched ||
+                                          isFormSubmitted) &&
+                                      (validation
+                                              .validatePhoneNum(_phonenumber.text)
+                                              ?.isNotEmpty ??
+                                          false)
+                                  ? const BorderSide(
+                                      color: Color.fromARGB(255, 195, 24, 12))
+                                  : BorderSide.none,
+                            ),
+                            errorText: (isPhonenumTouched || isFormSubmitted)
+                                ? validation.validatePhoneNum(_phonenumber.text)
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(height: 15),
+                        isloading
+                            ? const Align(
+                                alignment: Alignment.center,
+                                child: Center(
+                                  child: CircularProgressIndicator(
                                     backgroundColor: Colors.black,
                                     valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.grey)),
-                              ),
-                            )
-                          : ElevatedButton(
-                              onPressed: () async {
-                                setState(() {
-                                  isloading = true;
-                                  isFormSubmitted = true;
-                                });
-
-                                if (validation
-                                        .validatePhoneNum(_phonenumber.text)
-                                        ?.isEmpty ??
-                                    true) {
-                                  await verifyPhoneNumber();
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                          'Please fill phone number field correctly'),
+                                      Colors.grey,
                                     ),
-                                  );
-                                  setState(() {
-                                    isloading = false;
-                                  });
-                                }
-                              },
-                              child: const Text("Continue"),
-                            ),
-                    ],
+                                  ),
+                                ),
+                              )
+                            : ElevatedButton(
+  onPressed: () async {
+    setState(() {
+      isloading = true;
+      isFormSubmitted = true;
+    });
+
+    if (validation.validatePhoneNum(_phonenumber.text)?.isEmpty ?? true) {
+      await verifyPhoneNumber();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Please fill phone number field correctly',
+          ),
+        ),
+      );
+      setState(() {
+        isloading = false;
+      });
+    }
+  },
+  style: ElevatedButton.styleFrom(
+    padding: EdgeInsets.zero, // Remove default padding for the button
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12), // Rounded corners
+    ),
+  ),
+  child: Ink(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [                  Color.fromARGB(255, 66, 32, 101),
+                    Color.fromARGB(255, 77, 64, 98),], // Define the gradient colors
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Container(
+      constraints: BoxConstraints(
+        maxWidth: double.infinity,
+        minHeight: 50.0,
+      ),
+      alignment: Alignment.center,
+      child: const Text(
+        'Continue',
+        style: TextStyle(
+          color: Colors.white, // Set text color to white
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    ),
+  ),
+),
+                      ],
+                    ),
                   ),
                 ),
               ),

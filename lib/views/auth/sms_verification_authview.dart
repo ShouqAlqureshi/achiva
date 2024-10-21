@@ -1,5 +1,3 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'dart:developer';
 import 'package:achiva/exceptions/auth_exceptions.dart';
 import 'package:achiva/views/auth/validators.dart';
@@ -21,80 +19,116 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
   bool isLoading = false;
   bool isFormSubmitted = false;
   bool isCodeTouched = false;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Image.asset(
-          'lib/images/logo-with-name.png',
-          fit: BoxFit.contain,
-          height: 250,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color.fromARGB(255, 30, 12, 48),
+              Color.fromARGB(255, 77, 64, 98),
+            ],
+          ),
         ),
-        toolbarHeight: 150,
-        backgroundColor: Colors.white,
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
-                decoration: BoxDecoration(
-                    color: Colors.deepPurple,
-                    borderRadius: BorderRadius.circular(30)),
-                width: 500,
-                height: 500,
-                padding: const EdgeInsets.all(8),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      "We have sent an OTP to your phone.\nPlease check your SMS massages",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    Image.asset(
+                      'lib/images/logo-with-name.png',
+                      fit: BoxFit.contain,
+                      height: 250, // Increased logo size
                     ),
-                    const SizedBox(height: 40),
-                    TextField(
-                      onChanged: (value) {
-                        setState(() {
-                          isCodeTouched = true;
-                        });
-                      },
-                      controller: otpController,
-                      keyboardType: TextInputType.phone,
-                      decoration: InputDecoration(
-                        fillColor: Colors.white.withOpacity(0.25),
-                        filled: true,
-                        hintText: "Enter OTP",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30),
-                          borderSide: (isCodeTouched || isFormSubmitted) &&
-                                  (validation
-                                          .validateCode(otpController.text)
-                                          ?.isNotEmpty ??
-                                      false)
-                              ? const BorderSide(
-                                  color: Color.fromARGB(255, 195, 24, 12))
-                              : BorderSide.none,
-                        ),
-                        errorText: (isCodeTouched || isFormSubmitted)
-                            ? validation.validateCode(otpController.text)
-                            : null,
+                    const SizedBox(height: 60), // Increased space between logo and card
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            spreadRadius: 5,
+                            blurRadius: 7,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    isLoading
-                        ? const Align(
-                            alignment: Alignment.center,
-                            child: CircularProgressIndicator(
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.grey)),
-                          )
-                        : ElevatedButton(
-                            onPressed: () async {
+                      width: 500,
+                      padding: const EdgeInsets.all(30), // Increased padding to make card taller
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            "We have sent an OTP to your phone.\nPlease check your SMS messages",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 18, color: Color.fromARGB(255, 0, 0, 0)),
+                          ),
+                          const SizedBox(height: 40),
+                          TextField(
+                            onChanged: (value) {
+                              setState(() {
+                                isCodeTouched = true;
+                              });
+                            },
+                            controller: otpController,
+                            keyboardType: TextInputType.phone,
+                            decoration: InputDecoration(
+                              fillColor: Colors.black.withOpacity(0.1),
+                              filled: true,
+                              hintText: "Enter OTP",
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(30),
+                                borderSide: (isCodeTouched || isFormSubmitted) &&
+                                        (validation
+                                                .validateCode(otpController.text)
+                                                ?.isNotEmpty ??
+                                            false)
+                                    ? const BorderSide(color: Colors.red)
+                                    : BorderSide.none,
+                              ),
+                              errorText: (isCodeTouched || isFormSubmitted)
+                                  ? validation.validateCode(otpController.text)
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(height: 30), // Increased space before button
+                          isLoading
+                              ? const Align(
+                                  alignment: Alignment.center,
+                                  child: CircularProgressIndicator(
+                                      valueColor:
+                                          AlwaysStoppedAnimation<Color>(Colors.deepPurple)),
+                                )
+                              : Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                      Color.fromARGB(255, 30, 12, 48),
+              Color.fromARGB(255, 77, 64, 98),
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      shadowColor: Colors.transparent,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(30),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(vertical: 15),
+                                    ),
+                                    onPressed: () async {
                               setState(() {
                                 isLoading = true;
                                 isFormSubmitted = true;
@@ -163,8 +197,13 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
                             child: const Text(
                               "Verify",
                               style: TextStyle(
-                                  fontSize: 20, fontWeight: FontWeight.w500),
+                                  fontSize: 20, fontWeight: FontWeight.w500,color: Color.fromARGB(255, 255, 255, 255)),
                             ))
+                                  ),
+                                
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),

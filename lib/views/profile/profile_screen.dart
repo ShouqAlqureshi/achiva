@@ -101,7 +101,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     fontWeight: FontWeight.bold),
               ),
               4.vrSpace,
-              Text(layoutCubit.user!.email,
+              Text(layoutCubit.user!.phoneNumber,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       fontSize: 16,
@@ -111,7 +111,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: AppConstants.kContainerPadding,
                 margin: const EdgeInsets.symmetric(vertical: 16),
                 decoration: BoxDecoration(
-                    color: Colors.deepPurple,
+                    gradient: LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [
+              Color.fromARGB(255, 66, 32, 101),
+              Color.fromARGB(255, 77, 64, 98),
+            ],
+          ),
                     borderRadius: AppConstants.kMainRadius),
                 child: const Row(
                   children: [

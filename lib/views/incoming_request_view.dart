@@ -186,6 +186,7 @@ class IncomingRequestsPage extends StatelessWidget {
         .doc(requestId)
         .set({'requestId': requestId, 'Status': "accepted"});
 
+
     FirebaseFirestore.instance
         .collection('Users')
         .doc(currentUserId)

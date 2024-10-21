@@ -18,7 +18,11 @@ class FriendProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: ListView(
@@ -43,7 +47,7 @@ class FriendProfileScreen extends StatelessWidget {
             ),
             4.vrSpace,
             Text(
-              userModel.email,
+              userModel.phoneNumber,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
@@ -55,47 +59,90 @@ class FriendProfileScreen extends StatelessWidget {
               padding: AppConstants.kContainerPadding,
               margin: const EdgeInsets.symmetric(vertical: 16),
               decoration: BoxDecoration(
-                  color: Colors.deepPurple,
-                  borderRadius: AppConstants.kMainRadius),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color.fromARGB(255, 66, 32, 101),
+                    Color.fromARGB(255, 77, 64, 98),
+                  ],
+                ),
+                borderRadius: AppConstants.kMainRadius,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.deepPurple.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
               child: const Row(
                 children: [
                   TextBehindIconWidget(
-                      title: "Productivity",
-                      iconData: Icons.message,
-                      numValue: "0"),
+                    title: "Productivity",
+                    iconData: Icons.message,
+                    numValue: "0",
+                  ),
                   TextBehindIconWidget(
-                      iconData: Icons.task_alt,
-                      title: "Goals done",
-                      numValue: "0"),
+                    iconData: Icons.task_alt,
+                    title: "Goals done",
+                    numValue: "0",
+                  ),
                 ],
               ),
             ),
+            // Add a heading for the goals section
+            Text(
+              "Goals",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.kBlack,
+              ),
+            ),
+            8.vrSpace, // Space before the goals list
             FutureBuilder<List<GoalModel>>(
               future: LayoutCubit().getGoalsByUserId(userId: userModel.id),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(
-                    child: CircularProgressIndicator(),
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: Colors.deepPurple,
+                    ),
                   );
                 }
                 if (snapshot.hasError ||
                     snapshot.data == null ||
                     !snapshot.hasData) {
-                  return Center(
-                    child: Text("no Goals Fond"),
+ 
+                  return const Center(
+                    child: Text(
+                      "No Goals Found",
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+
                   );
                 }
                 List<GoalModel> goals = snapshot.data!;
                 return ListView.separated(
                   itemCount: goals.length,
                   shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   padding: EdgeInsets.zero,
                   separatorBuilder: AppConstants.kSeparatorBuilder(),
                   itemBuilder: (context, index) => Container(
                     padding: AppConstants.kContainerPadding,
                     decoration: BoxDecoration(
-                      color: const Color.fromARGB(255, 240, 240, 240),
+                      color: Colors.grey[50],
                       borderRadius: AppConstants.kMainRadius,
+                      border: Border.all(
+                        color: Colors.grey[200]!,
+                        width: 1,
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
