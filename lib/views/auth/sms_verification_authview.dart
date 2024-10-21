@@ -196,8 +196,9 @@ class _VerfyCodeViewState extends State<VerfyCodeView> {
                             },
                             child: const Text(
                               "Verify",
-                              style: TextStyle(
-                                  fontSize: 20, fontWeight: FontWeight.w500,color: Color.fromARGB(255, 255, 255, 255)),
+                              style: TextStyle(color: Colors.white, // Set text color to white
+          fontSize: 16,
+          fontWeight: FontWeight.bold,),
                             ))
                                   ),
                                 
