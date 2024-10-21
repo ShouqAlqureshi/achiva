@@ -233,8 +233,8 @@ class ProductivityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 120, // Slightly reduced width
-      padding: const EdgeInsets.all(6), // Reduced padding
+      width: 120,
+      padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         color: isFirst
             ? Colors.purple.withOpacity(0.3)
@@ -247,10 +247,11 @@ class ProductivityCard extends StatelessWidget {
         ),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min, // Added to prevent expansion
+        mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Stack(
+            clipBehavior: Clip.none,
             alignment: Alignment.center,
             children: [
               Container(
@@ -264,7 +265,7 @@ class ProductivityCard extends StatelessWidget {
                   ),
                 ),
                 child: CircleAvatar(
-                  radius: 24, // Reduced radius
+                  radius: 24,
                   backgroundColor: Colors.white.withOpacity(0.2),
                   backgroundImage:
                       profilePic != null ? NetworkImage(profilePic!) : null,
@@ -273,62 +274,62 @@ class ProductivityCard extends StatelessWidget {
                           user.substring(0, 1).toUpperCase(),
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 20, // Reduced font size
+                            fontSize: 20,
                           ),
                         )
                       : null,
                 ),
               ),
-             Positioned(
-  top: -6,
-  right: -6,
-  child: Container(
-    width: 22,
-    height: 22,
-    decoration: BoxDecoration(
-      color: isFirst ? Colors.amber : Colors.white,
-      shape: BoxShape.circle,
-      border: Border.all(
-        color: Colors.white,
-        width: 1.5,
-      ),
-    ),
-    child: Center(
-      child: Text(
-        position,
-        style: TextStyle(
-          fontSize: 11,
-          color: isFirst ? Colors.black : Colors.black87,
-          fontWeight: FontWeight.bold,
-        ),
-        textAlign: TextAlign.center,
-      ),
-    ),
-  ),
-),
+              Positioned(
+                top: -9, // Moved higher up
+                right: -6, // Moved further right
+                child: Container(
+                  width: 32, // Increased size
+                  height: 32, // Increased size
+                  decoration: BoxDecoration(
+                    color: Colors.transparent, // Made background transparent
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isFirst ? Colors.amber : Colors.white,
+                      width: 2,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      position,
+                      style: TextStyle(
+                        fontSize: 16, // Increased font size
+                        color: isFirst ? Colors.amber : Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 8), // Reduced spacing
+          const SizedBox(height: 8),
           Text(
             user,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 13, // Reduced font size
+              fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 2), // Reduced spacing
+          const SizedBox(height: 2),
           Text(
             'Score: $score',
             style: TextStyle(
               color: isFirst ? Colors.amber : Colors.white70,
-              fontSize: 12, // Reduced font size
+              fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 4), // Reduced spacing
+          const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -347,19 +348,19 @@ class ProductivityCard extends StatelessWidget {
       text,
       style: const TextStyle(
         color: Colors.white60,
-        fontSize: 10, // Reduced font size
+        fontSize: 10,
       ),
     );
   }
 
   Widget _buildDot() {
     return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 3), // Reduced padding
+      padding: EdgeInsets.symmetric(horizontal: 3),
       child: Text(
         '•',
         style: TextStyle(
           color: Colors.white60,
-          fontSize: 10, // Reduced font size
+          fontSize: 10,
         ),
       ),
     );
