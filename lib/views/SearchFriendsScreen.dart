@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:uuid/uuid.dart';
 
 class SearchFriendsScreen extends StatefulWidget {
   @override
@@ -99,7 +100,8 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
     try {
       String userId = FirebaseAuth.instance.currentUser!.uid;
       String friendId = friend.id;
-
+      final Uuid uuid = Uuid();
+      final String requestId = uuid.v4();
       DocumentSnapshot requestDoc = await FirebaseFirestore.instance
           .collection('Users')
           .doc(friendId)
@@ -119,6 +121,7 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
           .doc(userId)
           .set({
         'userId': userId,
+        'requestId': requestId,
         'username': FirebaseAuth.instance.currentUser!.displayName,
         'status': 'pending',
         'requestedAt': FieldValue.serverTimestamp(),
@@ -131,6 +134,7 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
           .doc(friendId)
           .set({
         'userId': friendId,
+        'requestId': requestId,
         'username': friend['fname'] + ' ' + friend['lname'],
         'status': 'pending',
         'requestedAt': FieldValue.serverTimestamp(),
