@@ -40,6 +40,10 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
+          // Add these lines to remove the white splash screen
+          scaffoldBackgroundColor: Colors.transparent,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
         ),
         home: const AuthWrapper(),
         routes: {
@@ -56,37 +60,76 @@ class MyApp extends StatelessWidget {
 }
 
 class AuthWrapper extends StatelessWidget {
-  const AuthWrapper({Key? key}) : super(key: key);
+  const AuthWrapper({super.key});
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SplashScreen();
-        } else if (snapshot.hasData) {
-          return const HomeScreen();
-        } else {
-          return const PhoneNumAuthView();
-        }
+        return FutureBuilder(
+          future: Future.delayed(const Duration(seconds: 2)), // Minimum splash duration
+          builder: (context, _) {
+            if (snapshot.connectionState == ConnectionState.waiting || _.connectionState == ConnectionState.waiting) {
+              return const SplashScreen();
+            } else if (snapshot.hasData) {
+              return const HomeScreen();
+            } else {
+              return const PhoneNumAuthView();
+            }
+          },
+        );
       },
     );
   }
 }
 
 class SplashScreen extends StatelessWidget {
-  const SplashScreen({Key? key}) : super(key: key);
+  const SplashScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: Image.asset(
-          'lib/images/logo-with-name.png',
-          width: 200,
-          height: 200,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color.fromARGB(255, 30, 12, 48),
+              Color.fromARGB(255, 77, 64, 98),
+            ],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'lib/images/logo-with-name.png',
+                width: 400,
+                height: 400,
+                errorBuilder: (context, error, stackTrace) {
+                  print('Error loading image: $error'); // Add this for debugging
+                  return const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        color: Colors.white,
+                        size: 60,
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'Image loading error',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
