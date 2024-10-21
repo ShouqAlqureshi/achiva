@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'dart:ui';  // For ImageFilter
 
 class RankingsService {
   Stream<List<Map<String, dynamic>>> fetchProductivityRankings() async* {
@@ -121,51 +122,89 @@ class ProductivityRankingDashboard extends StatelessWidget {
     }
   }
 
-  @override
+  
+     @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0),
-      padding: const EdgeInsets.all(16.0),
+      margin: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 24.0),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(16.0),
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20.0),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.1),
+          width: 1,
+        ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Productivity Rankings",
-            style: TextStyle(
-              fontSize: 18.0,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 10.0),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: rankings.isEmpty
-    ? [Text('No ranking data available', style: TextStyle(color: Colors.white))]
-    : List.generate(
-                rankings.length,
-                (index) => Padding(
-                  padding: const EdgeInsets.only(right: 10.0),
-                  child: ProductivityCard(
-                    user: rankings[index]['fullName'],
-                    score: rankings[index]['productivityScore'].toString(),
-                    position: _getEmoji(index),
-                    profilePic: rankings[index]['profilePic'],
-                    completedTasks: rankings[index]['completedTasks'],
-                    totalGoals: rankings[index]['totalGoals'],
-                  ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20.0),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header Row
+                Row(
+                  children: [
+                    Text(
+                      "Productivity Rankings",
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'Last 30 Days',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.white70,
+                            ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
+                const SizedBox(height: 12),
+                // Rankings List
+                SizedBox(
+                  height: 144, // Reduced height
+                  child: rankings.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'No ranking data available',
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                        )
+                      : ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: rankings.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(width: 12),
+                          itemBuilder: (context, index) => ProductivityCard(
+                            user: rankings[index]['fullName'],
+                            score: rankings[index]['productivityScore'].toString(),
+                            position: _getEmoji(index),
+                            profilePic: rankings[index]['profilePic'],
+                            completedTasks: rankings[index]['completedTasks'],
+                            totalGoals: rankings[index]['totalGoals'],
+                            isFirst: index == 0,
+                          ),
+                        ),
+                ),
+              ],
             ),
-            
           ),
-        ],
+        ),
       ),
     );
   }
@@ -178,6 +217,7 @@ class ProductivityCard extends StatelessWidget {
   final String? profilePic;
   final int completedTasks;
   final int totalGoals;
+  final bool isFirst;
 
   const ProductivityCard({
     super.key,
@@ -187,62 +227,141 @@ class ProductivityCard extends StatelessWidget {
     this.profilePic,
     required this.completedTasks,
     required this.totalGoals,
+    this.isFirst = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: 120,
-      padding: const EdgeInsets.all(12.0),
+      padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(12.0),
+        color: isFirst
+            ? Colors.purple.withOpacity(0.3)
+            : Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isFirst
+              ? Colors.purple.withOpacity(0.3)
+              : Colors.white.withOpacity(0.1),
+        ),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Stack(
-            alignment: Alignment.topRight,
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
             children: [
-              profilePic != null && profilePic!.isNotEmpty
-                  ? CircleAvatar(
-                      radius: 25.0,
-                      backgroundImage: NetworkImage(profilePic!),
-                    )
-                  : CircleAvatar(
-                      radius: 25.0,
-                      child: Text(user.substring(0, 1)),
-                    ),
               Container(
-                padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isFirst
+                        ? Colors.purple.withOpacity(0.5)
+                        : Colors.white.withOpacity(0.2),
+                    width: 2,
+                  ),
                 ),
-                child: Text(position, style: const TextStyle(fontSize: 14)),
+                child: CircleAvatar(
+                  radius: 24,
+                  backgroundColor: Colors.white.withOpacity(0.2),
+                  backgroundImage:
+                      profilePic != null ? NetworkImage(profilePic!) : null,
+                  child: profilePic == null
+                      ? Text(
+                          user.substring(0, 1).toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                          ),
+                        )
+                      : null,
+                ),
+              ),
+              Positioned(
+                top: -9, // Moved higher up
+                right: -6, // Moved further right
+                child: Container(
+                  width: 32, // Increased size
+                  height: 32, // Increased size
+                  decoration: BoxDecoration(
+                    color: Colors.transparent, // Made background transparent
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isFirst ? Colors.amber : Colors.white,
+                      width: 2,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      position,
+                      style: TextStyle(
+                        fontSize: 16, // Increased font size
+                        color: isFirst ? Colors.amber : Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8.0),
+          const SizedBox(height: 8),
           Text(
             user,
-            style: const TextStyle(color: Colors.white, fontSize: 14.0),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 4.0),
+          const SizedBox(height: 2),
           Text(
             'Score: $score',
-            style: const TextStyle(color: Colors.white, fontSize: 12.0),
+            style: TextStyle(
+              color: isFirst ? Colors.amber : Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-          const SizedBox(height: 4.0),
-          Text(
-            '$completedTasks Tasks',
-            style: const TextStyle(color: Colors.white70, fontSize: 10.0),
-          ),
-          Text(
-            '$totalGoals Goals',
-            style: const TextStyle(color: Colors.white70, fontSize: 10.0),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildStat('$completedTasks Tasks'),
+              _buildDot(),
+              _buildStat('$totalGoals Goals'),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStat(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: Colors.white60,
+        fontSize: 10,
+      ),
+    );
+  }
+
+  Widget _buildDot() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 3),
+      child: Text(
+        '•',
+        style: TextStyle(
+          color: Colors.white60,
+          fontSize: 10,
+        ),
       ),
     );
   }

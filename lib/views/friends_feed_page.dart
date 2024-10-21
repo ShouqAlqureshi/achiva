@@ -169,51 +169,66 @@ Stream<List<Map<String, dynamic>>> _fetchTaskPosts() async* {
 @override
 Widget build(BuildContext context) {
   return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-            colors: [
-                  Color.fromARGB(255, 66, 32, 101),
-                  Color.fromARGB(255, 77, 64, 98),
-                ],              
-          ),
-        ),
-        child: RefreshIndicator(
-          onRefresh: _refreshPosts,
-          child: CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                pinned: false,
-                expandedHeight: 160.0,
-                automaticallyImplyLeading: false,
-                backgroundColor: Colors.transparent,
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Center(
-                    child: _buildRankingDashboard(),
-                  ),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    "Recent Posts",
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              _buildPostsFeed(),
-            ],
-          ),
+    body: Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            Color.fromARGB(255, 66, 32, 101),
+            Color.fromARGB(255, 77, 64, 98),
+          ],              
         ),
       ),
-    );
-  }
+      child: RefreshIndicator(
+        onRefresh: _refreshPosts,
+        child: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              pinned: true,
+              floating: false,
+              backgroundColor: Colors.transparent,
+              title: Text(
+                "Friends Feed",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: SizedBox(height: 10), // Add some spacing after the title
+            ),
+            SliverAppBar(
+              pinned: false,
+              expandedHeight: 200.0,
+              automaticallyImplyLeading: false,
+              backgroundColor: Colors.transparent,
+              flexibleSpace: FlexibleSpaceBar(
+                background: Center(
+                  child: _buildRankingDashboard(),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 0.0, left: 16.0, right: 16.0, bottom: 16.0),
+                child: Text(
+                  "Recent Posts",
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            _buildPostsFeed(),
+          ],
+        ),
+      ),
+    ),
+  );
+}
 
   // Widget for the feed of posts (fetch posts from tasks)
  Widget _buildPostsFeed() {

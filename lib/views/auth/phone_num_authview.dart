@@ -207,7 +207,7 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
   style: ElevatedButton.styleFrom(
     padding: EdgeInsets.zero, // Remove default padding for the button
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12), // Rounded corners
+      borderRadius: BorderRadius.circular(30), // Rounded corners
     ),
   ),
   child: Ink(
@@ -218,7 +218,7 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(30),
     ),
     child: Container(
       constraints: BoxConstraints(
