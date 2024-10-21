@@ -11,38 +11,60 @@ class RankingsService {
         return;
       }
 
+      // Fetch friends list
       QuerySnapshot friendsSnapshot = await FirebaseFirestore.instance
           .collection('Users')
           .doc(currentUser.uid)
           .collection('friends')
           .get();
 
+          
       List<String> userIds =
           friendsSnapshot.docs.map((doc) => doc['userId'] as String).toList();
       userIds.add(currentUser.uid);
 
       List<Map<String, dynamic>> userProductivity = [];
+      final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
 
       for (String userId in userIds) {
-        final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
-
-        QuerySnapshot tasksSnapshot = await FirebaseFirestore.instance
-            .collection('Users')
-            .doc(userId)
-            .collection('tasks')
-            .where('completed', isEqualTo: true)
-            .where('completedDate', isGreaterThanOrEqualTo: thirtyDaysAgo)
-            .get();
-
+        // First get all goals
         QuerySnapshot goalsSnapshot = await FirebaseFirestore.instance
             .collection('Users')
             .doc(userId)
             .collection('goals')
             .get();
 
-        int completedTasks = tasksSnapshot.docs.length;
-        int totalGoals = goalsSnapshot.docs.length;
+        int totalCompletedTasks = 0;
+        int totalTasks = 0;
 
+        // For each goal, get its tasks
+        for (var goalDoc in goalsSnapshot.docs) {
+          QuerySnapshot tasksSnapshot = await FirebaseFirestore.instance
+              .collection('Users')
+              .doc(userId)
+              .collection('goals')
+              .doc(goalDoc.id)
+              .collection('tasks')
+              .get();
+
+          // Count completed tasks within last 30 days
+          int completedTasksForGoal = tasksSnapshot.docs
+              .where((task) {
+                final taskData = task.data() as Map<String, dynamic>;
+                if (!taskData['completed']) return false;
+                
+                final completedDate = (taskData['completedDate'] as Timestamp?)?.toDate();
+                if (completedDate == null) return false;
+                
+                return completedDate.isAfter(thirtyDaysAgo);
+              })
+              .length;
+
+          totalCompletedTasks += completedTasksForGoal;
+          totalTasks += tasksSnapshot.docs.length;
+        }
+
+        // Fetch user details
         DocumentSnapshot userDoc = await FirebaseFirestore.instance
             .collection('Users')
             .doc(userId)
@@ -50,21 +72,23 @@ class RankingsService {
 
         Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
 
-        double completionRate =
-            totalGoals > 0 ? completedTasks / totalGoals : 0;
+        // Calculate productivity metrics
+        double completionRate = totalTasks > 0 ? totalCompletedTasks / totalTasks : 0;
         int productivityScore =
-            (completedTasks * 10 + completionRate * 100).round();
+            (totalCompletedTasks * 10 + completionRate * 100).round();
 
         userProductivity.add({
           'userId': userId,
           'fullName': '${userData['fname']} ${userData['lname']}',
           'profilePic': userData['photo'] ?? '',
-          'completedTasks': completedTasks,
-          'totalGoals': totalGoals,
+          'completedTasks': totalCompletedTasks,
+          'totalGoals': goalsSnapshot.docs.length,
+          'totalTasks': totalTasks,
           'productivityScore': productivityScore,
         });
       }
 
+      // Sort by productivity score
       userProductivity.sort(
           (a, b) => b['productivityScore'].compareTo(a['productivityScore']));
 
@@ -80,9 +104,9 @@ class ProductivityRankingDashboard extends StatelessWidget {
   final List<Map<String, dynamic>> rankings;
 
   const ProductivityRankingDashboard({
-    Key? key,
+    super.key,
     required this.rankings,
-  }) : super(key: key);
+  });
 
   String _getEmoji(int index) {
     switch (index) {
@@ -122,7 +146,9 @@ class ProductivityRankingDashboard extends StatelessWidget {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children: List.generate(
+              children: rankings.isEmpty
+    ? [Text('No ranking data available', style: TextStyle(color: Colors.white))]
+    : List.generate(
                 rankings.length,
                 (index) => Padding(
                   padding: const EdgeInsets.only(right: 10.0),
@@ -137,6 +163,7 @@ class ProductivityRankingDashboard extends StatelessWidget {
                 ),
               ),
             ),
+            
           ),
         ],
       ),
@@ -153,14 +180,14 @@ class ProductivityCard extends StatelessWidget {
   final int totalGoals;
 
   const ProductivityCard({
-    Key? key,
+    super.key,
     required this.user,
     required this.score,
     required this.position,
     this.profilePic,
     required this.completedTasks,
     required this.totalGoals,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
