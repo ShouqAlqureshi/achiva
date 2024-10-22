@@ -319,15 +319,15 @@ class TopThreePodium extends StatelessWidget {
                         children: [
                           Container(
                             padding: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.pink.withOpacity(0.7),
-                                  Colors.pink.withOpacity(0.3),
-                                ],
-                              ),
-                            ),
+                            // decoration: BoxDecoration(
+                            //   shape: BoxShape.circle,
+                            //   gradient: LinearGradient(
+                            //     colors: [
+                            //       Colors.pink.withOpacity(0.7),
+                            //       Colors.pink.withOpacity(0.3),
+                            //     ],
+                            //   ),
+                            // ),
                             child: PodiumCard(
                               user: topUsers[1],
                               position: 2,
@@ -362,15 +362,15 @@ class TopThreePodium extends StatelessWidget {
                         children: [
                           Container(
                             padding: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.purple.withOpacity(0.7),
-                                  Colors.purple.withOpacity(0.3),
-                                ],
-                              ),
-                            ),
+                            // decoration: BoxDecoration(
+                            //   shape: BoxShape.circle,
+                            //   gradient: LinearGradient(
+                            //     colors: [
+                            //       Colors.purple.withOpacity(0.7),
+                            //       Colors.purple.withOpacity(0.3),
+                            //     ],
+                            //   ),
+                            // ),
                             child: PodiumCard(
                               user: topUsers[0],
                               position: 1,
@@ -408,15 +408,15 @@ class TopThreePodium extends StatelessWidget {
                         children: [
                           Container(
                             padding: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.orange.withOpacity(0.7),
-                                  Colors.orange.withOpacity(0.3),
-                                ],
-                              ),
-                            ),
+                            // decoration: BoxDecoration(
+                            //   shape: BoxShape.circle,
+                            //   gradient: LinearGradient(
+                            //     colors: [
+                            //       Colors.orange.withOpacity(0.7),
+                            //       Colors.orange.withOpacity(0.3),
+                            //     ],
+                            //   ),
+                            // ),
                             child: PodiumCard(
                               user: topUsers[2],
                               position: 3,
