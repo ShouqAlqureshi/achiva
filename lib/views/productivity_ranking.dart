@@ -384,7 +384,7 @@ class PodiumCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '\$${user['productivityScore']}',
+                      'Score: ${user['productivityScore']}',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.9),
                         fontSize: 14,
@@ -497,7 +497,7 @@ class RankingListItem extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '\$${user['productivityScore']}',
+                        'Score: ${user['productivityScore']}',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 14,
