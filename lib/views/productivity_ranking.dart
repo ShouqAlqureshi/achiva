@@ -231,219 +231,301 @@ class TopThreePodium extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.bottomCenter,
-      clipBehavior: Clip.none,
-      children: [
-        // Background podium shapes
-        SizedBox(
-          height: 280, // Increased total height for podium
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              // Second place podium
-              if (topUsers.length > 1)
-                Container(
-                  width: 100,
-                  height: 160, // Shorter than first place
-                  decoration: BoxDecoration(
-                    color: Colors.pink.withOpacity(0.15),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(12),
-                      topRight: Radius.circular(12),
-                    ),
-                    border: Border.all(
-                      color: Colors.pink.withOpacity(0.3),
-                      width: 1,
-                    ),
-                  ),
-                ),
-              
-              // First place podium
-              Container(
-                width: 100,
-                height: 200, // Tallest podium
-                margin: const EdgeInsets.symmetric(horizontal: 8),
-                decoration: BoxDecoration(
-                  color: Colors.purple.withOpacity(0.15),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(12),
-                    topRight: Radius.circular(12),
-                  ),
-                  border: Border.all(
-                    color: Colors.purple.withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
-              ),
-              
-              // Third place podium
-              if (topUsers.length > 2)
-                Container(
-                  width: 100,
-                  height: 120, // Shortest podium
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.15),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(12),
-                      topRight: Radius.circular(12),
-                    ),
-                    border: Border.all(
-                      color: Colors.orange.withOpacity(0.3),
-                      width: 1,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final containerWidth = constraints.maxWidth;
+        // Calculate podium positions
+        final podiumWidth = 100.0;
+        final horizontalSpacing = 8.0;
+        final totalPodiumWidth = (podiumWidth * 3) + (horizontalSpacing * 2);
+        final startX = (containerWidth - totalPodiumWidth) / 2;
         
-        // Player cards
-        Positioned(
-          bottom: 0,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
+        // Calculate x positions for each podium
+        final secondPlaceX = startX;
+        final firstPlaceX = startX + podiumWidth + horizontalSpacing;
+        final thirdPlaceX = startX + (podiumWidth * 2) + (horizontalSpacing * 2);
+
+        return SizedBox(
+          height: 320, // Increased height to accommodate crown
+          width: double.infinity,
+          child: Stack(
+            alignment: Alignment.center,
             children: [
-              // Second place
-              if (topUsers.length > 1)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 160),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Stack(
-                        alignment: Alignment.topCenter,
-                        clipBehavior: Clip.none,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(2),
-                            // decoration: BoxDecoration(
-                            //   shape: BoxShape.circle,
-                            //   gradient: LinearGradient(
-                            //     colors: [
-                            //       Colors.pink.withOpacity(0.7),
-                            //       Colors.pink.withOpacity(0.3),
-                            //     ],
-                            //   ),
-                            // ),
-                            child: PodiumCard(
-                              user: topUsers[1],
-                              position: 2,
-                              scale: 0.9,
-                            ),
-                          ),
-                          const Positioned(
-                            top: -10,
-                            child: Icon(
-                              Icons.arrow_drop_up,
-                              color: Colors.green,
-                              size: 24,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              
-              // First place
-              Padding(
-                padding: const EdgeInsets.only(bottom: 200),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+              // Background podium shapes with player info
+              Positioned(
+                bottom: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        alignment: Alignment.topCenter,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(2),
-                            // decoration: BoxDecoration(
-                            //   shape: BoxShape.circle,
-                            //   gradient: LinearGradient(
-                            //     colors: [
-                            //       Colors.purple.withOpacity(0.7),
-                            //       Colors.purple.withOpacity(0.3),
-                            //     ],
-                            //   ),
-                            // ),
-                            child: PodiumCard(
-                              user: topUsers[0],
-                              position: 1,
-                              isWinner: true,
-                              scale: 1.1,
-                            ),
+                    // Second place podium
+                    if (topUsers.length > 1)
+                      Container(
+                        width: 100,
+                        height: 160,
+                        decoration: BoxDecoration(
+                          color: Colors.pink.withOpacity(0.15),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            topRight: Radius.circular(12),
                           ),
-                          const Positioned(
-                            top: -60,
-                            child: Text(
-                              '👑',
-                              style: TextStyle(
-                                fontSize: 50,
-                                height: 1,
+                          border: Border.all(
+                            color: Colors.pink.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 50),
+                            Text(
+                              topUsers[1]['fullName']?.toString().split(' ')[0] ?? '',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${topUsers[1]['productivityScore']}🦾',
+                              style: TextStyle(
+                                color: Colors.pink,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    
+                    // First place podium
+                    Container(
+                      width: 100,
+                      height: 200,
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.withOpacity(0.15),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(12),
+                          topRight: Radius.circular(12),
+                        ),
+                        border: Border.all(
+                          color: Colors.purple.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(height: 80), // Increased spacing for photo and crown
+                          Text(
+                            topUsers[0]['fullName']?.toString().split(' ')[0] ?? '',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${topUsers[0]['productivityScore']}🚀',
+                            style: TextStyle(
+                              color: Colors.purple,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
                     ),
+                    
+                    // Third place podium
+                    if (topUsers.length > 2)
+                      Container(
+                        width: 100,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.15),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            topRight: Radius.circular(12),
+                          ),
+                          border: Border.all(
+                            color: Colors.orange.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 50),
+                            Text(
+                              topUsers[2]['fullName']?.toString().split(' ')[0] ?? '',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${topUsers[2]['productivityScore']}💨',
+                              style: TextStyle(
+                                color: Colors.orange,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ),
               
-              // Third place
-              if (topUsers.length > 2)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 120),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+              // Player photos and position numbers
+              Positioned(
+                top: 0, // Moved to the top of the container
+                left: 0,
+                right: 0,
+                child: SizedBox(
+                  height: 200,
+                  child: Stack(
+                    alignment: Alignment.center,
                     children: [
-                      Stack(
-                        alignment: Alignment.topCenter,
-                        clipBehavior: Clip.none,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(2),
-                            // decoration: BoxDecoration(
-                            //   shape: BoxShape.circle,
-                            //   gradient: LinearGradient(
-                            //     colors: [
-                            //       Colors.orange.withOpacity(0.7),
-                            //       Colors.orange.withOpacity(0.3),
-                            //     ],
-                            //   ),
-                            // ),
-                            child: PodiumCard(
-                              user: topUsers[2],
-                              position: 3,
-                              scale: 0.9,
+                      // Second place
+                      if (topUsers.length > 1)
+                        Positioned(
+                          left: secondPlaceX + 15,
+                          top: 60,
+                          child: PlayerPhoto(user: topUsers[1], position: 2),
+                        ),
+                    
+                      // First place (center)
+                      Positioned(
+                        left: firstPlaceX + 15,
+                        top: 0, // Moved higher up to accommodate crown
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          alignment: Alignment.topCenter,
+                          children: [
+                            PlayerPhoto(user: topUsers[0], position: 1),
+                            const Positioned(
+                              top: -35,
+                              child: Text(
+                                '👑',
+                                style: TextStyle(
+                                  fontSize: 50,
+                                  height: 1,
+                                ),
+                              ),
                             ),
-                          ),
-                          const Positioned(
-                            top: -10,
-                            child: Icon(
-                              Icons.arrow_drop_down,
-                              color: Colors.red,
-                              size: 24,
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
+                    
+                      // Third place
+                      if (topUsers.length > 2)
+                        Positioned(
+                          left: thirdPlaceX + 15,
+                          top: 100,
+                          child: PlayerPhoto(user: topUsers[2], position: 3),
+                        ),
                     ],
                   ),
                 ),
+              ),
             ],
+          ),
+        );
+      }
+    );
+  }
+}
+
+
+class PlayerPhoto extends StatelessWidget {
+  final Map<String, dynamic> user;
+  final int position;
+
+  const PlayerPhoto({
+    super.key,
+    required this.user,
+    required this.position,
+  });
+
+  String _getOrdinalNumber(int number) {
+    if (number == 1) return '1st';
+    if (number == 2) return '2nd';
+    if (number == 3) return '3rd';
+    return '${number}th';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.bottomRight,
+      children: [
+        Container(
+          width: 70,
+          height: 70,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white.withOpacity(0.2),
+              width: 2,
+            ),
+          ),
+          child: ClipOval(
+            child: user['profilePic']?.isNotEmpty == true
+                ? Image.network(
+                    user['profilePic'],
+                    fit: BoxFit.cover,
+                  )
+                : Container(
+                    color: Colors.purple.withOpacity(0.3),
+                    child: Center(
+                      child: Text(
+                        user['fullName'][0],
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+          ),
+        ),
+        Container(
+          width: 32,
+          height: 24,
+          decoration: BoxDecoration(
+            color: Colors.grey[900],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.2),
+              width: 1,
+            ),
+          ),
+          child: Center(
+            child: Text(
+              _getOrdinalNumber(position),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ),
       ],
     );
   }
 }
-// Update the PodiumCard to match the new style
+  
+
 class PodiumCard extends StatelessWidget {
   final Map<String, dynamic> user;
   final int position;
