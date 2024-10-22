@@ -236,7 +236,7 @@ class TopThreePodium extends StatelessWidget {
       children: [
         // Background podium shapes
         Padding(
-          padding: const EdgeInsets.only(top: 100),
+          padding: const EdgeInsets.only(top: 120), // Increased from 100 to accommodate crown
           child: Container(
             height: 120,
             decoration: BoxDecoration(
@@ -300,35 +300,42 @@ class TopThreePodium extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Stack(
-                    alignment: Alignment.topCenter,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.purple.withOpacity(0.7),
-                              Colors.purple.withOpacity(0.3),
-                            ],
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 10), // Added margin for crown space
+                    child: Stack(
+                      clipBehavior: Clip.none, // Important: Allows crown to overflow
+                      alignment: Alignment.topCenter,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.purple.withOpacity(0.7),
+                                Colors.purple.withOpacity(0.3),
+                              ],
+                            ),
+                          ),
+                          child: PodiumCard(
+                            user: topUsers[0],
+                            position: 1,
+                            isWinner: true,
+                            scale: 1.1,
                           ),
                         ),
-                        child: PodiumCard(
-                          user: topUsers[0],
-                          position: 1,
-                          isWinner: true,
-                          scale: 1.1,
+                        const Positioned(
+                          top: -60, // Adjusted from -50 to ensure full visibility
+                          child: Text(
+                            '👑',
+                            style: TextStyle(
+                              fontSize: 50,
+                              height: 1, // Added to control text height
+                            ),
+                          ),
                         ),
-                      ),
-                      const Positioned(
-                        top: -15,
-                        child: Text(
-                          '👑',
-                          style: TextStyle(fontSize: 24),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
