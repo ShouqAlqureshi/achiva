@@ -427,6 +427,22 @@ class PodiumCard extends StatelessWidget {
     return fullName.split(' ')[0];
   }
 
+  String _getEmoji() {
+    final score = user['productivityScore'] as int;
+    if (score == 0) return '😢';
+    
+    switch (position) {
+      case 1:
+        return '🚀';
+      case 2:
+        return '🦾';
+      case 3:
+        return '💨';
+      default:
+        return '⏫';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Transform.scale(
@@ -468,13 +484,12 @@ class PodiumCard extends StatelessWidget {
                         ),
                 ),
               ),
-              // Updated position indicator with ordinal number
               Container(
-                width: 32,  // Increased width to accommodate ordinal numbers
+                width: 32,
                 height: 24,
                 decoration: BoxDecoration(
                   color: Colors.grey[900],
-                  borderRadius: BorderRadius.circular(12),  // Changed to rounded rect
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: Colors.white.withOpacity(0.2),
                     width: 1,
@@ -485,7 +500,7 @@ class PodiumCard extends StatelessWidget {
                     _getOrdinalNumber(position),
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 10,  // Slightly smaller to fit ordinal
+                      fontSize: 10,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -504,7 +519,7 @@ class PodiumCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '${user['productivityScore']}🚀',
+            '${user['productivityScore']}${_getEmoji()}',
             style: TextStyle(
               color: _getScoreColor(),
               fontSize: 20,
@@ -534,6 +549,22 @@ class RankingListItem extends StatelessWidget {
     return '${number}th';
   }
 
+  String _getEmoji() {
+    final score = user['productivityScore'] as int;
+    if (score == 0) return '😢';
+    
+    switch (position) {
+      case 1:
+        return '🚀';
+      case 2:
+        return '🦾';
+      case 3:
+        return '💨';
+      default:
+        return '⏫';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
@@ -551,9 +582,8 @@ class RankingListItem extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // Updated position with ordinal number
               SizedBox(
-                width: 40,  // Increased width to accommodate ordinal numbers
+                width: 40,
                 child: Text(
                   _getOrdinalNumber(position),
                   style: TextStyle(
@@ -615,7 +645,7 @@ class RankingListItem extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'Score: ${user['productivityScore']}',
+                        '${user['productivityScore']}${_getEmoji()}',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 14,
