@@ -225,44 +225,162 @@ class TopThreePodium extends StatelessWidget {
   final List<Map<String, dynamic>> topUsers;
 
   const TopThreePodium({
+    super.key,
     required this.topUsers,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.end,
+    return Stack(
+      alignment: Alignment.center,
       children: [
-        if (topUsers.length > 1)
-          Expanded(
-            child: PodiumCard(
-              user: topUsers[1],
-              position: 2,
-              scale: 0.9,
+        // Background podium shapes
+        Padding(
+          padding: const EdgeInsets.only(top: 100),
+          child: Container(
+            height: 120,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
             ),
-          ),
-        Expanded(
-          child: PodiumCard(
-            user: topUsers[0],
-            position: 1,
-            isWinner: true,
-            scale: 1.1,
           ),
         ),
-        if (topUsers.length > 2)
-          Expanded(
-            child: PodiumCard(
-              user: topUsers[2],
-              position: 3,
-              scale: 0.9,
+        
+        // Podium positions
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (topUsers.length > 1)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 30),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Stack(
+                      alignment: Alignment.topCenter,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.pink.withOpacity(0.7),
+                                Colors.pink.withOpacity(0.3),
+                              ],
+                            ),
+                          ),
+                          child: PodiumCard(
+                            user: topUsers[1],
+                            position: 2,
+                            scale: 0.9,
+                          ),
+                        ),
+                        const Positioned(
+                          top: -10,
+                          child: Icon(
+                            Icons.arrow_drop_up,
+                            color: Colors.green,
+                            size: 24,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              
+            // First place (center, larger)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Stack(
+                    alignment: Alignment.topCenter,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.purple.withOpacity(0.7),
+                              Colors.purple.withOpacity(0.3),
+                            ],
+                          ),
+                        ),
+                        child: PodiumCard(
+                          user: topUsers[0],
+                          position: 1,
+                          isWinner: true,
+                          scale: 1.1,
+                        ),
+                      ),
+                      const Positioned(
+                        top: -15,
+                        child: Text(
+                          '👑',
+                          style: TextStyle(fontSize: 24),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
+              
+            if (topUsers.length > 2)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 30),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Stack(
+                      alignment: Alignment.topCenter,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.orange.withOpacity(0.7),
+                                Colors.orange.withOpacity(0.3),
+                              ],
+                            ),
+                          ),
+                          child: PodiumCard(
+                            user: topUsers[2],
+                            position: 3,
+                            scale: 0.9,
+                          ),
+                        ),
+                        const Positioned(
+                          top: -10,
+                          child: Icon(
+                            Icons.arrow_drop_down,
+                            color: Colors.red,
+                            size: 24,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ],
     );
   }
 }
 
+// Update the PodiumCard to match the new style
 class PodiumCard extends StatelessWidget {
   final Map<String, dynamic> user;
   final int position;
@@ -277,29 +395,23 @@ class PodiumCard extends StatelessWidget {
     this.scale = 1.0,
   });
 
-  String _getPositionEmoji() {
-    switch (position) {
-      case 1:
-        return '👑';
-      case 2:
-        return '🥈';
-      case 3:
-        return '🥉';
-      default:
-        return '';
-    }
+  String _getOrdinalNumber(int number) {
+    if (number == 1) return '1st';
+    if (number == 2) return '2nd';
+    if (number == 3) return '3rd';
+    return '${number}th';
   }
 
-  Color _getPositionColor() {
+  Color _getScoreColor() {
     switch (position) {
       case 1:
-        return Colors.amber.withOpacity(0.2);
+        return Colors.purple;
       case 2:
-        return Colors.grey[300]!.withOpacity(0.2);
+        return Colors.pink;
       case 3:
-        return Colors.orange[800]!.withOpacity(0.2);
+        return Colors.orange;
       default:
-        return Colors.white.withOpacity(0.1);
+        return Colors.white;
     }
   }
 
@@ -315,85 +427,81 @@ class PodiumCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (isWinner)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(_getPositionEmoji(), style: const TextStyle(fontSize: 24)),
-            ),
-          // Profile Picture
-          Container(
-            width: 64,
-            height: 64,
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: isWinner ? Colors.amber : Colors.white.withOpacity(0.2),
-                width: 2,
-              ),
-            ),
-            child: ClipOval(
-              child: user['profilePic']?.isNotEmpty == true
-                  ? Image.network(
-                      user['profilePic'],
-                      fit: BoxFit.cover,
-                    )
-                  : Container(
-                      color: Colors.purple.withOpacity(0.3),
-                      child: Center(
-                        child: Text(
-                          _getFirstName()[0],
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-            ),
-          ),
-          // Glassy Card
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(
-                width: 120,
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          Stack(
+            alignment: Alignment.bottomRight,
+            children: [
+              Container(
+                width: 70,
+                height: 70,
                 decoration: BoxDecoration(
-                  color: _getPositionColor(),
-                  borderRadius: BorderRadius.circular(16),
+                  shape: BoxShape.circle,
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withOpacity(0.2),
+                    width: 2,
                   ),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _getFirstName(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Score: ${user['productivityScore']}',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                child: ClipOval(
+                  child: user['profilePic']?.isNotEmpty == true
+                      ? Image.network(
+                          user['profilePic'],
+                          fit: BoxFit.cover,
+                        )
+                      : Container(
+                          color: Colors.purple.withOpacity(0.3),
+                          child: Center(
+                            child: Text(
+                              _getFirstName()[0],
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
                 ),
               ),
+              // Updated position indicator with ordinal number
+              Container(
+                width: 32,  // Increased width to accommodate ordinal numbers
+                height: 24,
+                decoration: BoxDecoration(
+                  color: Colors.grey[900],
+                  borderRadius: BorderRadius.circular(12),  // Changed to rounded rect
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    _getOrdinalNumber(position),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,  // Slightly smaller to fit ordinal
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _getFirstName(),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${user['productivityScore']}🚀',
+            style: TextStyle(
+              color: _getScoreColor(),
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],
@@ -412,6 +520,13 @@ class RankingListItem extends StatelessWidget {
     required this.position,
   });
 
+  String _getOrdinalNumber(int number) {
+    if (number == 1) return '1st';
+    if (number == 2) return '2nd';
+    if (number == 3) return '3rd';
+    return '${number}th';
+  }
+
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
@@ -429,11 +544,11 @@ class RankingListItem extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // Position
+              // Updated position with ordinal number
               SizedBox(
-                width: 32,
+                width: 40,  // Increased width to accommodate ordinal numbers
                 child: Text(
-                  position.toString(),
+                  _getOrdinalNumber(position),
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.5),
                     fontSize: 14,
@@ -442,8 +557,6 @@ class RankingListItem extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              
-              // Profile picture
               Container(
                 width: 32,
                 height: 32,
@@ -473,8 +586,6 @@ class RankingListItem extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              
-              // Name and Score in Card
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
