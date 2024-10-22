@@ -232,161 +232,217 @@ class TopThreePodium extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Stack(
-      alignment: Alignment.center,
+      alignment: Alignment.bottomCenter,
+      clipBehavior: Clip.none,
       children: [
         // Background podium shapes
-        Padding(
-          padding: const EdgeInsets.only(top: 120), // Increased from 100 to accommodate crown
-          child: Container(
-            height: 120,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
+        SizedBox(
+          height: 280, // Increased total height for podium
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Second place podium
+              if (topUsers.length > 1)
+                Container(
+                  width: 100,
+                  height: 160, // Shorter than first place
+                  decoration: BoxDecoration(
+                    color: Colors.pink.withOpacity(0.15),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(12),
+                      topRight: Radius.circular(12),
+                    ),
+                    border: Border.all(
+                      color: Colors.pink.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                ),
+              
+              // First place podium
+              Container(
+                width: 100,
+                height: 200, // Tallest podium
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  color: Colors.purple.withOpacity(0.15),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    topRight: Radius.circular(12),
+                  ),
+                  border: Border.all(
+                    color: Colors.purple.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
               ),
-            ),
+              
+              // Third place podium
+              if (topUsers.length > 2)
+                Container(
+                  width: 100,
+                  height: 120, // Shortest podium
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.15),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(12),
+                      topRight: Radius.circular(12),
+                    ),
+                    border: Border.all(
+                      color: Colors.orange.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
         
-        // Podium positions
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (topUsers.length > 1)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 30),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Stack(
-                      alignment: Alignment.topCenter,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.pink.withOpacity(0.7),
-                                Colors.pink.withOpacity(0.3),
-                              ],
+        // Player cards
+        Positioned(
+          bottom: 0,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Second place
+              if (topUsers.length > 1)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 160),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Stack(
+                        alignment: Alignment.topCenter,
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.pink.withOpacity(0.7),
+                                  Colors.pink.withOpacity(0.3),
+                                ],
+                              ),
+                            ),
+                            child: PodiumCard(
+                              user: topUsers[1],
+                              position: 2,
+                              scale: 0.9,
                             ),
                           ),
-                          child: PodiumCard(
-                            user: topUsers[1],
-                            position: 2,
-                            scale: 0.9,
-                          ),
-                        ),
-                        const Positioned(
-                          top: -10,
-                          child: Icon(
-                            Icons.arrow_drop_up,
-                            color: Colors.green,
-                            size: 24,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              
-            // First place (center, larger)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 10), // Added margin for crown space
-                    child: Stack(
-                      clipBehavior: Clip.none, // Important: Allows crown to overflow
-                      alignment: Alignment.topCenter,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.purple.withOpacity(0.7),
-                                Colors.purple.withOpacity(0.3),
-                              ],
+                          const Positioned(
+                            top: -10,
+                            child: Icon(
+                              Icons.arrow_drop_up,
+                              color: Colors.green,
+                              size: 24,
                             ),
                           ),
-                          child: PodiumCard(
-                            user: topUsers[0],
-                            position: 1,
-                            isWinner: true,
-                            scale: 1.1,
-                          ),
-                        ),
-                        const Positioned(
-                          top: -60, // Adjusted from -50 to ensure full visibility
-                          child: Text(
-                            '👑',
-                            style: TextStyle(
-                              fontSize: 50,
-                              height: 1, // Added to control text height
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
               
-            if (topUsers.length > 2)
+              // First place
               Padding(
-                padding: const EdgeInsets.only(bottom: 30),
+                padding: const EdgeInsets.only(bottom: 200),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Stack(
-                      alignment: Alignment.topCenter,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.orange.withOpacity(0.7),
-                                Colors.orange.withOpacity(0.3),
-                              ],
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        alignment: Alignment.topCenter,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.purple.withOpacity(0.7),
+                                  Colors.purple.withOpacity(0.3),
+                                ],
+                              ),
+                            ),
+                            child: PodiumCard(
+                              user: topUsers[0],
+                              position: 1,
+                              isWinner: true,
+                              scale: 1.1,
                             ),
                           ),
-                          child: PodiumCard(
-                            user: topUsers[2],
-                            position: 3,
-                            scale: 0.9,
+                          const Positioned(
+                            top: -60,
+                            child: Text(
+                              '👑',
+                              style: TextStyle(
+                                fontSize: 50,
+                                height: 1,
+                              ),
+                            ),
                           ),
-                        ),
-                        const Positioned(
-                          top: -10,
-                          child: Icon(
-                            Icons.arrow_drop_down,
-                            color: Colors.red,
-                            size: 24,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-          ],
+              
+              // Third place
+              if (topUsers.length > 2)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 120),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Stack(
+                        alignment: Alignment.topCenter,
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.orange.withOpacity(0.7),
+                                  Colors.orange.withOpacity(0.3),
+                                ],
+                              ),
+                            ),
+                            child: PodiumCard(
+                              user: topUsers[2],
+                              position: 3,
+                              scale: 0.9,
+                            ),
+                          ),
+                          const Positioned(
+                            top: -10,
+                            child: Icon(
+                              Icons.arrow_drop_down,
+                              color: Colors.red,
+                              size: 24,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
       ],
     );
   }
 }
-
 // Update the PodiumCard to match the new style
 class PodiumCard extends StatelessWidget {
   final Map<String, dynamic> user;
