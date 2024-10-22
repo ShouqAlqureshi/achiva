@@ -216,7 +216,7 @@ class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Text(
-          _showPosts ? "Friends Feed" : "Rankings",
+          _showPosts ? "Recent Posts" : "Leaderboard",
           style: const TextStyle(
             color: Colors.white,
             fontSize: 24,
@@ -246,7 +246,7 @@ class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
             ),
             Expanded(
               child: _buildToggleButton(
-                text: "Rankings",
+                text: "Leaderboard",
                 isSelected: !_showPosts,
                 onTap: () => _toggleView(false),
               ),
