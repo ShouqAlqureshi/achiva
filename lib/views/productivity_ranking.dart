@@ -246,7 +246,7 @@ class TopThreePodium extends StatelessWidget {
         final thirdPlaceX = startX + (podiumWidth * 2) + (horizontalSpacing * 2);
 
         return SizedBox(
-          height: 320,
+          height: 280, // Increased height to accommodate crown
           width: double.infinity,
           child: Stack(
             alignment: Alignment.center,
@@ -289,7 +289,7 @@ class TopThreePodium extends StatelessWidget {
                             const SizedBox(height: 4),
                             Text(
                               '${topUsers[1]['productivityScore']}🦾',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: Colors.pink,
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -330,7 +330,7 @@ class TopThreePodium extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             '${topUsers[0]['productivityScore']}🚀',
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: Colors.purple,
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -371,7 +371,7 @@ class TopThreePodium extends StatelessWidget {
                             const SizedBox(height: 4),
                             Text(
                               '${topUsers[2]['productivityScore']}💨',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: Colors.orange,
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -390,7 +390,7 @@ class TopThreePodium extends StatelessWidget {
                 left: 0,
                 right: 0,
                 child: SizedBox(
-                  height: 320,
+                  height: 280, // Increased to match parent
                   child: Stack(
                     alignment: Alignment.bottomCenter,
                     children: [
@@ -398,28 +398,28 @@ class TopThreePodium extends StatelessWidget {
                       if (topUsers.length > 1)
                         Positioned(
                           left: secondPlaceX + 15,
-                          bottom: 140, // Positioned relative to bottom
+                          bottom: 140,
                           child: PlayerPhoto(user: topUsers[1], position: 2),
                         ),
                     
                       // First place (center)
                       Positioned(
-                        left: firstPlaceX + 12, // Adjusted for larger size
-                        bottom: 180, // Positioned relative to bottom
+                        left: firstPlaceX + 13,
+                        bottom: 180,
                         child: Stack(
                           clipBehavior: Clip.none,
                           alignment: Alignment.topCenter,
                           children: [
                             Transform.scale(
-                              scale: 1.3, // Increased size for first place
+                              scale: 1.2, // Slightly reduced scale
                               child: PlayerPhoto(user: topUsers[0], position: 1),
                             ),
                             const Positioned(
-                              top: -35,
+                              top: -35, // Adjusted crown position
                               child: Text(
                                 '👑',
                                 style: TextStyle(
-                                  fontSize: 50,
+                                  fontSize: 50, // Slightly reduced size
                                   height: 1,
                                 ),
                               ),
@@ -432,7 +432,7 @@ class TopThreePodium extends StatelessWidget {
                       if (topUsers.length > 2)
                         Positioned(
                           left: thirdPlaceX + 15,
-                          bottom: 100, // Positioned relative to bottom
+                          bottom: 100,
                           child: PlayerPhoto(user: topUsers[2], position: 3),
                         ),
                     ],
