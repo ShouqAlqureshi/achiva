@@ -1,6 +1,9 @@
 import 'dart:developer';
 
+import 'package:achiva/models/models.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 class Validators {
   bool isValidEmail(String email) {
@@ -20,6 +23,53 @@ class Validators {
 
   bool isNotValidPhoneNumber(String phonenumber) {
     return !RegExp(r'^\+[0-9]{12,12}$').hasMatch(phonenumber.trim());
+  }
+
+  Future<bool> isGoalNameValid(String goalname, BuildContext context) async {
+    if (goalname.trim().isNotEmpty) {
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) throw Exception("User not logged in");
+
+        final String? userPhoneNumber = user.phoneNumber;
+        if (userPhoneNumber == null) {
+          throw Exception(
+              "Phone number is not available for the logged-in user.");
+        }
+
+        QuerySnapshot userSnapshot = await FirebaseFirestore.instance
+            .collection('Users')
+            .where('phoneNumber', isEqualTo: userPhoneNumber)
+            .limit(1)
+            .get();
+
+        DocumentReference userDocRef;
+        if (userSnapshot.docs.isEmpty) {
+          userDocRef =
+              await FirebaseFirestore.instance.collection('Users').add({
+            'phoneNumber': userPhoneNumber,
+          });
+        } else {
+          userDocRef = userSnapshot.docs.first.reference;
+        }
+
+        CollectionReference goalsCollectionRef = userDocRef.collection('goals');
+        DocumentSnapshot goalSnapshot =
+            await goalsCollectionRef.doc(goalname).get();
+
+        if (goalSnapshot.exists) {
+          log("The goal name exists, try changing the name");
+          return false;
+        } else {
+          return true;
+        }
+      } catch (e) {
+        log("Error in validating goal name:$e");
+        return false;
+      }
+    } else {
+      return false;
+    }
   }
 
   Future<bool> isEmailUnique(String email,

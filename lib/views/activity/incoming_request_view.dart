@@ -6,7 +6,7 @@ class IncomingRequestsPage extends StatelessWidget {
   const IncomingRequestsPage({super.key});
 
   // Fetch current user ID
-  String _getCurrentUserId() {
+  String getCurrentUserId() {
     User? user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       throw Exception("User not logged in");
@@ -16,102 +16,95 @@ class IncomingRequestsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String currentUserId = _getCurrentUserId();
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text('Friend Requests'),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-      ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('Users')
-            .doc(currentUserId)
-            .collection('friendRequests')
-            .where('status', isEqualTo: 'pending')
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
+    String currentUserId = getCurrentUserId();
+    // String currentUserId = "ccvx5cv1SwZQWQrvX3QBjONPbe63";
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('Users')
+          .doc(currentUserId)
+          .collection('friendRequests')
+          .where('status', isEqualTo: 'pending')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
 
-          final friendRequests = snapshot.data?.docs ?? [];
-          if (friendRequests.isEmpty) {
-            return noPendingFriendRequestsWidget();
-          }
+        final friendRequests = snapshot.data?.docs ?? [];
+        if (friendRequests.isEmpty) {
+          return noPendingFriendRequestsWidget(
+              'You have no pending friend requests.');
+        }
 
-          return StreamBuilder<List<DocumentSnapshot>>(
-            stream: _filteredFriendRequestsStream(friendRequests),
-            builder: (context, filteredSnapshot) {
-              if (filteredSnapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
-              }
+        return StreamBuilder<List<DocumentSnapshot>>(
+          stream: _filteredFriendRequestsStream(friendRequests),
+          builder: (context, filteredSnapshot) {
+            if (filteredSnapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
 
-              final filteredFriendRequests = filteredSnapshot.data ?? [];
-              if (filteredFriendRequests.isEmpty) {
-                return noPendingFriendRequestsWidget();
-              }
+            final filteredFriendRequests = filteredSnapshot.data ?? [];
+            if (filteredFriendRequests.isEmpty) {
+              return noPendingFriendRequestsWidget(
+                  'You have no pending friend requests.');
+            }
 
-              return ListView(
-                children: filteredFriendRequests.map((doc) {
-                  var friendRequestData = doc.data() as Map<String, dynamic>;
-                  String userId = friendRequestData['userId'];
-                  String requestId = friendRequestData['requestId'];
-                  return StreamBuilder<DocumentSnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection('Users')
-                        .doc(userId)
-                        .snapshots(),
-                    builder: (context, userSnapshot) {
-                      if (userSnapshot.connectionState ==
-                          ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
+            return ListView(
+              children: filteredFriendRequests.map((doc) {
+                var friendRequestData = doc.data() as Map<String, dynamic>;
+                String userId = friendRequestData['userId'];
+                String requestId = friendRequestData['requestId'];
+                return StreamBuilder<DocumentSnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('Users')
+                      .doc(userId)
+                      .snapshots(),
+                  builder: (context, userSnapshot) {
+                    if (userSnapshot.connectionState ==
+                        ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    }
+
+                    var userData =
+                        userSnapshot.data?.data() as Map<String, dynamic>?;
+
+                    String fullName = "Anonymous";
+                    String? photoUrl;
+
+                    if (userData != null) {
+                      String username = userData['username'] ?? "";
+                      String fname = userData['fname'] ?? "";
+                      String lname = userData['lname'] ?? "";
+
+                      if (username.isNotEmpty) {
+                        fullName = username;
+                      } else if (fname.isNotEmpty || lname.isNotEmpty) {
+                        fullName = '$fname $lname'.trim();
                       }
 
-                      var userData =
-                          userSnapshot.data?.data() as Map<String, dynamic>?;
+                      photoUrl = userData['photo'];
+                    }
 
-                      String fullName = "Anonymous";
-                      String? photoUrl;
-
-                      if (userData != null) {
-                        String username = userData['username'] ?? "";
-                        String fname = userData['fname'] ?? "";
-                        String lname = userData['lname'] ?? "";
-
-                        if (username.isNotEmpty) {
-                          fullName = username;
-                        } else if (fname.isNotEmpty || lname.isNotEmpty) {
-                          fullName = '$fname $lname'.trim();
-                        }
-
-                        photoUrl = userData['photo'];
-                      }
-
-                      return FriendRequestCard(
-                        name: fullName,
-                        pictureUrl: photoUrl,
-                        onAccept: () {
-                          _acceptFriendRequest(
-                              currentUserId, userId, requestId);
-                        },
-                        onReject: () {
-                          _rejectFriendRequest(
-                              currentUserId, userId, requestId);
-                        },
-                      );
-                    },
-                  );
-                }).toList(),
-              );
-            },
-          );
-        },
-      ),
+                    return FriendRequestCard(
+                      name: fullName,
+                      pictureUrl: photoUrl,
+                      onAccept: () {
+                        _acceptFriendRequest(currentUserId, userId, requestId);
+                      },
+                      onReject: () {
+                        _rejectFriendRequest(currentUserId, userId, requestId);
+                      },
+                    );
+                  },
+                );
+              }).toList(),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -137,7 +130,7 @@ class IncomingRequestsPage extends StatelessWidget {
     yield validFriendRequests;
   }
 
-  Widget noPendingFriendRequestsWidget() {
+  Widget noPendingFriendRequestsWidget(String massage) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(30),
@@ -153,8 +146,8 @@ class IncomingRequestsPage extends StatelessWidget {
               ),
               SizedBox(height: 40),
               Text(
-                'You have no pending friend requests.',
-                style: TextStyle(fontSize: 16),
+                massage,
+                style: TextStyle(fontSize: 16, color: Colors.white70),
               ),
             ],
           ),
@@ -184,8 +177,12 @@ class IncomingRequestsPage extends StatelessWidget {
         .doc(friendId)
         .collection('RequestsStatus')
         .doc(requestId)
-        .set({'requestId': requestId, 'Status': "accepted"});
-
+        .set({
+      'requestId': requestId,
+      'userId': currentUserId,
+      'Status': "accepted",
+      'timestamp': FieldValue.serverTimestamp(),
+    });
 
     FirebaseFirestore.instance
         .collection('Users')
@@ -223,7 +220,12 @@ class IncomingRequestsPage extends StatelessWidget {
         .doc(friendId)
         .collection('RequestsStatus')
         .doc(requestId)
-        .set({'requestId': requestId, 'Status': "rejected"});
+        .set({
+      'requestId': requestId,
+      'userId': currentUserId,
+      'Status': "rejected",
+      'timestamp': FieldValue.serverTimestamp(),
+    });
   }
 }
 
