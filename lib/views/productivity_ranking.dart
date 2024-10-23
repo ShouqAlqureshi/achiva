@@ -130,6 +130,7 @@ class ProductivityRankingDashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     final topThree = rankings.take(3).toList();
     final remainingRankings = rankings.skip(3).toList();
+// In the ProductivityRankingDashboard widget
 
     return Container(
       margin: const EdgeInsets.all(16),
@@ -186,13 +187,31 @@ class PeriodSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween, // Align elements to space between
       children: [
-        _PeriodTab(label: 'Last 30 days', isActive: true),
-        const SizedBox(width: 8),
+        Row(
+          children: [
+            _PeriodTab(label: 'Last 30 days', isActive: true),
+            const SizedBox(width: 8),
+          ],
+        ),
+        
+        // Share button aligned to the right
+        IconButton(
+          onPressed: () {
+            // Implement share functionality here
+            print("Share button pressed");
+          },
+          icon: Icon(
+            Icons.share,
+            color: Colors.white.withOpacity(0.5),
+          ),
+        ),
       ],
     );
   }
 }
+
 
 class _PeriodTab extends StatelessWidget {
   final String label;
