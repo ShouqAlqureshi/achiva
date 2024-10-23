@@ -35,10 +35,11 @@ class _GenderSelectionViewState extends State<GenderSelectionView> {
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [
-                                      Color.fromARGB(255, 30, 12, 48),
-              Color.fromARGB(255, 77, 64, 98),],
+            end: Alignment.bottomRight,
+            colors: [
+              Color.fromARGB(255, 30, 12, 48),
+              Color.fromARGB(255, 77, 64, 98),
+            ],
           ),
         ),
         child: Padding(
@@ -77,7 +78,8 @@ class _GenderSelectionViewState extends State<GenderSelectionView> {
                         padding: const EdgeInsets.only(top: 16),
                         child: Text(
                           _errorText!,
-                          style: const TextStyle(color: Colors.red, fontSize: 16),
+                          style:
+                              const TextStyle(color: Colors.red, fontSize: 16),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -127,7 +129,7 @@ class _GenderSelectionViewState extends State<GenderSelectionView> {
   Widget _buildGenderOption(BuildContext context, String gender, IconData icon,
       Map<String, dynamic> userData) {
     final isSelected = _selectedGender == gender.toLowerCase();
-    
+
     return GestureDetector(
       onTap: () {
         setState(() {
