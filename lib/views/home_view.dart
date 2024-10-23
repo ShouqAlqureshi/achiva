@@ -53,47 +53,56 @@ class _HomePageState extends State<HomeScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: _currentIndex == 0
-          ? AppBar(
-              automaticallyImplyLeading: false,
-              backgroundColor: Colors.white,
-              actions: [
-                IconButton(
-                  icon: const Icon(
-                    CupertinoIcons.person_add,
-                    size: 32,
-                    color: CoursesColors.darkGreen,
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => SearchFriendsScreen()),
-                    );
-                  },
+Widget build(BuildContext context) {
+  return Scaffold(
+    backgroundColor: Colors.white,
+    appBar: _currentIndex == 0
+        ? AppBar(
+            automaticallyImplyLeading: false,
+            backgroundColor: Colors.white,
+            actions: [
+              IconButton(
+                icon: const Icon(
+                  CupertinoIcons.person_add,
+                  size: 32,
+                  color: CoursesColors.darkGreen,
                 ),
-              ],
-            )
-          : null,
-      body: PageView(
-        controller: _pageController,
-        physics:
-            const NeverScrollableScrollPhysics(), // Disable swipe to switch pages
-        children: [
-          _buildHomePage(context),
-          const FriendsFeedScreen(), // Your Friends Feed Page
-          const Activity(), //Your Incoming Requests Page
-          const ProfileScreen(), // Your Profile Page
-        ],
-      ),
-      bottomNavigationBar: FloatingBottomNavigationBarWidget(
-        currentIndex: _currentIndex,
-        onTabSelected: _onTabSelected,
-      ),
-    );
-  }
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => SearchFriendsScreen()),
+                  );
+                },
+              ),
+            ],
+          )
+        : null,
+    body: Stack(
+      children: [
+        PageView(
+          controller: _pageController,
+          physics: const NeverScrollableScrollPhysics(),
+          children: [
+            _buildHomePage(context),
+            const FriendsFeedScreen(),
+            const Activity(),
+            const ProfileScreen(),
+          ],
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: FloatingBottomNavigationBarWidget(
+            currentIndex: _currentIndex,
+            onTabSelected: _onTabSelected,
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildHomePage(BuildContext context) {
     return Stack(
