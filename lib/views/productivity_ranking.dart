@@ -454,7 +454,7 @@ class TopThreePodium extends StatelessWidget {
                               child: PlayerPhoto(user: topUsers[0], position: 1),
                             ),
                             const Positioned(
-                              top: -35,
+                              top: -45,
                               child: Text(
                                 '👑',
                                 style: TextStyle(
