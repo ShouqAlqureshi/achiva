@@ -204,7 +204,7 @@ class PeriodSelector extends StatelessWidget {
           },
           icon: Icon(
             Icons.share,
-            color: Colors.white.withOpacity(0.5),
+            color: Colors.purple.withOpacity(0.70),
           ),
         ),
       ],
@@ -310,7 +310,7 @@ class TopThreePodium extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '${topUsers[1]['productivityScore']}🦾',
+                                  '${topUsers[1]['productivityScore']}${topUsers[1]['productivityScore']==0?'😢':'🦾'}',
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(
                                     color: Colors.pink,
@@ -357,7 +357,7 @@ class TopThreePodium extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '${topUsers[0]['productivityScore']}🚀',
+                                '${topUsers[0]['productivityScore']}${topUsers[0]['productivityScore']==0?'😢':'🚀'}',
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   color: Colors.purple,
@@ -404,7 +404,7 @@ class TopThreePodium extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '${topUsers[2]['productivityScore']}💨',
+'${topUsers[2]['productivityScore']}${topUsers[2]['productivityScore'] == 0 ? '😢' : '💨'}',
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(
                                     color: Colors.orange,
