@@ -246,7 +246,7 @@ class TopThreePodium extends StatelessWidget {
         final thirdPlaceX = startX + (podiumWidth * 2) + (horizontalSpacing * 2);
 
         return SizedBox(
-          height: 320, // Increased height to accommodate crown
+          height: 320,
           width: double.infinity,
           child: Stack(
             alignment: Alignment.center,
@@ -318,7 +318,7 @@ class TopThreePodium extends StatelessWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const SizedBox(height: 80), // Increased spacing for photo and crown
+                          const SizedBox(height: 80),
                           Text(
                             topUsers[0]['fullName']?.toString().split(' ')[0] ?? '',
                             style: const TextStyle(
@@ -384,33 +384,36 @@ class TopThreePodium extends StatelessWidget {
                 ),
               ),
               
-              // Player photos and position numbers
+              // Player photos and crown
               Positioned(
-                top: 0, // Moved to the top of the container
+                bottom: 0,
                 left: 0,
                 right: 0,
                 child: SizedBox(
-                  height: 200,
+                  height: 320,
                   child: Stack(
-                    alignment: Alignment.center,
+                    alignment: Alignment.bottomCenter,
                     children: [
                       // Second place
                       if (topUsers.length > 1)
                         Positioned(
                           left: secondPlaceX + 15,
-                          top: 60,
+                          bottom: 140, // Positioned relative to bottom
                           child: PlayerPhoto(user: topUsers[1], position: 2),
                         ),
                     
                       // First place (center)
                       Positioned(
-                        left: firstPlaceX + 15,
-                        top: 0, // Moved higher up to accommodate crown
+                        left: firstPlaceX + 12, // Adjusted for larger size
+                        bottom: 180, // Positioned relative to bottom
                         child: Stack(
                           clipBehavior: Clip.none,
                           alignment: Alignment.topCenter,
                           children: [
-                            PlayerPhoto(user: topUsers[0], position: 1),
+                            Transform.scale(
+                              scale: 1.3, // Increased size for first place
+                              child: PlayerPhoto(user: topUsers[0], position: 1),
+                            ),
                             const Positioned(
                               top: -35,
                               child: Text(
@@ -429,7 +432,7 @@ class TopThreePodium extends StatelessWidget {
                       if (topUsers.length > 2)
                         Positioned(
                           left: thirdPlaceX + 15,
-                          top: 100,
+                          bottom: 100, // Positioned relative to bottom
                           child: PlayerPhoto(user: topUsers[2], position: 3),
                         ),
                     ],
@@ -462,8 +465,23 @@ class PlayerPhoto extends StatelessWidget {
     return '${number}th';
   }
 
+  Color _getPositionColor() {
+    switch (position) {
+      case 1:
+        return Colors.purple;
+      case 2:
+        return Colors.pink;
+      case 3:
+        return Colors.orange;
+      default:
+        return Colors.white;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final positionColor = _getPositionColor();
+    
     return Stack(
       alignment: Alignment.bottomRight,
       children: [
@@ -473,7 +491,7 @@ class PlayerPhoto extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: Colors.white.withOpacity(0.2),
+              color: positionColor.withOpacity(0.3),
               width: 2,
             ),
           ),
@@ -484,7 +502,7 @@ class PlayerPhoto extends StatelessWidget {
                     fit: BoxFit.cover,
                   )
                 : Container(
-                    color: Colors.purple.withOpacity(0.3),
+                    color: positionColor.withOpacity(0.3),
                     child: Center(
                       child: Text(
                         user['fullName'][0],
@@ -502,18 +520,18 @@ class PlayerPhoto extends StatelessWidget {
           width: 32,
           height: 24,
           decoration: BoxDecoration(
-            color: Colors.grey[900],
+            color: positionColor,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: Colors.white.withOpacity(0.2),
+              color: positionColor,
               width: 1,
             ),
           ),
           child: Center(
             child: Text(
               _getOrdinalNumber(position),
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color:Colors.white,
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
               ),
@@ -524,7 +542,6 @@ class PlayerPhoto extends StatelessWidget {
     );
   }
 }
-  
 
 class PodiumCard extends StatelessWidget {
   final Map<String, dynamic> user;
