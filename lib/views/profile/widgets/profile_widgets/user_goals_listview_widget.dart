@@ -1,4 +1,3 @@
-
 import 'package:achiva/core/Constants/constants.dart';
 import 'package:achiva/core/components/loading_widget.dart';
 import 'package:achiva/core/components/no_internet_found_column_widget.dart';
@@ -22,14 +21,6 @@ class UserGoalsListviewWidget extends StatefulWidget {
 }
 
 class _UserGoalsListviewWidgetState extends State<UserGoalsListviewWidget> {
-  // قائمة من الألوان لتمييز المستطيلات
-  final List<Color> colors = [
-    Colors.lightBlueAccent,
-    Colors.lightGreenAccent,
-    Colors.amberAccent,
-    
-  ];
-
   @override
   void initState() {
     widget.layoutCubit.getMyGoals();
@@ -41,43 +32,44 @@ class _UserGoalsListviewWidgetState extends State<UserGoalsListviewWidget> {
     return BlocBuilder<LayoutCubit, LayoutStates>(
       builder: (context, state) {
         if (widget.layoutCubit.myGoals.isNotEmpty) {
-          return ListView.separated(
-            itemCount: widget.layoutCubit.myGoals.length,
-            shrinkWrap: true,
-            padding: EdgeInsets.zero,
-            separatorBuilder: AppConstants.kSeparatorBuilder(),
-            itemBuilder: (context, index) => Container(
-              padding: AppConstants.kContainerPadding,
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 240, 240, 240),
-                borderRadius: AppConstants.kMainRadius,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.layoutCubit.myGoals[index].name,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.kBlack,
-                    ),
+          return Column(
+            children: [
+              for (int index = 0; index < widget.layoutCubit.myGoals.length; index++) ...[
+                if (index > 0) AppConstants.kSeparatorBuilder()(context, index),
+                Container(
+                  padding: AppConstants.kContainerPadding,
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(255, 240, 240, 240),
+                    borderRadius: AppConstants.kMainRadius,
                   ),
-                  8.vrSpace,
-                  Align(
-                    alignment: AlignmentDirectional.topEnd,
-                    child: Text(
-                      DateFormat('yyyy-MM-dd').format(widget.layoutCubit.myGoals[index].date),
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.kLightGrey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.layoutCubit.myGoals[index].name,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.kBlack,
+                        ),
                       ),
-                    ),
+                      8.vrSpace,
+                      Align(
+                        alignment: AlignmentDirectional.topEnd,
+                        child: Text(
+                          DateFormat('yyyy-MM-dd').format(widget.layoutCubit.myGoals[index].date),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.kLightGrey,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
+              ],
+            ],
           );
         } else if (state is GetUserGoalsWithFailureState) {
           if (state.failure.runtimeType == InternetNotFoundFailure) {
