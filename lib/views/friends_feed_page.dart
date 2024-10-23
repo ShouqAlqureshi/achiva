@@ -207,6 +207,7 @@ class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
             ],
           ),
         ),
+        
         child: Column(
           children: [
             _buildAppBar(),
@@ -229,89 +230,98 @@ class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
   }
 
   Widget _buildPostsView() {
-    return RefreshIndicator(
-      onRefresh: _refreshPosts,
-      child: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: _postsStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+  return RefreshIndicator(
+    onRefresh: _refreshPosts,
+    child: StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _postsStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return ListView(
-              children: const [
-                Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text(
-                      'No posts available.',
-                      style: TextStyle(color: Colors.white),
-                    ),
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return ListView(
+            children: const [
+              Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text(
+                    'No posts available.',
+                    style: TextStyle(color: Colors.white),
                   ),
                 ),
-              ],
-            );
-          }
-
-          final posts = snapshot.data!;
-          return ListView.separated(
-            padding: const EdgeInsets.all(16.0),
-            itemCount: posts.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 16.0),
-            itemBuilder: (context, index) {
-              final post = posts[index];
-              return PostCard(
-                userName: post['userName'] ?? 'Unknown User',
-                content: post['content'] ?? 'No content',
-                photoUrl: post['photo'] ?? '',
-                timestamp: post['timestamp'] ?? 'Unknown time',
-                profilePicUrl: post['profilePic'] ?? '',
-                postId: post['id'] ?? '',
-              );
-            },
+              ),
+            ],
           );
-        },
-      ),
-    );
-  }
+        }
 
-  Widget _buildRankingsView() {
-    return RefreshIndicator(
-      onRefresh: _refreshRankings,
-      child: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: _rankingsStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+        final posts = snapshot.data!;
+        return ListView.separated(
+          padding: const EdgeInsets.all(16.0),
+          physics: const AlwaysScrollableScrollPhysics(),
+          itemCount: posts.length + 1, // Add 1 for the bottom padding
+          separatorBuilder: (context, index) => const SizedBox(height: 16.0),
+          itemBuilder: (context, index) {
+            if (index == posts.length) {
+              // Last item is just the bottom padding
+              return const SizedBox(height: kBottomNavigationBarHeight);
+            }
+            
+            final post = posts[index];
+            return PostCard(
+              userName: post['userName'] ?? 'Unknown User',
+              content: post['content'] ?? 'No content',
+              photoUrl: post['photo'] ?? '',
+              timestamp: post['timestamp'] ?? 'Unknown time',
+              profilePicUrl: post['profilePic'] ?? '',
+              postId: post['id'] ?? '',
+            );
+          },
+        );
+      },
+    ),
+  );
+}
 
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return ListView(
-              children: const [
-                Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text(
-                      'No ranking data available',
-                      style: TextStyle(color: Colors.white),
-                    ),
+Widget _buildRankingsView() {
+  return RefreshIndicator(
+    onRefresh: _refreshRankings,
+    child: StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _rankingsStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return ListView(
+            children: const [
+              Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text(
+                    'No ranking data available',
+                    style: TextStyle(color: Colors.white),
                   ),
                 ),
-              ],
-            );
-          }
-
-          return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(0.0),
-              child: ProductivityRankingDashboard(rankings: snapshot.data!),
-            ),
+              ),
+            ],
           );
-        },
-      ),
-    );
-  }
+        }
+
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            children: [
+              ProductivityRankingDashboard(rankings: snapshot.data!),
+              const SizedBox(height: kBottomNavigationBarHeight),
+            ],
+          ),
+        );
+      },
+    ),
+  );
+}
 
   Widget _buildAppBar() {
     return SafeArea(
