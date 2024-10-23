@@ -1,3 +1,4 @@
+import 'package:achiva/views/activity/activity.dart';
 import 'package:achiva/views/auth/gender_selection_view.dart';
 import 'package:achiva/views/auth/new_user_info_view.dart';
 import 'package:achiva/views/auth/phone_num_authview.dart';

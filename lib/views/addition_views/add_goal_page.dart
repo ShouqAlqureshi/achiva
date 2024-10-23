@@ -1,3 +1,4 @@
+import 'package:achiva/views/auth/validators.dart';
 import 'package:flutter/material.dart';
 import 'package:achiva/views/addition_views/add_task_page.dart'; // Import the task page
 import 'package:flutter/services.dart';
@@ -16,36 +17,20 @@ class _AddGoalPageState extends State<AddGoalPage> {
   DateTime? _selectedDate;
   bool _isNameValid = true; // Tracks if the goal name is valid
   bool _isDateValid = true; // Tracks if the date is valid
-
-  // Navigate to the next page to add tasks
-  /* void _goToAddTaskPage() {
-    setState(() {
-      _isNameValid = _nameController.text.isNotEmpty; // Check if name is not empty
-      _isDateValid = _selectedDate != null; // Check if date is selected
-    });
-
-    // If both fields are valid, proceed to the next page
-    if (_isNameValid && _isDateValid) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AddTaskPage(
-            goalName: _nameController.text,
-            goalDate: _selectedDate!,
-            goalVisibility: _visibility,
-          ),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please complete all required fields')),
-      );
-    }
-  }*/
+  String? errormassage = "";
+  Validators validate = Validators();
   void _goToAddTaskPage() {
     setState(() {
       // Check if name is not empty and not just whitespace
-      _isNameValid = _nameController.text.trim().isNotEmpty;
+      _isNameValid =
+          validate.isGoalNameValid(_nameController.text, context) as bool;
+      if (_isNameValid) {
+        errormassage = "The goal name exists, try changing the name";
+      } else if (_nameController.text.trim().isNotEmpty) {
+        errormassage = "Please enter a goal name";
+      } else {
+        errormassage = null;
+      }
       _isDateValid = _selectedDate != null; // Check if date is selected
     });
 
@@ -126,9 +111,7 @@ class _AddGoalPageState extends State<AddGoalPage> {
                           ],
                           decoration: InputDecoration(
                             labelText: 'Goal Name',
-                            errorText: _isNameValid
-                                ? null
-                                : 'Please enter a goal name',
+                            errorText: _isNameValid ? null : errormassage,
                             border: OutlineInputBorder(),
                             filled: true,
                             fillColor: Colors.white,
