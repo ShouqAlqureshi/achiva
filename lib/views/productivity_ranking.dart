@@ -246,7 +246,7 @@ class TopThreePodium extends StatelessWidget {
         final thirdPlaceX = startX + (podiumWidth * 2) + (horizontalSpacing * 2);
 
         return SizedBox(
-          height: 280, // Increased height to accommodate crown
+          height: 260, // Increased height to accommodate crown
           width: double.infinity,
           child: Stack(
             alignment: Alignment.center,
@@ -390,7 +390,7 @@ class TopThreePodium extends StatelessWidget {
                 left: 0,
                 right: 0,
                 child: SizedBox(
-                  height: 280, // Increased to match parent
+                  height: 260, // Increased to match parent
                   child: Stack(
                     alignment: Alignment.bottomCenter,
                     children: [
