@@ -30,14 +30,29 @@ class FriendProfileScreen extends StatelessWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           CircleAvatar(
-            radius: 64,
-            backgroundColor: Colors.grey[200],
-            backgroundImage: NetworkImage(
-              userModel.photo ?? "",
-            ),
-            onBackgroundImageError: (exception, stackTrace) =>
-                const Icon(Icons.person, size: 60, color: Colors.grey),
-          ),
+  radius: 64,
+  backgroundColor: Colors.grey[200],
+  child: ClipOval(
+    child: userModel.photo != null && userModel.photo!.isNotEmpty
+      ? Image.network(
+          userModel.photo!,
+          width: 128, // diameter = 2 * radius
+          height: 128,
+          fit: BoxFit.cover, // This will maintain aspect ratio while covering the space
+          errorBuilder: (context, error, stackTrace) =>
+              const Icon(Icons.person, size: 60, color: Colors.grey),
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return const Center(
+              child: CircularProgressIndicator(
+                color: Colors.deepPurple,
+              ),
+            );
+          },
+        )
+      : const Icon(Icons.person, size: 60, color: Colors.grey),
+  ),
+),
           16.vrSpace,
           Text(
             "${userModel.fname} ${userModel.lname}",
