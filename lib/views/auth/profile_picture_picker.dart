@@ -1,25 +1,26 @@
 import 'dart:developer' show log;
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/services.dart' show rootBundle;
 
+import 'package:path_provider/path_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-
 class ProfilePicturePicker extends StatefulWidget {
   const ProfilePicturePicker({super.key});
 
   @override
   State<ProfilePicturePicker> createState() => _ProfilePicturePickerState();
 }
-
 class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
   XFile? _imageFile;
   String? imageLink;
   bool isFormSubmitted = false;
   final ImagePicker _picker = ImagePicker();
-
   Future<void> _pickImage(ImageSource source) async {
     final XFile? pickedFile = await _picker.pickImage(source: source);
     if (pickedFile != null) {
@@ -28,58 +29,63 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
       });
     }
   }
+ Future<void> _uploadImage() async {
+  setState(() {
+    isFormSubmitted = true;
+  });
 
-  Future<void> _uploadImage() async {
-    setState(() {
-      isFormSubmitted = true;
+  final usercollection = FirebaseFirestore.instance
+      .collection("Users")
+      .doc(FirebaseAuth.instance.currentUser!.uid);
+  final datatosave =
+      ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+
+  _showLoadingDialog();
+
+  try {
+    String photoUrl;
+
+    if (_imageFile != null) {
+      // Upload selected image
+      final uploadTask = await FirebaseStorage.instance
+          .ref()
+          .child("Users/${Uri.file(_imageFile!.path).pathSegments.last}")
+          .putFile(File(_imageFile!.path));
+
+      photoUrl = await uploadTask.ref.getDownloadURL();
+    } else {
+      // Upload default image directly from asset bytes
+      final ByteData data = await rootBundle.load('lib/images/chicken.png');
+      final bytes = data.buffer.asUint8List();
+
+      // Upload bytes directly
+      final uploadTask = await FirebaseStorage.instance
+          .ref()
+          .child("Users/default_${FirebaseAuth.instance.currentUser!.uid}_chicken.png")
+          .putData(bytes, SettableMetadata(contentType: 'image/png'));
+
+      photoUrl = await uploadTask.ref.getDownloadURL();
+    }
+
+    // Add the photo URL to the data
+    datatosave.addAll({
+      "photo": photoUrl,
+      'id': FirebaseAuth.instance.currentUser!.uid,
     });
 
-    final usercollection = FirebaseFirestore.instance
-        .collection("Users")
-        .doc(FirebaseAuth.instance.currentUser!.uid);
-    final datatosave =
-        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    log(datatosave.toString());
+    await usercollection.set(datatosave);
 
-    _showLoadingDialog();
-
-    try {
-      String photoUrl;
-
-      if (_imageFile != null) {
-        final uploadTask = await FirebaseStorage.instance
-            .ref()
-            .child("Users/${Uri.file(_imageFile!.path).pathSegments.last}")
-            .putFile(File(_imageFile!.path));
-
-        photoUrl = await uploadTask.ref.getDownloadURL();
-        debugPrint(photoUrl);
-        datatosave.addAll({
-          "photo": photoUrl,
-          'id': FirebaseAuth.instance.currentUser!.uid,
-        });
-      } else {
-        photoUrl =
-            "https://firebasestorage.googleapis.com/gs://achiva444.appspot.com/defaultPictures/chicken.png";
-        datatosave.addAll({
-
-
-          'id': FirebaseAuth.instance.currentUser!.uid,
-        });
-      }
-
-      log(datatosave.toString());
-      usercollection.set(datatosave);
-
-      Navigator.of(context).pop();
-      Navigator.of(context).pushNamed('/home');
-    } catch (e) {
-      Navigator.of(context).pop();
-      log("Error uploading image: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error uploading image: $e')),
-      );
-    }
+    Navigator.of(context).pop(); // Dismiss loading dialog
+    Navigator.of(context).pushNamed('/home');
+  } catch (e) {
+    Navigator.of(context).pop(); // Dismiss loading dialog
+    log("Error uploading image: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error uploading image: $e')),
+    );
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -116,8 +122,8 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
               Color.fromARGB(255, 30, 12, 48),
               Color.fromARGB(255, 77, 64, 98),
             ],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
           ),
         ),
         child: Center(
