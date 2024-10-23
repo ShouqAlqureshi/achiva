@@ -204,7 +204,7 @@ class PeriodSelector extends StatelessWidget {
           },
           icon: Icon(
             Icons.share,
-            color: Colors.white.withOpacity(0.5),
+            color: Colors.purple.withOpacity(0.70),
           ),
         ),
       ],
