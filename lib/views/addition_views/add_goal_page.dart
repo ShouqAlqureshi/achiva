@@ -17,40 +17,65 @@ class _AddGoalPageState extends State<AddGoalPage> {
   DateTime? _selectedDate;
   bool _isNameValid = true; // Tracks if the goal name is valid
   bool _isDateValid = true; // Tracks if the date is valid
-  String? errormassage = "";
+  String? errorMessage = "";
   Validators validate = Validators();
-  void _goToAddTaskPage() {
+
+  Future<void> _goToAddTaskPage() async {
     setState(() {
-      // Check if name is not empty and not just whitespace
-      _isNameValid =
-          validate.isGoalNameValid(_nameController.text, context) as bool;
-      if (_isNameValid) {
-        errormassage = "The goal name exists, try changing the name";
-      } else if (_nameController.text.trim().isNotEmpty) {
-        errormassage = "Please enter a goal name";
-      } else {
-        errormassage = null;
-      }
-      _isDateValid = _selectedDate != null; // Check if date is selected
+      // Reset error states
+      _isDateValid = _selectedDate != null;
+      errorMessage = null;
     });
 
-    // If both fields are valid, proceed to the next page
-    if (_isNameValid && _isDateValid) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AddTaskPage(
-            goalName: _nameController.text,
-            goalDate: _selectedDate!,
-            goalVisibility: _visibility,
-          ),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please complete all required fields')),
-      );
+    if (_nameController.text.trim().isEmpty) {
+      setState(() {
+        _isNameValid = false;
+        errorMessage = "Please enter a goal name";
+      });
+      _showError('Please enter a goal name');
+      return;
     }
+
+    try {
+      // Wait for the async validation
+      bool isValid =
+          await validate.isGoalNameValid(_nameController.text, context);
+
+      setState(() {
+        _isNameValid = isValid;
+        if (!isValid) {
+          errorMessage = "The goal name exists, try changing the name";
+        }
+      });
+
+      // Check all validation conditions
+      if (_isNameValid && _isDateValid) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AddTaskPage(
+              goalName: _nameController.text,
+              goalDate: _selectedDate!,
+              goalVisibility: _visibility,
+            ),
+          ),
+        );
+      } else {
+        String errorMsg = '';
+        if (!_isDateValid) errorMsg = 'Please select an end date';
+        if (!_isNameValid) errorMsg = errorMessage ?? 'Invalid goal name';
+        _showError(errorMsg);
+      }
+    } catch (e) {
+      _showError('An error occurred while validating the goal name');
+      print('Error validating goal name: $e');
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   // Display a date picker that doesn't allow selecting past dates
@@ -111,7 +136,7 @@ class _AddGoalPageState extends State<AddGoalPage> {
                           ],
                           decoration: InputDecoration(
                             labelText: 'Goal Name',
-                            errorText: _isNameValid ? null : errormassage,
+                            errorText: _isNameValid ? null : errorMessage,
                             border: OutlineInputBorder(),
                             filled: true,
                             fillColor: Colors.white,
