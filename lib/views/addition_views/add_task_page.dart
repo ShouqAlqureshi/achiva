@@ -229,231 +229,401 @@ class _AddTaskPageState extends State<AddTaskPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-          title: const Text('Add Tasks'), backgroundColor: Colors.grey[200]),
-      backgroundColor: Colors.grey[200],
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              // Container to hold the form fields
-              Container(
-                alignment: Alignment
-                    .center, // Centers the content inside the container
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: Colors.white,
-                  boxShadow: [BoxShadow(color: Colors.grey, blurRadius: 5)],
-                ),
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    // Task Name
-                    TextField(
-                      controller: _taskNameController,
-                      maxLength: 50, // Set the maximum number of characters
-                      inputFormatters: [
-                        LengthLimitingTextInputFormatter(50),
-                        FilteringTextInputFormatter.deny(RegExp(r'^\s*$')),
-                      ],
-                      decoration: InputDecoration(
-                        labelText: 'Task Name (mandatory)',
-                        border: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(30), // Rounded edges
-                        ),
-                        errorText:
-                            _isTaskNameValid ? null : 'Task Name is required',
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Description
-                    TextField(
-                      controller: _descriptionController,
-                      maxLength: 100, // Set the maximum number of characters
-                      inputFormatters: [
-                        LengthLimitingTextInputFormatter(100),
-                        FilteringTextInputFormatter.deny(RegExp(r'^\s*$')),
-                      ],
-                      decoration: InputDecoration(
-                        labelText: 'Description (optional)',
-                        border: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(30), // Rounded edges
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Location
-                    TextField(
-                      controller: _locationController,
-                      maxLength: 100, // Set the maximum number of characters
-                      inputFormatters: [
-                        LengthLimitingTextInputFormatter(100),
-                        FilteringTextInputFormatter.deny(RegExp(r'^\s*$')),
-                      ],
-                      decoration: InputDecoration(
-                        labelText: 'Location (optional)',
-                        border: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(30), // Rounded edges
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Date Picker
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _selectedDate != null
-                                ? 'Date: ${DateFormat('yyyy-MM-dd').format(_selectedDate!)}'
-                                : 'Select Date (mandatory)',
-                            style: TextStyle(
-                              color: _isDateValid ? Colors.black : Colors.red,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.calendar_today),
-                          onPressed: () => _selectDate(context),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Start Time Picker
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _startTime != null
-                                ? 'Start Time: ${_startTime!.format(context)}'
-                                : 'Select Start Time (mandatory)',
-                            style: TextStyle(
-                              color:
-                                  _isStartTimeValid ? Colors.black : Colors.red,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.access_time),
-                          onPressed: () => _selectStartTime(context),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // End Time Picker
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _endTime != null
-                                ? 'End Time: ${_endTime!.format(context)}'
-                                : 'Select End Time (mandatory)',
-                            style: TextStyle(
-                              color:
-                                  _isEndTimeValid ? Colors.black : Colors.red,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.access_time),
-                          onPressed: () => _selectEndTime(context),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Recurrence
-                    DropdownButtonFormField<String>(
-                      value: _selectedRecurrence,
-                      dropdownColor: Colors.white,
-                      decoration: InputDecoration(
-                        labelText: 'Recurrence',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      items: [
-                        DropdownMenuItem(
-                          value: null,
-                          enabled: true,
-                          child: Text('No recurrence'),
-                        ),
-                        DropdownMenuItem(
-                            value: 'Weekly', child: Text('Weekly recurrence')),
-                      ],
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          _selectedRecurrence = newValue;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Row for Add Task and Save Goal Buttons, make them closer to each other
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Add Task Button
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          Colors.deepPurple, // Set button background color
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12), // Add padding
-                    ),
-                    onPressed: _createGoalAndAddTask,
-                    child: const Text(
-                      'Save',
-                      style: TextStyle(
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 20), // Space between buttons
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // // Display Subtasks as cards centered
-              // ListView.builder(
-              //   shrinkWrap: true,
-              //   physics: const NeverScrollableScrollPhysics(),
-              //   itemCount:
-              //       _selectedRecurrence == "Weekly" ? createdTasks.length : 1,
-              //   itemBuilder: (context, index) {
-              //     final task = _selectedRecurrence == "Weekly"
-              //         ? createdTasks[index]
-              //         : taskData;
-              //     return Center(
-              //       // Center the card
-              //       child: Card(
-              //         color: Colors.deepPurple,
-              //         shape: RoundedRectangleBorder(
-              //           borderRadius: BorderRadius.circular(10),
-              //         ),
-              //         elevation: 4,
-              //         margin: const EdgeInsets.symmetric(vertical: 8.0),
-              //         child: ListTile(
-              //           title: Text(task['taskName']),
-              //           subtitle: Text(
-              //               'Date: ${task['date']} | Duration: ${task['duration']}| Recurrence: ${task['recurrence'] ?? "No recurrence"}'),
-              //         ),
-              //       ),
-              //     );
-              //   },
-              // ),
+        foregroundColor: Colors.white,
+        title: const Text(
+          'Add Tasks',
+          style: TextStyle(
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      extendBodyBehindAppBar: true,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color.fromARGB(255, 30, 12, 48),
+              Color.fromARGB(255, 77, 64, 98),
             ],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                const SizedBox(height: 80), // Space for AppBar
+                Container(
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(color: Colors.black26, blurRadius: 5)
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    children: [
+                      // Task Name Field (unchanged)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Task Name',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          TextField(
+                            controller: _taskNameController,
+                            maxLength: 50,
+                            inputFormatters: [
+                              LengthLimitingTextInputFormatter(50),
+                              FilteringTextInputFormatter.deny(
+                                  RegExp(r'^\s*$')),
+                            ],
+                            decoration: InputDecoration(
+                              hintText: 'Enter task name',
+                              errorText: _isTaskNameValid ? null : 'Required',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Description and Location Row (unchanged)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Description',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                TextField(
+                                  controller: _descriptionController,
+                                  maxLength: 100,
+                                  inputFormatters: [
+                                    LengthLimitingTextInputFormatter(100),
+                                    FilteringTextInputFormatter.deny(
+                                        RegExp(r'^\s*$')),
+                                  ],
+                                  decoration: InputDecoration(
+                                    hintText: 'Enter description',
+                                    border: OutlineInputBorder(),
+                                    counterText: '',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Location',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                TextField(
+                                  controller: _locationController,
+                                  maxLength: 100,
+                                  inputFormatters: [
+                                    LengthLimitingTextInputFormatter(100),
+                                    FilteringTextInputFormatter.deny(
+                                        RegExp(r'^\s*$')),
+                                  ],
+                                  decoration: InputDecoration(
+                                    hintText: 'Enter location',
+                                    border: OutlineInputBorder(),
+                                    counterText: '',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Recurrence and Day Row (updated)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Recurrence',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Container(
+                                  height: 40, // Match height with date picker
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(30),
+                                    border:
+                                        Border.all(color: Colors.grey[300]!),
+                                    color: Colors.white,
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      dropdownColor: Colors.white,
+                                      value: _selectedRecurrence,
+                                      isExpanded: true,
+                                      hint: Text(
+                                        'No recurrence',
+                                      ),
+                                      items: [
+                                        DropdownMenuItem(
+                                          value: null,
+                                          child: Text('No recurrence'),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: 'Weekly',
+                                          child: Text('Weekly recurrence'),
+                                        ),
+                                      ],
+                                      onChanged: (String? newValue) {
+                                        setState(() {
+                                          _selectedRecurrence = newValue;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Day',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                InkWell(
+                                  onTap: () => _selectDate(context),
+                                  child: Container(
+                                    height: 40, // Consistent height
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(30),
+                                      border:
+                                          Border.all(color: Colors.grey[300]!),
+                                      color: Colors.white,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            _selectedDate != null
+                                                ? DateFormat('dd.MM.yyyy')
+                                                    .format(_selectedDate!)
+                                                : 'Select Date',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: _isDateValid
+                                                  ? Colors.black
+                                                  : Colors.red,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        Icon(Icons.calendar_today, size: 16),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Time Row (updated with consistent styling)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Time-From',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                InkWell(
+                                  onTap: () => _selectStartTime(context),
+                                  child: Container(
+                                    height: 40, // Consistent height
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(30),
+                                      border:
+                                          Border.all(color: Colors.grey[300]!),
+                                      color: Colors.white,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            _startTime != null
+                                                ? _startTime!.format(context)
+                                                : 'Select',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: _isStartTimeValid
+                                                  ? Colors.black
+                                                  : Colors.red,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        Icon(Icons.access_time, size: 16),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Time-To',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                InkWell(
+                                  onTap: () => _selectEndTime(context),
+                                  child: Container(
+                                    height: 40, // Consistent height
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(30),
+                                      border:
+                                          Border.all(color: Colors.grey[300]!),
+                                      color: Colors.white,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            _endTime != null
+                                                ? _endTime!.format(context)
+                                                : 'Select',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: _isEndTimeValid
+                                                  ? Colors.black
+                                                  : Colors.red,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        Icon(Icons.access_time, size: 16),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          // TextButton(
+                          //   child: Text(
+                          //     'Cancel',
+                          //     style: TextStyle(
+                          //       color: Colors.black,
+                          //       fontSize: 16,
+                          //     ),
+                          //   ),
+                          //   onPressed: () => Navigator.of(context).pop(),
+                          // ),
+                          // Save Button (updated with consistent styling)
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  const Color.fromARGB(255, 30, 12, 48),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 32, vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                            ),
+                            onPressed: _createGoalAndAddTask,
+                            child: const Text(
+                              'Save',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

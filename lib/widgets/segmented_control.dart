@@ -11,7 +11,8 @@ class SlidingSegmentedControl extends StatefulWidget {
   });
 
   @override
-  State<SlidingSegmentedControl> createState() => _SlidingSegmentedControlState();
+  State<SlidingSegmentedControl> createState() =>
+      _SlidingSegmentedControlState();
 }
 
 class _SlidingSegmentedControlState extends State<SlidingSegmentedControl> {
@@ -20,8 +21,8 @@ class _SlidingSegmentedControlState extends State<SlidingSegmentedControl> {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(50),
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(25),
       ),
       child: Stack(
         children: [
@@ -36,7 +37,7 @@ class _SlidingSegmentedControlState extends State<SlidingSegmentedControl> {
               width: MediaQuery.of(context).size.width * 0.43,
               height: 45,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(25),
                 boxShadow: [
                   BoxShadow(
@@ -84,9 +85,8 @@ class _SlidingSegmentedControlState extends State<SlidingSegmentedControl> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: widget.selectedIndex == index
-                ? Colors.black
-                : Colors.black54,
+            color:
+                widget.selectedIndex == index ? Colors.white : Colors.white54,
           ),
         ),
       ),
