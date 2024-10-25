@@ -253,16 +253,35 @@ class TopThreePodium extends StatelessWidget {
     return fullName;
   }
 
+  // Calculate font size based on name length and container width
+  double _calculateFontSize(String name, double containerWidth) {
+    // Base font size for short names
+    double baseFontSize = 24;
+    
+    // Approximate characters that can fit at base font size
+    int baseCharCount = 8;
+    
+    // Adjust font size based on name length
+    if (name.length > baseCharCount) {
+      double ratio = baseCharCount / name.length;
+      // Ensure font size doesn't go below minimum
+      return math.max(16.0, baseFontSize * ratio);
+    }
+    
+    return baseFontSize;
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      // Calculate dimensions based on available width
       final availableWidth = constraints.maxWidth;
-      final podiumWidth = math.min(100.0,
-          (availableWidth - 32 - 16) / 3); // 32 for padding, 16 for spacing
-      final horizontalSpacing =
-          math.min(8.0, (availableWidth - podiumWidth * 3 - 32) / 2);
+      final podiumWidth = math.min(100.0, (availableWidth - 32 - 16) / 3);
+      final horizontalSpacing = math.min(8.0, (availableWidth - podiumWidth * 3 - 32) / 2);
       final leftPadding = 16.0;
+
+      // Calculate first place name font size
+      final firstPlaceName = _formatName(topUsers[0]['fullName'] ?? '');
+      final firstPlaceFontSize = _calculateFontSize(firstPlaceName, podiumWidth);
 
       return Container(
         height: 260,
@@ -283,7 +302,7 @@ class TopThreePodium extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     if (topUsers.length > 1) ...[
-                      // Second place podium
+                      // Second place podium (unchanged)
                       Container(
                         width: podiumWidth,
                         height: 160,
@@ -330,7 +349,7 @@ class TopThreePodium extends StatelessWidget {
                       SizedBox(width: horizontalSpacing),
                     ],
 
-                    // First place podium - always centered
+                    // First place podium - modified for flexible name display
                     Container(
                       width: podiumWidth,
                       height: 200,
@@ -351,13 +370,20 @@ class TopThreePodium extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Text(
-                              _formatName(topUsers[0]['fullName'] ?? ''),
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.w500,
+                            Container(
+                              width: podiumWidth,
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  firstPlaceName,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: firstPlaceFontSize,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -377,7 +403,7 @@ class TopThreePodium extends StatelessWidget {
 
                     if (topUsers.length > 2) ...[
                       SizedBox(width: horizontalSpacing),
-                      // Third place podium
+                      // Third place podium (unchanged)
                       Container(
                         width: podiumWidth,
                         height: 120,
