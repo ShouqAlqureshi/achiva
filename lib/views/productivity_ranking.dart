@@ -4,117 +4,147 @@ import 'package:flutter/material.dart';
 import 'dart:ui'; // For ImageFilter
 import 'dart:math' as math;
 
+class UserDataCache {
+  static final Map<String, Map<String, dynamic>> _userCache = {};
+  
+  static void cacheUser(String userId, Map<String, dynamic> userData) {
+    _userCache[userId] = userData;
+  }
+  
+  static Map<String, dynamic>? getCachedUser(String userId) {
+    return _userCache[userId];
+  }
+  
+  static void clearCache() {
+    _userCache.clear();
+  }
+}
+
 class RankingsService {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   Stream<List<Map<String, dynamic>>> fetchProductivityRankings() async* {
     try {
-      User? currentUser = FirebaseAuth.instance.currentUser;
+      User? currentUser = _auth.currentUser;
       if (currentUser == null) {
         yield [];
         return;
       }
 
-      // Fetch friends list
-      QuerySnapshot friendsSnapshot = await FirebaseFirestore.instance
-          .collection('Users')
-          .doc(currentUser.uid)
-          .collection('friends')
-          .get();
+      // Batch queries for better performance
+      final userDoc = _firestore.collection('Users').doc(currentUser.uid);
+      final friendsQuery = userDoc.collection('friends').get();
+      
+      final friendsSnapshot = await friendsQuery;
+      final List<String> userIds = [
+        currentUser.uid,
+        ...friendsSnapshot.docs.map((doc) => doc['userId'] as String)
+      ];
 
-      List<String> userIds =
-          friendsSnapshot.docs.map((doc) => doc['userId'] as String).toList();
-      userIds.add(currentUser.uid);
-
-      List<Map<String, dynamic>> userProductivity = [];
-      // Changed to 7 days instead of 30
       final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
+      List<Map<String, dynamic>> userProductivity = [];
 
-      for (String userId in userIds) {
-        try {
-          QuerySnapshot goalsSnapshot = await FirebaseFirestore.instance
-              .collection('Users')
-              .doc(userId)
-              .collection('goals')
-              .get();
-
-          int totalCompletedTasks = 0;
-          int totalTasks = 0;
-
-          for (var goalDoc in goalsSnapshot.docs) {
-            QuerySnapshot tasksSnapshot = await FirebaseFirestore.instance
-                .collection('Users')
-                .doc(userId)
-                .collection('goals')
-                .doc(goalDoc.id)
-                .collection('tasks')
-                .get();
-
-            // Updated to check for tasks completed within last 7 days
-            int completedTasksForGoal = tasksSnapshot.docs.where((task) {
-              final taskData = task.data() as Map<String, dynamic>;
-              bool isCompleted = taskData['completed'] == true;
-              if (!isCompleted) return false;
-
-              final completedDate =
-                  (taskData['completedDate'] as Timestamp?)?.toDate();
-              if (completedDate == null) return false;
-
-              return completedDate.isAfter(sevenDaysAgo);
-            }).length;
-
-            totalCompletedTasks += completedTasksForGoal;
-            // Only count tasks that were due within the last 7 days
-            totalTasks += tasksSnapshot.docs.where((task) {
-              final taskData = task.data() as Map<String, dynamic>;
-              final dueDate = (taskData['dueDate'] as Timestamp?)?.toDate();
-              if (dueDate == null) return false;
-              return dueDate.isAfter(sevenDaysAgo);
-            }).length;
-          }
-
-          DocumentSnapshot userDoc = await FirebaseFirestore.instance
-              .collection('Users')
-              .doc(userId)
-              .get();
-
-          if (!userDoc.exists) continue;
-
-          final userData = userDoc.data() as Map<String, dynamic>?;
-          if (userData == null) continue;
-
-          final firstName = userData['fname'] as String? ?? 'Unknown';
-          final lastName = userData['lname'] as String? ?? 'User';
-          final photoUrl = userData['photo'] as String? ?? '';
-
-          // Adjusted productivity score calculation for 7-day period
-          double completionRate =
-              totalTasks > 0 ? totalCompletedTasks / totalTasks : 0;
-          // Modified scoring to be more sensitive to shorter timeframe
-          int productivityScore =
-              (totalCompletedTasks * 20 + completionRate * 100).round();
-
-          userProductivity.add({
-            'userId': userId,
-            'fullName': '$firstName $lastName',
-            'profilePic': photoUrl,
-            'completedTasks': totalCompletedTasks,
-            'totalGoals': goalsSnapshot.docs.length,
-            'totalTasks': totalTasks,
-            'productivityScore': productivityScore,
-          });
-        } catch (e) {
-          print('Error processing user $userId: $e');
-          continue;
-        }
-      }
-
-      userProductivity.sort(
-          (a, b) => b['productivityScore'].compareTo(a['productivityScore']));
+      // Parallel processing for user data
+      final futures = userIds.map((userId) => _processUserData(userId, sevenDaysAgo));
+      final results = await Future.wait(futures);
+      
+      userProductivity = results.where((data) => data != null).cast<Map<String, dynamic>>().toList();
+      userProductivity.sort((a, b) => b['productivityScore'].compareTo(a['productivityScore']));
 
       yield userProductivity;
     } catch (e) {
       print('Error fetching productivity rankings: $e');
       yield [];
     }
+  }
+
+  Future<Map<String, dynamic>?> _processUserData(String userId, DateTime sevenDaysAgo) async {
+    try {
+      // Check cache first
+      final cachedData = UserDataCache.getCachedUser(userId);
+      if (cachedData != null) {
+        return cachedData;
+      }
+
+      final userDoc = await _firestore.collection('Users').doc(userId).get();
+      if (!userDoc.exists) return null;
+
+      final userData = userDoc.data() as Map<String, dynamic>?;
+      if (userData == null) return null;
+
+      final goalsSnapshot = await _firestore
+          .collection('Users')
+          .doc(userId)
+          .collection('goals')
+          .get();
+
+      int totalCompletedTasks = 0;
+      int totalTasks = 0;
+
+      // Process all tasks in parallel
+      final taskFutures = goalsSnapshot.docs.map((goalDoc) =>
+          _processGoalTasks(userId, goalDoc.id, sevenDaysAgo));
+      final taskResults = await Future.wait(taskFutures);
+
+      for (final result in taskResults) {
+        totalCompletedTasks += result['completed'] as int;
+        totalTasks += result['total'] as int;
+      }
+
+      final productivityData = {
+        'userId': userId,
+        'fullName': '${userData['fname'] ?? 'Unknown'} ${userData['lname'] ?? 'User'}',
+        'profilePic': userData['photo'] ?? '',
+        'completedTasks': totalCompletedTasks,
+        'totalGoals': goalsSnapshot.docs.length,
+        'totalTasks': totalTasks,
+        'productivityScore': _calculateProductivityScore(totalCompletedTasks, totalTasks),
+      };
+
+      // Cache the result
+      UserDataCache.cacheUser(userId, productivityData);
+      return productivityData;
+    } catch (e) {
+      print('Error processing user $userId: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, int>> _processGoalTasks(
+      String userId, String goalId, DateTime sevenDaysAgo) async {
+    final tasksSnapshot = await _firestore
+        .collection('Users')
+        .doc(userId)
+        .collection('goals')
+        .doc(goalId)
+        .collection('tasks')
+        .get();
+
+    final completedTasks = tasksSnapshot.docs.where((task) {
+      final taskData = task.data();
+      final isCompleted = taskData['completed'] == true;
+      if (!isCompleted) return false;
+
+      final completedDate = (taskData['completedDate'] as Timestamp?)?.toDate();
+      if (completedDate == null) return false;
+
+      return completedDate.isAfter(sevenDaysAgo);
+    }).length;
+
+    final totalTasks = tasksSnapshot.docs.where((task) {
+      final taskData = task.data();
+      final dueDate = (taskData['dueDate'] as Timestamp?)?.toDate();
+      if (dueDate == null) return false;
+      return dueDate.isAfter(sevenDaysAgo);
+    }).length;
+
+    return {'completed': completedTasks, 'total': totalTasks};
+  }
+
+  int _calculateProductivityScore(int completedTasks, int totalTasks) {
+    final completionRate = totalTasks > 0 ? completedTasks / totalTasks : 0;
+    return (completedTasks * 20 + completionRate * 100).round();
   }
 }
 
