@@ -245,6 +245,14 @@ class TopThreePodium extends StatelessWidget {
     required this.topUsers,
   });
 
+  String _formatName(String fullName) {
+    final nameParts = fullName.split(' ');
+    if (nameParts.length > 1) {
+      return '${nameParts[0]} .${nameParts[1][0]}';
+    }
+    return fullName;
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
@@ -297,10 +305,7 @@ class TopThreePodium extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
-                                topUsers[1]['fullName']
-                                        ?.toString()
-                                        .split(' ')[0] ??
-                                    '',
+                                _formatName(topUsers[1]['fullName'] ?? ''),
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   color: Colors.white,
@@ -347,14 +352,11 @@ class TopThreePodium extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Text(
-                              topUsers[0]['fullName']
-                                      ?.toString()
-                                      .split(' ')[0] ??
-                                  '',
+                              _formatName(topUsers[0]['fullName'] ?? ''),
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 29,
+                                fontSize: 24,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -397,10 +399,7 @@ class TopThreePodium extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
-                                topUsers[2]['fullName']
-                                        ?.toString()
-                                        .split(' ')[0] ??
-                                    '',
+                                _formatName(topUsers[2]['fullName'] ?? ''),
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   color: Colors.white,
@@ -511,8 +510,8 @@ class TopThreePodium extends StatelessWidget {
                   ],
                 ),
               ),
-            ),
-          ],
+            ),          
+            ],
         ),
       );
     });
@@ -851,8 +850,7 @@ class RankingListItem extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.05),
                     borderRadius: BorderRadius.circular(12),
@@ -861,21 +859,38 @@ class RankingListItem extends StatelessWidget {
                     ),
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        user['fullName'],
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              user['fullName'],
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                      Text(
-                        '${user['productivityScore']}${_getEmoji()}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            left: BorderSide(
+                              color: Colors.white.withOpacity(0.1),
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          '${user['productivityScore']}${_getEmoji()}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                     ],
