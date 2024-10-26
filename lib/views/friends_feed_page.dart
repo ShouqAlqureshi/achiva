@@ -325,7 +325,7 @@ Widget _buildRankingsView() {
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Text(
-          _showPosts ? "Recent Posts" : "Leaderboard",
+          _showPosts ? "Recent Posts" : "Productivity Leaderboard",
           style: const TextStyle(
             color: Colors.white,
             fontSize: 24,
