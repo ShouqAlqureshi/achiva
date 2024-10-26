@@ -283,18 +283,12 @@ class TopThreePodium extends StatelessWidget {
     return fullName;
   }
 
-  // Calculate font size based on name length and container width
   double _calculateFontSize(String name, double containerWidth) {
-    // Base font size for short names
     double baseFontSize = 24;
-    
-    // Approximate characters that can fit at base font size
     int baseCharCount = 8;
     
-    // Adjust font size based on name length
     if (name.length > baseCharCount) {
       double ratio = baseCharCount / name.length;
-      // Ensure font size doesn't go below minimum
       return math.max(16.0, baseFontSize * ratio);
     }
     
@@ -308,8 +302,12 @@ class TopThreePodium extends StatelessWidget {
       final podiumWidth = math.min(100.0, (availableWidth - 32 - 16) / 3);
       final horizontalSpacing = math.min(8.0, (availableWidth - podiumWidth * 3 - 32) / 2);
       final leftPadding = 16.0;
+      
+      // Calculate center points for each podium
+      final firstPlaceCenter = (availableWidth - 32) / 2;
+      final secondPlaceCenter = firstPlaceCenter - podiumWidth - horizontalSpacing;
+      final thirdPlaceCenter = firstPlaceCenter + podiumWidth + horizontalSpacing;
 
-      // Calculate first place name font size
       final firstPlaceName = _formatName(topUsers[0]['fullName'] ?? '');
       final firstPlaceFontSize = _calculateFontSize(firstPlaceName, podiumWidth);
 
@@ -320,7 +318,7 @@ class TopThreePodium extends StatelessWidget {
           fit: StackFit.loose,
           clipBehavior: Clip.none,
           children: [
-            // Background podium shapes
+            // Background podium shapes (unchanged)
             Positioned(
               left: leftPadding,
               right: leftPadding,
@@ -332,7 +330,6 @@ class TopThreePodium extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     if (topUsers.length > 1) ...[
-                      // Second place podium (unchanged)
                       Container(
                         width: podiumWidth,
                         height: 160,
@@ -379,7 +376,6 @@ class TopThreePodium extends StatelessWidget {
                       SizedBox(width: horizontalSpacing),
                     ],
 
-                    // First place podium - modified for flexible name display
                     Container(
                       width: podiumWidth,
                       height: 200,
@@ -433,7 +429,6 @@ class TopThreePodium extends StatelessWidget {
 
                     if (topUsers.length > 2) ...[
                       SizedBox(width: horizontalSpacing),
-                      // Third place podium (unchanged)
                       Container(
                         width: podiumWidth,
                         height: 120,
@@ -483,7 +478,7 @@ class TopThreePodium extends StatelessWidget {
               ),
             ),
 
-            // Player photos layer
+            // Player photos layer - Updated positioning
             Positioned(
               left: leftPadding,
               right: leftPadding,
@@ -492,46 +487,22 @@ class TopThreePodium extends StatelessWidget {
                 height: 260,
                 child: Stack(
                   clipBehavior: Clip.none,
-                  fit: StackFit.loose,
                   alignment: Alignment.center,
                   children: [
-                    // Second place
                     if (topUsers.length > 1)
                       Positioned(
-                        left: (availableWidth -
-                                    podiumWidth *
-                                        (topUsers.length > 2 ? 3 : 2) -
-                                    horizontalSpacing *
-                                        (topUsers.length > 2 ? 2 : 1)) /
-                                2 -
-                            3,
+                        // Updated second place positioning to use secondPlaceCenter
+                        left: secondPlaceCenter - 35,
                         bottom: 140,
                         child: PlayerPhoto(user: topUsers[1], position: 2),
                       ),
 
-                    // First place - always centered
                     Positioned(
-                      left: (availableWidth -
-                                  podiumWidth *
-                                      (topUsers.length == 1
-                                          ? 1
-                                          : topUsers.length > 2
-                                              ? 3
-                                              : 2) -
-                                  horizontalSpacing *
-                                      (topUsers.length > 2
-                                          ? 2
-                                          : topUsers.length == 1
-                                              ? 0
-                                              : 1)) /
-                              2 +
-                          (topUsers.length == 1
-                              ? 0
-                              : podiumWidth + horizontalSpacing) -
-                          3,
+                      left: firstPlaceCenter - 35,
                       bottom: 180,
                       child: Stack(
                         clipBehavior: Clip.none,
+                        alignment: Alignment.center,
                         children: [
                           Transform.scale(
                             scale: 1.2,
@@ -551,23 +522,18 @@ class TopThreePodium extends StatelessWidget {
                       ),
                     ),
 
-                    // Third place
                     if (topUsers.length > 2)
                       Positioned(
-                        left: (availableWidth -
-                                    podiumWidth * 3 -
-                                    horizontalSpacing * 2) /
-                                2 +
-                            (podiumWidth + horizontalSpacing) * 2 -
-                            3,
+                        // Updated third place positioning to use thirdPlaceCenter
+                        left: thirdPlaceCenter - 35,
                         bottom: 100,
                         child: PlayerPhoto(user: topUsers[2], position: 3),
                       ),
                   ],
                 ),
               ),
-            ),          
-            ],
+            ),
+          ],
         ),
       );
     });
