@@ -470,98 +470,109 @@ Widget _buildCompletedGoalContent(String goalName) {
 }
 
 Widget _buildInProgressGoalContent(String goalName, double progress, DocumentSnapshot goalDocument) {
-  return Row(
+  return Stack(
     children: [
-      Stack(
+      Row(
         children: [
-          Container(
-            height: 40,
-            width: 40,
-            decoration: const BoxDecoration(
-              color: Colors.transparent,
-              shape: BoxShape.circle,
-            ),
-          ),
-          Positioned(
-            top: 0,
-            left: 0,
-            child: SizedBox(
-              height: 40,
-              width: 40,
-              child: CircularProgressIndicator(
-                value: progress / 100,
-                strokeWidth: 6,
-                backgroundColor: Colors.white,
-                strokeCap: StrokeCap.round,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  WellBeingColors.lightMaroon,
+          Stack(
+            children: [
+              Container(
+                height: 40,
+                width: 40,
+                decoration: const BoxDecoration(
+                  color: Colors.transparent,
+                  shape: BoxShape.circle,
                 ),
               ),
-            ),
-          ),
-          Positioned(
-            top: 0,
-            left: 0,
-            child: Container(
-              height: 40,
-              width: 40,
-              alignment: Alignment.center,
-              child: Text(
-                '${progress.round()}%',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+              Positioned(
+                top: 0,
+                left: 0,
+                child: SizedBox(
+                  height: 40,
+                  width: 40,
+                  child: CircularProgressIndicator(
+                    value: progress / 100,
+                    strokeWidth: 6,
+                    backgroundColor: Colors.white,
+                    strokeCap: StrokeCap.round,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      WellBeingColors.lightMaroon,
+                    ),
+                  ),
                 ),
               ),
+              Positioned(
+                top: 0,
+                left: 0,
+                child: Container(
+                  height: 40,
+                  width: 40,
+                  alignment: Alignment.center,
+                  child: Text(
+                    '${progress.round()}%',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  goalName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  progress == 0 ? 'Not started yet' : 'In progress',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
             ),
           ),
         ],
       ),
-      const SizedBox(width: 10),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              goalName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              progress == 0 ? 'Not started yet' : 'In progress',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-              ),
-            ),
-            const SizedBox(height: 10),
-            StreamBuilder<String>(
-    stream: CountdownManager().getCountdownStream(goalDocument),
-    initialData: '',
-    builder: (context, snapshot) {
-      if (!snapshot.hasData || snapshot.data!.isEmpty) {
-        return const SizedBox.shrink();
-      }
-      return Text(
-        snapshot.data!,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-        ),
-      );
-    },
-  ),
-          ],
+      Align(
+        alignment: Alignment.bottomRight,
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 8, right: 8),
+          child: StreamBuilder<String>(
+            stream: CountdownManager().getCountdownStream(goalDocument),
+            initialData: '',
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return Text(
+                snapshot.data!,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                ),
+              );
+            },
+          ),
         ),
       ),
     ],
   );
 }
+
 
   Widget reportStats(String stat, String label) {
     return Column(
