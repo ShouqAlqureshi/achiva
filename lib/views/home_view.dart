@@ -211,7 +211,7 @@ Widget _buildHomePage(BuildContext context) {
                                         const Spacer(),
                                       ],
                                     ),
-                                    const SizedBox(height: 10),
+                                    const SizedBox(height: 5),
                                     Padding(
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 5),
@@ -255,7 +255,6 @@ Widget _buildHomePage(BuildContext context) {
                       }
                     },
                   ),
-                  const SizedBox(height: 2),
                 ],
               ),
             ),
@@ -350,10 +349,10 @@ Widget _buildGoalCard(String goalName, double progress, bool isDone,
     },
     child: AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 35),
+margin: const EdgeInsets.only(left: 15, right: 15, top: 30, bottom: 150),
       padding: const EdgeInsets.all(20),
       width: 150,
-      height: 100,
+      height: 10,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
