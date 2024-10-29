@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:achiva/utilities/colors.dart';
 import 'package:timelines/timelines.dart';
 
 class GoalTasks extends StatefulWidget {
@@ -640,75 +641,88 @@ class _GoalTasksState extends State<GoalTasks> {
     final bool visibilty = goalData['visibility'];
 
     return Scaffold(
-      body: Stack(
-        children: [
-          // Background Gradient
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color.fromARGB(255, 66, 32, 101),
-                  Color.fromARGB(255, 77, 64, 98),
-                ],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
+    body: Stack(
+      children: [
+        // Background Gradient
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color.fromARGB(255, 66, 32, 101),
+                Color.fromARGB(255, 77, 64, 98),
+              ],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
             ),
           ),
-          SafeArea(
-            child: Column(
-              children: [
-                // App Bar
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20.0, vertical: 30.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                      Expanded(
-                        child: Text(
-                          goalName,
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w400),
+        ),
+        SafeArea(
+          child: Column(
+            children: [
+              // App Bar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    Expanded(
+                      child: Text(
+                        goalName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
-                      // Progress indicator
-                      StreamBuilder<double>(
-                        stream: _progressStream,
-                        builder: (context, snapshot) {
-                          final progress = snapshot.data ?? 0.0;
-                          return Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              CircularProgressIndicator(
-                                value: progress / 100,
-                                strokeWidth: 6,
-                                backgroundColor: Colors.grey[300],
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Color.fromARGB(255, 165, 148, 153)
-                                ),
-                              ),
-                              Text(
-                                '${progress.round()}%',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ],
-                  ),
+                    ),
+                    // Updated Progress Indicator
+                    StreamBuilder<double>(
+  stream: _progressStream,
+  builder: (context, snapshot) {
+    final progress = snapshot.data ?? 0.0;
+
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        SizedBox(
+          height: 45,
+          width: 45,
+          child: CircularProgressIndicator(
+            value: progress / 100,
+            strokeWidth: 5,
+            backgroundColor: Colors.white.withOpacity(0.2),
+            valueColor: AlwaysStoppedAnimation<Color>(
+              progress >= 100 ? Colors.green : WellBeingColors.lightMaroon,
+            ),
+          ),
+        ),
+        if (progress >= 100)
+          const Icon(
+            Icons.check,
+            color: Color.fromARGB(255, 255, 255, 255),
+            size: 20,
+          )
+        else
+          Text(
+            '${progress.round()}%',
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+      ],
+    );
+  },
+),
+
+                  ],
                 ),
+              ),
                 // Tasks Timeline
                 Expanded(
                   child: Container(
