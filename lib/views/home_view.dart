@@ -17,6 +17,8 @@ import 'package:achiva/views/friends_feed_page.dart';
 import 'package:achiva/views/profile/profile_screen.dart';
 import 'package:achiva/views/home_view.dart';
 import 'GoalTasks.dart';
+import 'dart:async';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -38,10 +40,11 @@ class _HomePageState extends State<HomeScreen> {
   }
 
   @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
+void dispose() {
+  CountdownManager().dispose();
+  _pageController.dispose();
+  super.dispose();
+}
 
   // Method to switch between pages when the navigation item is tapped
   void _onTabSelected(int index) {
@@ -86,11 +89,6 @@ class _HomePageState extends State<HomeScreen> {
     });
   }
 
-Future<DateTime> getGoalDueDate(DocumentSnapshot goalDocument) async {
-    final goalData = goalDocument.data() as Map<String, dynamic>;
-    final dueDate = goalData['date'].toDate();
-    return dueDate;
-  }
   @override
 Widget build(BuildContext context) {
   return Scaffold(
@@ -349,246 +347,233 @@ if (!progressSnapshot.hasData) {
   );
 }
 
-Widget _buildGoalCard(String goalName, double progress, bool isDone,
-      DocumentSnapshot goalDocument) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => GoalTasks(goalDocument: goalDocument),
-          ),
-        );
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        margin: const EdgeInsets.only(left: 15, right: 15, top: 30, bottom: 150),
-        padding: const EdgeInsets.all(20),
-        width: 150,
-        height: 10,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color.fromARGB(255, 66, 32, 101),
-              Color.fromARGB(255, 77, 64, 98),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey,
-              blurRadius: 15,
-              offset: const Offset(0, 3),
-            ),
-          ],
-          borderRadius: BorderRadius.circular(20),
+Widget _buildGoalCard(String goalName, double progress, bool isDone, DocumentSnapshot goalDocument) {
+  return GestureDetector(
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => GoalTasks(goalDocument: goalDocument),
         ),
+      );
+    },
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      margin: const EdgeInsets.only(left: 15, right: 15, top: 30, bottom: 150),
+      padding: const EdgeInsets.all(20),
+      width: 150,
+      height: 10,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color.fromARGB(255, 66, 32, 101),
+            Color.fromARGB(255, 77, 64, 98),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey,
+            blurRadius: 15,
+            offset: const Offset(0, 3),
+          ),
+        ],
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 5),
+          if (isDone) ...[
+            _buildCompletedGoalContent(goalName)
+          ] else ...[
+            _buildInProgressGoalContent(goalName, progress, goalDocument)
+          ],
+          const Spacer(),
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _buildCompletedGoalContent(String goalName) {
+  return Row(
+    children: [
+      Stack(
+        children: [
+          Container(
+            height: 40,
+            width: 40,
+            decoration: const BoxDecoration(
+              color: Colors.transparent,
+              shape: BoxShape.circle,
+            ),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            child: SizedBox(
+              height: 40,
+              width: 40,
+              child: CircularProgressIndicator(
+                value: 1.0,
+                strokeWidth: 6,
+                backgroundColor: Colors.white,
+                strokeCap: StrokeCap.round,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            child: Container(
+              height: 40,
+              width: 40,
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.check,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(width: 10),
+      Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 5),
-          if (isDone) ...[
-            Row(
-              children: [
-                Stack(
-                  children: [
-                    Container(
-                      height: 40,
-                      width: 40,
-                      decoration: const BoxDecoration(
-                        color: Colors.transparent,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      child: SizedBox(
-                        height: 40,
-                        width: 40,
-                        child: CircularProgressIndicator(
-                          value: 1.0,
-                          strokeWidth: 6,
-                          backgroundColor: Colors.white,
-                          strokeCap: StrokeCap.round,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.green,  // Changed to green for completed state
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      child: Container(
-                        height: 40,
-                        width: 40,
-                        alignment: Alignment.center,
-                        child: Icon(  // Changed to checkmark icon
-                          Icons.check,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        goalName,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'Done!',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ] else ...[
-            Row(
-              children: [
-                Stack(
-                  children: [
-                    Container(
-                      height: 40,
-                      width: 40,
-                      decoration: const BoxDecoration(
-                        color: Colors.transparent,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      child: SizedBox(
-                        height: 40,
-                        width: 40,
-                        child: CircularProgressIndicator(
-                          value: progress / 100,
-                          strokeWidth: 6,
-                          backgroundColor: Colors.white,
-                          strokeCap: StrokeCap.round,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            WellBeingColors.lightMaroon,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      child: Container(
-                        height: 40,
-                        width: 40,
-                        alignment: Alignment.center,
-                        child: Text(
-                          '${progress.round()}%',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          goalName,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          progress == 0 ? 'Not started yet' : 'In progress',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        FutureBuilder<DateTime>(
-                          future: getGoalDueDate(goalDocument),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
-                              return const SizedBox();
-                            }
-
-                            if (snapshot.hasData) {
-                              final dueDate = snapshot.data!;
-                              final now = DateTime.now();
-                              final difference = dueDate.difference(now);
-
-                              if (difference.inDays > 0) {
-                                return Text(
-                                  '${difference.inDays} days left',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                  ),
-                                );
-                              } else if (difference.inHours > 0) {
-                                return Text(
-                                  '${difference.inHours} hours left',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                  ),
-                                );
-                              } else {
-                                return Text(
-                                  '${difference.inMinutes} minutes left',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                  ),
-                                );
-                              }
-                            } else {
-                              return const SizedBox();
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+            Text(
+              goalName,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
               ),
-            ],
-            const Spacer(),
+            ),
+            const SizedBox(height: 3),
+            const Text(
+              'Done!',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+              ),
+            ),
           ],
         ),
       ),
-    );
-  }
+    ],
+  );
+}
+
+Widget _buildInProgressGoalContent(String goalName, double progress, DocumentSnapshot goalDocument) {
+  return Stack(
+    children: [
+      Row(
+        children: [
+          Stack(
+            children: [
+              Container(
+                height: 40,
+                width: 40,
+                decoration: const BoxDecoration(
+                  color: Colors.transparent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                child: SizedBox(
+                  height: 40,
+                  width: 40,
+                  child: CircularProgressIndicator(
+                    value: progress / 100,
+                    strokeWidth: 6,
+                    backgroundColor: Colors.white,
+                    strokeCap: StrokeCap.round,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      WellBeingColors.lightMaroon,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                child: Container(
+                  height: 40,
+                  width: 40,
+                  alignment: Alignment.center,
+                  child: Text(
+                    '${progress.round()}%',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  goalName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  progress == 0 ? 'Not started yet' : 'In progress',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+            ),
+          ),
+        ],
+      ),
+      Align(
+        alignment: Alignment.bottomRight,
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 8, right: 8),
+          child: StreamBuilder<String>(
+            stream: CountdownManager().getCountdownStream(goalDocument),
+            initialData: '',
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return Text(
+                snapshot.data!,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    ],
+  );
+}
 
 
-
-  
   Widget reportStats(String stat, String label) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -611,5 +596,99 @@ Widget _buildGoalCard(String goalName, double progress, bool isDone,
         ),
       ],
     );
+  }
+}
+class CountdownManager {
+  static final CountdownManager _instance = CountdownManager._internal();
+  factory CountdownManager() => _instance;
+  CountdownManager._internal();
+
+  final Map<String, StreamController<String>> _controllers = {};
+  final Map<String, Timer> _timers = {};
+
+  void dispose() {
+    _controllers.forEach((_, controller) => controller.close());
+    _timers.forEach((_, timer) => timer.cancel());
+    _controllers.clear();
+    _timers.clear();
+  }
+
+  Stream<String> getCountdownStream(DocumentSnapshot goalDocument) {
+    final String goalId = goalDocument.id;
+    
+    if (!_controllers.containsKey(goalId)) {
+      _controllers[goalId] = StreamController<String>.broadcast();
+      _startCountdown(goalDocument);
+    }
+    
+    return _controllers[goalId]!.stream;
+  }
+
+  void _startCountdown(DocumentSnapshot goalDocument) {
+    final String goalId = goalDocument.id;
+    final goalData = goalDocument.data() as Map<String, dynamic>;
+    
+    if (!goalData.containsKey('date')) {
+      _controllers[goalId]?.add('');
+      return;
+    }
+
+    DateTime? dueDate = _parseDate(goalData['date']);
+    if (dueDate == null) {
+      _controllers[goalId]?.add('');
+      return;
+    }
+
+    // Initial update
+    _updateCountdown(goalId, dueDate);
+
+    // Set up periodic updates
+    _timers[goalId] = Timer.periodic(const Duration(seconds: 1), (_) {
+      _updateCountdown(goalId, dueDate!);
+    });
+  }
+
+  DateTime? _parseDate(dynamic dateField) {
+    try {
+      if (dateField is Timestamp) {
+        return dateField.toDate();
+      } else if (dateField is String) {
+        return DateTime.parse(dateField);
+      }
+    } catch (e) {
+      print('Error parsing date: $e');
+    }
+    return null;
+  }
+
+  void _updateCountdown(String goalId, DateTime dueDate) {
+    final now = DateTime.now();
+    final difference = dueDate.difference(now);
+
+    String countdownText;
+    if (difference.isNegative) {
+      countdownText = 'Overdue';
+    } else if (difference.inDays ==1) {
+      countdownText = '${difference.inDays} day left';
+    } else if (difference.inDays > 0) {
+      countdownText = '${difference.inDays} days left';
+    } else if (difference.inHours > 0) {
+      countdownText = '${difference.inHours} hours left';
+    } else if (difference.inMinutes > 0) {
+      countdownText = '${difference.inMinutes} minutes left';
+    } else if (difference.inSeconds > 0) {
+      countdownText = '${difference.inSeconds} seconds left';
+    } else {
+      countdownText = 'Due now';
+    }
+
+    _controllers[goalId]?.add(countdownText);
+  }
+
+  void cancelCountdown(String goalId) {
+    _timers[goalId]?.cancel();
+    _timers.remove(goalId);
+    _controllers[goalId]?.close();
+    _controllers.remove(goalId);
   }
 }
