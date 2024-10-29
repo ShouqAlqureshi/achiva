@@ -17,6 +17,8 @@ import 'package:achiva/views/friends_feed_page.dart';
 import 'package:achiva/views/profile/profile_screen.dart';
 import 'package:achiva/views/home_view.dart';
 import 'GoalTasks.dart';
+import 'dart:async';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -38,10 +40,11 @@ class _HomePageState extends State<HomeScreen> {
   }
 
   @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
+void dispose() {
+  CountdownManager().dispose();
+  _pageController.dispose();
+  super.dispose();
+}
 
   // Method to switch between pages when the navigation item is tapped
   void _onTabSelected(int index) {
@@ -538,24 +541,21 @@ Widget _buildInProgressGoalContent(String goalName, double progress, DocumentSna
             ),
             const SizedBox(height: 10),
             StreamBuilder<String>(
-              stream: Stream.periodic(
-                const Duration(minutes: 1),
-                (_) => _getTimeLeft(goalDocument),
-              ).asyncMap((_, ) => _getTimeLeft(goalDocument)),
-              initialData: '',
-              builder: (context, snapshot) {
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const SizedBox.shrink();
-                }
-                return Text(
-                  snapshot.data!,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                  ),
-                );
-              },
-            ),
+    stream: CountdownManager().getCountdownStream(goalDocument),
+    initialData: '',
+    builder: (context, snapshot) {
+      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        return const SizedBox.shrink();
+      }
+      return Text(
+        snapshot.data!,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+        ),
+      );
+    },
+  ),
           ],
         ),
       ),
@@ -563,46 +563,6 @@ Widget _buildInProgressGoalContent(String goalName, double progress, DocumentSna
   );
 }
 
-Future<String> _getTimeLeft(DocumentSnapshot goalDocument) async {
-  try {
-    final goalData = goalDocument.data() as Map<String, dynamic>;
-    if (!goalData.containsKey('date')) return '';
-    
-    DateTime dueDate;
-    final dateField = goalData['date'];
-    
-    if (dateField is Timestamp) {
-      dueDate = dateField.toDate();
-    } else if (dateField is String) {
-      // Try parsing the string date
-      dueDate = DateTime.parse(dateField);
-    } else {
-      print('Unexpected date format: ${dateField.runtimeType}');
-      return '';
-    }
-
-    final now = DateTime.now();
-    final difference = dueDate.difference(now);
-
-    if (difference.isNegative) {
-      return 'Overdue';
-    } else if (difference.inDays > 0) {
-      return '${difference.inDays} days left';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} hours left';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} minutes left';
-    } else {
-      return 'Due now';
-    }
-  } catch (e) {
-    print('Error calculating time left: $e');
-    return '';
-  }
-}
-
-
-  
   Widget reportStats(String stat, String label) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -625,5 +585,99 @@ Future<String> _getTimeLeft(DocumentSnapshot goalDocument) async {
         ),
       ],
     );
+  }
+}
+class CountdownManager {
+  static final CountdownManager _instance = CountdownManager._internal();
+  factory CountdownManager() => _instance;
+  CountdownManager._internal();
+
+  final Map<String, StreamController<String>> _controllers = {};
+  final Map<String, Timer> _timers = {};
+
+  void dispose() {
+    _controllers.forEach((_, controller) => controller.close());
+    _timers.forEach((_, timer) => timer.cancel());
+    _controllers.clear();
+    _timers.clear();
+  }
+
+  Stream<String> getCountdownStream(DocumentSnapshot goalDocument) {
+    final String goalId = goalDocument.id;
+    
+    if (!_controllers.containsKey(goalId)) {
+      _controllers[goalId] = StreamController<String>.broadcast();
+      _startCountdown(goalDocument);
+    }
+    
+    return _controllers[goalId]!.stream;
+  }
+
+  void _startCountdown(DocumentSnapshot goalDocument) {
+    final String goalId = goalDocument.id;
+    final goalData = goalDocument.data() as Map<String, dynamic>;
+    
+    if (!goalData.containsKey('date')) {
+      _controllers[goalId]?.add('');
+      return;
+    }
+
+    DateTime? dueDate = _parseDate(goalData['date']);
+    if (dueDate == null) {
+      _controllers[goalId]?.add('');
+      return;
+    }
+
+    // Initial update
+    _updateCountdown(goalId, dueDate);
+
+    // Set up periodic updates
+    _timers[goalId] = Timer.periodic(const Duration(seconds: 1), (_) {
+      _updateCountdown(goalId, dueDate!);
+    });
+  }
+
+  DateTime? _parseDate(dynamic dateField) {
+    try {
+      if (dateField is Timestamp) {
+        return dateField.toDate();
+      } else if (dateField is String) {
+        return DateTime.parse(dateField);
+      }
+    } catch (e) {
+      print('Error parsing date: $e');
+    }
+    return null;
+  }
+
+  void _updateCountdown(String goalId, DateTime dueDate) {
+    final now = DateTime.now();
+    final difference = dueDate.difference(now);
+
+    String countdownText;
+    if (difference.isNegative) {
+      countdownText = 'Overdue';
+    } else if (difference.inDays ==1) {
+      countdownText = '${difference.inDays} day left';
+    } else if (difference.inDays > 0) {
+      countdownText = '${difference.inDays} days left';
+    } else if (difference.inHours > 0) {
+      countdownText = '${difference.inHours} hours left';
+    } else if (difference.inMinutes > 0) {
+      countdownText = '${difference.inMinutes} minutes left';
+    } else if (difference.inSeconds > 0) {
+      countdownText = '${difference.inSeconds} seconds left';
+    } else {
+      countdownText = 'Due now';
+    }
+
+    _controllers[goalId]?.add(countdownText);
+  }
+
+  void cancelCountdown(String goalId) {
+    _timers[goalId]?.cancel();
+    _timers.remove(goalId);
+    _controllers[goalId]?.close();
+    _controllers.remove(goalId);
   }
 }
