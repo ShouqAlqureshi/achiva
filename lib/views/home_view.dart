@@ -364,7 +364,7 @@ Widget _buildGoalCard(String goalName, double progress, bool isDone, DocumentSna
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Color.fromARGB(255, 66, 32, 101),
+            Color.fromARGB(255, 30, 12, 48),
             Color.fromARGB(255, 77, 64, 98),
           ],
           begin: Alignment.topLeft,
@@ -426,37 +426,44 @@ Widget _buildCompletedGoalContent(String goalName) {
 }
 
 Widget _buildInProgressGoalContent(String goalName, double progress, DocumentSnapshot goalDocument) {
-  return Row(
+  return Stack(
     children: [
-      _buildProgressCircle(progress / 100, WellBeingColors.lightMaroon, null, progress),
-      const SizedBox(width: 10),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              goalName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+      // Main content of the card
+      Row(
+        children: [
+          _buildProgressCircle(progress / 100, WellBeingColors.lightMaroon, null, progress),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  goalName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  progress == 0 ? 'Not started yet' : 'In progress',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
             ),
-            const SizedBox(height: 3),
-            Text(
-              progress == 0 ? 'Not started yet' : 'In progress',
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 10),
-          ],
-        ),
+          ),
+          const Spacer(),
+        ],
       ),
-      const Spacer(),
-      Padding(
-        padding: const EdgeInsets.only(right: 8.0),
+      // Countdown at the bottom right
+      Positioned(
+        right: 8.0,
+        bottom: 8.0,
         child: StreamBuilder<String>(
           stream: CountdownManager().getCountdownStream(goalDocument),
           initialData: '',
@@ -483,17 +490,18 @@ Widget _buildInProgressGoalContent(String goalName, double progress, DocumentSna
   );
 }
 
+
 Widget _buildProgressCircle(double progress, Color color, IconData? icon, [double? percentage]) {
   return Stack(
     alignment: Alignment.center,
     children: [
       SizedBox(
-        height: 45,
-        width: 45,
+        height: 50,
+        width: 50,
         child: CircularProgressIndicator(
           value: progress,
           strokeWidth: 5,
-          backgroundColor: Colors.white.withOpacity(0.3),
+          backgroundColor: Colors.white.withOpacity(0.2),
           valueColor: AlwaysStoppedAnimation<Color>(color),
         ),
       ),
@@ -501,13 +509,13 @@ Widget _buildProgressCircle(double progress, Color color, IconData? icon, [doubl
           ? Icon(
               icon,
               color: Colors.white,
-              size: 20,
+              size: 22,
             )
           : Text(
               '${percentage?.round()}%',
               style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 12,
+                color: Colors.white,
+                fontSize: 14,
                 fontWeight: FontWeight.bold,
               ),
             ),

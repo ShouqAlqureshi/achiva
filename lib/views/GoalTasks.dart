@@ -648,8 +648,8 @@ class _GoalTasksState extends State<GoalTasks> {
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Color.fromARGB(255, 66, 32, 101),
-                Color.fromARGB(255, 77, 64, 98),
+              Color.fromARGB(255, 30, 12, 48),
+              Color.fromARGB(255, 77, 64, 98),
               ],
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
