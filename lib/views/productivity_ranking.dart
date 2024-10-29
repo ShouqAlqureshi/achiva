@@ -367,7 +367,7 @@ Future<void> _captureAndShowPreview() async {
                 children: [
                   Row(
                     children: [
-                      _PeriodTab(label: 'Last 30 days', isActive: true),
+                      _PeriodTab(label: 'Last 7 days', isActive: true),
                       const SizedBox(width: 8),
                     ],
                   ),
@@ -416,24 +416,24 @@ Future<void> _captureAndShowPreview() async {
   }
 }
 
-class PeriodSelector extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Row(
+// class PeriodSelector extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     return Row(
 
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            _PeriodTab(label: 'Last 7 days', isActive: true), // Updated text
-            const SizedBox(width: 8),
-          ],
-        ),
+//       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//       children: [
+//         Row(
+//           children: [
+//             _PeriodTab(label: 'Last 7 days', isActive: true), // Updated text
+//             const SizedBox(width: 8),
+//           ],
+//         ),
 
-      ],
-    );
-  }
-}
+//       ],
+//     );
+//   }
+// }
 
 class _PeriodTab extends StatelessWidget {
   final String label;
