@@ -96,6 +96,7 @@ class _RequestStatusState extends State<RequestStatus> {
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Row(
                     children: [
+                      // Avatar - fixed size
                       CircleAvatar(
                         radius: 30,
                         backgroundColor: Colors.white.withOpacity(0.9),
@@ -107,24 +108,34 @@ class _RequestStatusState extends State<RequestStatus> {
                             : null,
                       ),
                       const SizedBox(width: 15),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            fullName,
-                            style: const TextStyle(
+                      // Text content - flexible and constrained
+                      Expanded(
+                        flex: 1,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              fullName,
+                              style: const TextStyle(
                                 color: Colors.white70,
                                 fontSize: 20,
-                                fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            "\t has $reqstatus your friend request",
-                            style: const TextStyle(
-                                fontSize: 14, color: Colors.grey),
-                          ),
-                        ],
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.visible,
+                              softWrap: true,
+                            ),
+                            Text(
+                              "has $reqstatus your friend request",
+                              style: const TextStyle(
+                                  fontSize: 14, color: Colors.grey),
+                              overflow: TextOverflow.visible,
+                              softWrap: true,
+                            ),
+                          ],
+                        ),
                       ),
-                      const Spacer(flex: 2),
+                      const SizedBox(width: 15),
+                      // Status icon - fixed size
                       Icon(
                         reqstatus == "accepted"
                             ? Icons.check_circle

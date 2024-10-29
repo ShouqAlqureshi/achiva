@@ -1,8 +1,18 @@
+import 'dart:developer';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:achiva/utilities/loading.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui'; // For ImageFilter
 import 'dart:math' as math;
+import 'package:flutter/rendering.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:ui' as ui;
+
+import 'package:share_plus/share_plus.dart';
 
 class UserDataCache {
   static final Map<String, Map<String, dynamic>> _userCache = {};
@@ -44,6 +54,8 @@ class RankingsService {
 
       final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
       List<Map<String, dynamic>> userProductivity = [];
+
+
 
       // Parallel processing for user data
       final futures = userIds.map((userId) => _processUserData(userId, sevenDaysAgo));
@@ -148,7 +160,7 @@ class RankingsService {
   }
 }
 
-class ProductivityRankingDashboard extends StatelessWidget {
+class ProductivityRankingDashboard extends StatefulWidget {
   final List<Map<String, dynamic>> rankings;
 
   const ProductivityRankingDashboard({
@@ -157,57 +169,248 @@ class ProductivityRankingDashboard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final topThree = rankings.take(3).toList();
-    final remainingRankings = rankings.skip(3).toList();
-// In the ProductivityRankingDashboard widget
+  State<ProductivityRankingDashboard> createState() =>
+      _ProductivityRankingDashboardState();
+}
 
-    return Container(
-      margin: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[900]?.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Period selector
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: PeriodSelector(),
-          ),
+class _ProductivityRankingDashboardState
+    extends State<ProductivityRankingDashboard> {
+  // Create a GlobalKey for capturing the widget
+final GlobalKey _boundaryKey = GlobalKey();
+bool _shareIsLoading = false;
 
-          // Top 3 podium
-          if (topThree.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-              child: TopThreePodium(topUsers: topThree),
-            ),
+// Function to capture the widget as an image
+Future<Uint8List?> _captureWidget() async {
+  try {
+    final RenderRepaintBoundary boundary = _boundaryKey.currentContext!
+        .findRenderObject() as RenderRepaintBoundary;
+    final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+    final ByteData? byteData =
+        await image.toByteData(format: ui.ImageByteFormat.png);
+    final Uint8List? pngBytes = byteData?.buffer.asUint8List();
+    return pngBytes;
+  } catch (e) {
+    log('Error capturing widget: $e');
+    return null;
+  }
+}
 
-          // Remaining rankings
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 12),
-                ...remainingRankings.asMap().entries.map((entry) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: RankingListItem(
-                      user: entry.value,
-                      position: entry.key + 4,
+// Function to handle the screenshot and sharing process
+Future<void> _captureAndShowPreview() async {
+  // Wait for the widget to fully render
+  await Future.delayed(Duration(milliseconds: 200)); // Adjust as needed
+  showLoadingDialog(context);
+  try {
+    final Uint8List? imageBytes = await _captureWidget();
+
+    if (imageBytes != null) {
+      if (!mounted) return;
+      Navigator.of(context).pop(); // Dismiss loading dialog
+      // Show preview dialog
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.grey[900]?.withOpacity(0.95),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.1),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      'Preview',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  );
-                }),
-              ],
+                  ),
+                  Container(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.6,
+                    ),
+                    child: SingleChildScrollView(
+                      child: Image.memory(imageBytes),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(
+                            'Cancel',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.purple,
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: () async {
+                            setState(() {
+                              _shareIsLoading = true;
+                            });
+                            try {
+                              // Get temporary directory to save the file temporarily
+                              final tempDir = await getTemporaryDirectory();
+                              final tempPath = '${tempDir.path}/share_image_${DateTime.now().millisecondsSinceEpoch}.png';
+                              
+                              // Save the image temporarily
+                              final File tempFile = File(tempPath);
+                              await tempFile.writeAsBytes(imageBytes);
+                              
+                              // Share the image
+                              await Share.shareXFiles(
+                                [XFile(tempPath)],
+                                text: 'Check out my productivity ranking!',
+                              );
+                              
+                              // Delete the temporary file
+                              if (await tempFile.exists()) {
+                                await tempFile.delete();
+                              }
+                              
+                              // Close the dialog after sharing
+                              if (mounted) {
+                                Navigator.of(context).pop();
+                              }
+                            } catch (e) {
+                              log('Error sharing image: $e');
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to share image'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            } finally {
+                              setState(() {
+                                _shareIsLoading = false;
+                              });
+                            }
+                          },
+                          child: _shareIsLoading
+                              ? SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                    strokeWidth: 2.0,
+                                  ),
+                                )
+                              : Text('Share Image'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
+          );
+        },
+      );
+    }
+  } catch (e) {
+    log('Error capturing screenshot: $e');
+    setState(() {
+      Navigator.of(context).pop(); // Stop loading
+      _shareIsLoading = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Failed to capture screenshot'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
+
+  @override
+  Widget build(BuildContext context) {
+    final topThree = widget.rankings.take(3).toList();
+    final remainingRankings = widget.rankings.skip(3).toList();
+
+    return RepaintBoundary(
+      key: _boundaryKey,
+      child: Container(
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey[900]?.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.1),
           ),
-        ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Period selector with modified share button
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      _PeriodTab(label: 'Last 30 days', isActive: true),
+                      const SizedBox(width: 8),
+                    ],
+                  ),
+                  IconButton(
+                    onPressed: _captureAndShowPreview,
+                    icon: Icon(
+                      Icons.share,
+                      color: Colors.white.withOpacity(0.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Rest of the widget remains the same...
+            if (topThree.isNotEmpty)
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                child: TopThreePodium(topUsers: topThree),
+              ),
+
+            // Remaining rankings
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 12),
+                  ...remainingRankings.asMap().entries.map((entry) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: RankingListItem(
+                        user: entry.value,
+                        position: entry.key + 4,
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -217,6 +420,7 @@ class PeriodSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Row(
@@ -225,15 +429,7 @@ class PeriodSelector extends StatelessWidget {
             const SizedBox(width: 8),
           ],
         ),
-        IconButton(
-          onPressed: () {
-            print("Share button pressed");
-          },
-          icon: Icon(
-            Icons.share,
-            color: Colors.purple.withOpacity(0.70),
-          ),
-        ),
+
       ],
     );
   }
@@ -298,6 +494,7 @@ class TopThreePodium extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
+
       final availableWidth = constraints.maxWidth;
       final podiumWidth = math.min(100.0, (availableWidth - 32 - 16) / 3);
       final horizontalSpacing = math.min(8.0, (availableWidth - podiumWidth * 3 - 32) / 2);
@@ -318,7 +515,9 @@ class TopThreePodium extends StatelessWidget {
           fit: StackFit.loose,
           clipBehavior: Clip.none,
           children: [
+
             // Background podium shapes (unchanged)
+
             Positioned(
               left: leftPadding,
               right: leftPadding,
@@ -330,6 +529,8 @@ class TopThreePodium extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     if (topUsers.length > 1) ...[
+
+
                       Container(
                         width: podiumWidth,
                         height: 160,
@@ -351,6 +552,7 @@ class TopThreePodium extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
+
                                 _formatName(topUsers[1]['fullName'] ?? ''),
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
@@ -361,7 +563,9 @@ class TopThreePodium extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
+
                                 '${topUsers[1]['productivityScore']}${topUsers[1]['productivityScore'] == 0 ? '😢' : '🦾'}',
+
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   color: Colors.pink,
@@ -375,6 +579,8 @@ class TopThreePodium extends StatelessWidget {
                       ),
                       SizedBox(width: horizontalSpacing),
                     ],
+
+
 
                     Container(
                       width: podiumWidth,
@@ -396,6 +602,7 @@ class TopThreePodium extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
+
                             Container(
                               width: podiumWidth,
                               padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -461,6 +668,7 @@ class TopThreePodium extends StatelessWidget {
                               const SizedBox(height: 4),
                               Text(
                                 '${topUsers[2]['productivityScore']}${topUsers[2]['productivityScore'] == 0 ? '😢' : '💨'}',
+
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   color: Colors.orange,
@@ -478,7 +686,9 @@ class TopThreePodium extends StatelessWidget {
               ),
             ),
 
+
             // Player photos layer - Updated positioning
+
             Positioned(
               left: leftPadding,
               right: leftPadding,
@@ -487,15 +697,18 @@ class TopThreePodium extends StatelessWidget {
                 height: 260,
                 child: Stack(
                   clipBehavior: Clip.none,
+
                   alignment: Alignment.center,
                   children: [
                     if (topUsers.length > 1)
                       Positioned(
                         // Updated second place positioning to use secondPlaceCenter
                         left: secondPlaceCenter - 35,
+
                         bottom: 140,
                         child: PlayerPhoto(user: topUsers[1], position: 2),
                       ),
+
 
                     Positioned(
                       left: firstPlaceCenter - 35,
@@ -872,6 +1085,7 @@ class RankingListItem extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Container(
+
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.05),
