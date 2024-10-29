@@ -14,10 +14,42 @@ class GoalTasks extends StatefulWidget {
   GoalTasks({Key? key, required this.goalDocument}) : super(key: key);
   @override
   _GoalTasksState createState() => _GoalTasksState();
+  
+  
 }
 
 class _GoalTasksState extends State<GoalTasks> {
-  final double progress = 65.0;
+ double _progress = 0.0;
+  late Stream<double> _progressStream;
+  
+  @override
+  void initState() {
+    super.initState();
+    _progressStream = _createProgressStream();
+  }
+
+  Stream<double> _createProgressStream() {
+    return FirebaseFirestore.instance
+        .collection("Users")
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .collection('goals')
+        .doc(widget.goalDocument.id)
+        .collection('tasks')
+        .snapshots()
+        .map((snapshot) {
+      if (snapshot.docs.isEmpty) {
+        return 0.0;
+      }
+
+      int completedTasks = snapshot.docs
+          .where((task) => (task.data() as Map<String, dynamic>)['completed'] == true)
+          .length;
+
+      double progress = (completedTasks / snapshot.docs.length) * 100;
+      return progress.roundToDouble();
+    });
+  }
+
   void _showTaskDetails(BuildContext context, Map<String, dynamic> task) {
     showDialog(
       context: context,
@@ -647,24 +679,32 @@ class _GoalTasksState extends State<GoalTasks> {
                         ),
                       ),
                       // Progress indicator
-                      Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          CircularProgressIndicator(
-                            value: progress / 100,
-                            strokeWidth: 6,
-                            backgroundColor: Colors.grey[300],
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                                Color.fromARGB(255, 165, 148, 153)),
-                          ),
-                          Text(
-                            '${progress.round()}%',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ],
+                      StreamBuilder<double>(
+                        stream: _progressStream,
+                        builder: (context, snapshot) {
+                          final progress = snapshot.data ?? 0.0;
+                          return Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              CircularProgressIndicator(
+                                value: progress / 100,
+                                strokeWidth: 6,
+                                backgroundColor: Colors.grey[300],
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Color.fromARGB(255, 165, 148, 153)
+                                ),
+                              ),
+                              Text(
+                                '${progress.round()}%',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),
