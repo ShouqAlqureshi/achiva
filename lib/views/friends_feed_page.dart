@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:achiva/views/PostCard.dart';
 import 'package:achiva/views/productivity_ranking.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -5,7 +7,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:http/http.dart' as http;
 
 class FriendsFeedScreen extends StatefulWidget {
   const FriendsFeedScreen({super.key});
@@ -18,197 +19,305 @@ class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
   late Stream<List<Map<String, dynamic>>> _postsStream;
   late Stream<List<Map<String, dynamic>>> _rankingsStream;
   bool _showPosts = true;
-  bool _needsPostsRefresh = false;
+  final PageController _pageController = PageController();
+  
+  // Cache for user information
+  final Map<String, Map<String, String>> _userCache = {};
+  
+  // Cache for posts
+  List<Map<String, dynamic>>? _cachedPosts;
+  List<Map<String, dynamic>>? _cachedRankings;
 
-   @override
+  @override
   void initState() {
     super.initState();
-    _refreshCurrentView();
+    _initializeStreams();
   }
 
-  // Refresh the current view based on which tab is selected
-  void _refreshCurrentView() {
-    if (_showPosts) {
-      _refreshPosts();
-    } else {
-      _refreshRankings();
-    }
+  void _initializeStreams() {
+    _postsStream = _createPostsStream().asBroadcastStream();
+    _rankingsStream = RankingsService().fetchProductivityRankings().asBroadcastStream();
+
+    // Listen to streams and cache data
+    _postsStream.listen((data) {
+      _cachedPosts = data;
+    });
+    _rankingsStream.listen((data) {
+      _cachedRankings = data;
+    });
   }
 
-  // Modified toggle view to always refresh data
   void _toggleView(bool showPosts) {
     if (_showPosts != showPosts) {
       setState(() {
         _showPosts = showPosts;
-        _refreshCurrentView(); // Refresh data whenever view changes
+        _pageController.animateToPage(
+          showPosts ? 0 : 1,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
       });
     }
   }
 
-  Future<void> _refreshPosts() async {
-    setState(() {
-      _postsStream = _fetchTaskPosts().asBroadcastStream();
-    });
+  void _onPageChanged(int page) {
+    if (_showPosts != (page == 0)) {
+      setState(() {
+        _showPosts = page == 0;
+      });
+    }
   }
 
-  Future<void> _refreshRankings() async {
-    setState(() {
-      _rankingsStream = RankingsService().fetchProductivityRankings().asBroadcastStream();
-    });
-  }
-
-  Stream<List<Map<String, dynamic>>> _fetchTaskPosts() async* {
+  Stream<List<Map<String, dynamic>>> _createPostsStream() async* {
     try {
-      User? currentUser = FirebaseAuth.instance.currentUser;
-
+      final User? currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        if (kDebugMode) {
-          print('No user is logged in.');
-        }
         yield [];
         return;
       }
 
-      QuerySnapshot friendsSnapshot = await FirebaseFirestore.instance
+      // Get friends list
+      final friendsSnapshot = await FirebaseFirestore.instance
           .collection('Users')
           .doc(currentUser.uid)
           .collection('friends')
           .get();
 
-      List<String> friendIds = friendsSnapshot.docs
+      final friendIds = friendsSnapshot.docs
           .map((doc) => doc['userId'] as String)
-          .toList();
+          .toList()
+        ..add(currentUser.uid); // Include current user
 
-      friendIds.add(currentUser.uid);
+      // Fetch posts for all users in parallel
+      final futures = friendIds.map((userId) => _fetchUserPosts(userId));
+      final postsLists = await Future.wait(futures);
 
-      List<Map<String, dynamic>> allPosts = [];
-      
-      for (String userId in friendIds) {
-        QuerySnapshot userPostsSnapshot = await FirebaseFirestore.instance
-            .collection('Users')
-            .doc(userId)
-            .collection('allPosts')
-            .orderBy('postDate', descending: true)
-            .limit(20)
-            .get();
+      // Combine and sort all posts
+      final allPosts = postsLists.expand((posts) => posts).toList()
+        ..sort((a, b) => (b['dateTime'] as DateTime)
+            .compareTo(a['dateTime'] as DateTime));
 
-        for (var postDoc in userPostsSnapshot.docs) {
-          final postData = postDoc.data() as Map<String, dynamic>;
-          final postId = postDoc.id;
-
-          if (postData.containsKey('content') &&
-              postData.containsKey('postDate')) {
-            String formattedDate = 'Unknown Date';
-            DateTime? dateTime;
-            
-            try {
-              if (postData['postDate'] is Timestamp) {
-                dateTime = (postData['postDate'] as Timestamp).toDate();
-                formattedDate = DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
-              } else if (postData['postDate'] is String) {
-                formattedDate = postData['postDate'];
-                dateTime = DateTime.parse(formattedDate);
-              }
-            } catch (e) {
-              if (kDebugMode) {
-                print('Error formatting date: $e');
-              }
-              dateTime = DateTime.now();
-            }
-
-            final userInfo = await _fetchUserName(userId);
-
-            allPosts.add({
-              'id': postId,
-              'userName': userInfo['fullName'] ?? 'Unknown User',
-              'profilePic': userInfo['profilePic'] ?? '',
-              'content': postData['content']?.toString() ?? 'No content',
-              'photo': postData['photo']?.toString() ?? '',
-              'timestamp': formattedDate,
-              'dateTime': (postData['postDate'] as Timestamp).toDate(),
-            });
-          }
-        }
-      }
-
-      allPosts.sort((a, b) => (b['dateTime'] as DateTime).compareTo(a['dateTime'] as DateTime));
-      allPosts = allPosts.take(20).toList();
-
-      yield allPosts;
+      yield allPosts.take(20).toList();
     } catch (e, stackTrace) {
       if (kDebugMode) {
-        print('Error in _fetchTaskPosts: $e');
+        print('Error in _createPostsStream: $e');
         print('Stack trace: $stackTrace');
       }
       yield [];
     }
   }
 
-
-  Future<Map<String, String>> _fetchUserName(String userId) async {
+  Future<List<Map<String, dynamic>>> _fetchUserPosts(String userId) async {
     try {
-      DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+      final postsSnapshot = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(userId)
+          .collection('allPosts')
+          .orderBy('postDate', descending: true)
+          .limit(20)
+          .get();
+
+      final userInfo = await _getCachedUserInfo(userId);
+      
+      return Future.wait(postsSnapshot.docs.map((doc) async {
+        final postData = doc.data();
+        final postId = doc.id;
+
+        if (!postData.containsKey('content') || !postData.containsKey('postDate')) {
+          return null;
+        }
+
+        final timestamp = postData['postDate'] as Timestamp;
+        final dateTime = timestamp.toDate();
+        final formattedDate = DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
+
+        return {
+          'id': postId,
+          'userName': userInfo['fullName'],
+          'profilePic': userInfo['profilePic'],
+          'content': postData['content']?.toString() ?? 'No content',
+          'photo': postData['photo']?.toString() ?? '',
+          'timestamp': formattedDate,
+          'dateTime': dateTime,
+        };
+      }))
+      .then((posts) => posts.whereType<Map<String, dynamic>>().toList());
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error fetching posts for user $userId: $e');
+      }
+      return [];
+    }
+  }
+
+  Future<Map<String, String>> _getCachedUserInfo(String userId) async {
+    if (_userCache.containsKey(userId)) {
+      return _userCache[userId]!;
+    }
+
+    try {
+      final userSnapshot = await FirebaseFirestore.instance
           .collection('Users')
           .doc(userId)
           .get();
 
       if (userSnapshot.exists) {
-        Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
-        String firstName = userData['fname']?.toString() ?? 'Unknown';
-        String lastName = userData['lname']?.toString() ?? 'User';
-        String profilePic = userData['photo']?.toString() ?? '';
-
-        return {
-          'fullName': '$firstName $lastName',
-          'profilePic': profilePic,
+        final userData = userSnapshot.data() as Map<String, dynamic>;
+        final userInfo = {
+          'fullName': '${userData['fname'] ?? 'Unknown'} ${userData['lname'] ?? 'User'}',
+          'profilePic': userData['photo']?.toString() ?? '',
         };
+        _userCache[userId] = userInfo;
+        return userInfo;
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error fetching user name: $e');
+        print('Error fetching user info: $e');
       }
     }
-    
-    // Return default values if anything fails
+
     return {
       'fullName': 'Unknown User',
       'profilePic': '',
     };
   }
-@override
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
             colors: [
-              Color.fromARGB(255, 66, 32, 101),
+              Color.fromARGB(255, 30, 12, 48),
               Color.fromARGB(255, 77, 64, 98),
             ],
           ),
         ),
-        child: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxIsScrolled) => [
-            SliverToBoxAdapter(
-              child: Column(
+        child: Column(
+          children: [
+            _buildAppBar(),
+            _buildToggleSwitch(),
+            const SizedBox(height: 16),
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                onPageChanged: _onPageChanged,
                 children: [
-                  _buildAppBar(),
-                  _buildToggleSwitch(),
-                  const SizedBox(height: 16),
+                  _buildPostsView(),
+                  _buildRankingsView(),
                 ],
               ),
             ),
           ],
-          body: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            child: _showPosts ? _buildPostsView() : _buildRankingsView(),
-          ),
         ),
       ),
     );
   }
+
+Widget _buildPostsView() {
+  return RefreshIndicator(
+    onRefresh: () async => _initializeStreams(),
+    child: StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _postsStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          // Show loading spinner while waiting for data
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        final posts = snapshot.data ?? _cachedPosts ?? [];
+
+        if (posts.isEmpty) {
+          return ListView(
+            children: const [
+              Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text(
+                    'No posts available.',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+
+        return ListView.separated(
+          padding: const EdgeInsets.all(16.0),
+          physics: const AlwaysScrollableScrollPhysics(),
+          itemCount: posts.length + 1,
+          separatorBuilder: (_, __) => const SizedBox(height: 16.0),
+          itemBuilder: (context, index) {
+            if (index == posts.length) {
+              return const SizedBox(height: kBottomNavigationBarHeight);
+            }
+
+            final post = posts[index];
+            return PostCard(
+              userName: post['userName'],
+              content: post['content'],
+              photoUrl: post['photo'],
+              timestamp: post['timestamp'],
+              profilePicUrl: post['profilePic'],
+              postId: post['id'],
+            );
+          },
+        );
+      },
+    ),
+  );
+}
+
+Widget _buildRankingsView() {
+  return RefreshIndicator(
+    onRefresh: () async => _initializeStreams(),
+    child: StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _rankingsStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          // Show loading spinner while waiting for data
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        final rankings = snapshot.data ?? _cachedRankings ?? [];
+
+        if (rankings.isEmpty) {
+          return ListView(
+            children: const [
+              Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text(
+                    'No ranking data available',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            children: [
+              ProductivityRankingDashboard(rankings: rankings),
+              const SizedBox(height: kBottomNavigationBarHeight),
+            ],
+          ),
+        );
+      },
+    ),
+  );
+}
 
 
   Widget _buildAppBar() {
@@ -216,7 +325,7 @@ class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Text(
-          _showPosts ? "Recent Posts" : "Leaderboard",
+          _showPosts ? "Recent Posts" : "Productivity Leaderboard",
           style: const TextStyle(
             color: Colors.white,
             fontSize: 24,
@@ -227,14 +336,16 @@ class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
     );
   }
 
+ 
   Widget _buildToggleSwitch() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(25),
+          borderRadius: BorderRadius.circular(25), // Increased border radius
         ),
+        padding: const EdgeInsets.all(4), // Added padding inside container
         child: Row(
           children: [
             Expanded(
@@ -257,7 +368,10 @@ class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
     );
   }
 
-  Widget _buildToggleButton({
+
+  
+}
+ Widget _buildToggleButton({
     required String text,
     required bool isSelected,
     required VoidCallback onTap,
@@ -265,9 +379,10 @@ class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
+          color:
+              isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
           borderRadius: BorderRadius.circular(25),
         ),
         child: Text(
@@ -275,157 +390,10 @@ class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Colors.white,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            fontSize: 16,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
           ),
         ),
       ),
     );
   }
-
-    Widget _buildPostsView() {
-    return RefreshIndicator(
-      onRefresh: _refreshPosts,
-      child: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: _postsStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return ListView(
-              children: const [
-                Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text(
-                      'No posts available.',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          }
-
-          final posts = snapshot.data!;
-          return ListView.separated(
-            padding: const EdgeInsets.all(16.0),
-            itemCount: posts.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 16.0),
-            itemBuilder: (context, index) {
-              final post = posts[index];
-              return PostCard(
-                userName: post['userName'] ?? 'Unknown User',
-                content: post['content'] ?? 'No content',
-                photoUrl: post['photo'] ?? '',
-                timestamp: post['timestamp'] ?? 'Unknown time',
-                profilePicUrl: post['profilePic'] ?? '',
-                postId: post['id'] ?? '',
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildRankingsView() {
-    return RefreshIndicator(
-      onRefresh: _refreshRankings,
-      child: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: _rankingsStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return ListView(
-              children: const [
-                Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text(
-                      'No ranking data available',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          }
-
-          return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(0.0),
-              child: ProductivityRankingDashboard(rankings: snapshot.data!),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-//   // Widget for the feed of posts (fetch posts from tasks)
-//  Widget _buildPostsFeed() {
-//     return StreamBuilder<List<Map<String, dynamic>>>(
-//       stream: _postsStream,
-//       builder: (context, snapshot) {
-//         if (snapshot.connectionState == ConnectionState.waiting) {
-//           return const SliverFillRemaining(
-//             child: Center(child: CircularProgressIndicator()),
-//           );
-//         }
-
-//          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-//           return const SliverFillRemaining(
-//             child: Center(child: Text('No posts available.', style: TextStyle(color: Colors.white))),
-//           );
-//         }
-
-//         final posts = snapshot.data!;
-
-//         return SliverList(
-//           delegate: SliverChildBuilderDelegate(
-//             (context, index) {
-//               final post = posts[index];
-//               return  Padding(
-//                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-//                 child: PostCard(
-//                 userName: post['userName'] ?? 'Unknown User',
-//                 content: post['content'] ?? 'No content',
-//                 photoUrl: post['photo'],
-//                 timestamp: post['timestamp'] ?? 'Unknown time',
-//                 profilePicUrl: post['profilePic'],
-//                 postId: post['id'] ?? '',),
-//               );
-//             },
-//             childCount: posts.length,
-//           ),
-//         );
-//       },
-//     );
-//   }
-
-//   // Widget for the ranking dashboard
-//     Widget _buildRankingDashboard() {
-//   return StreamBuilder<List<Map<String, dynamic>>>(
-//     stream:RankingsService().fetchProductivityRankings(),
-//     builder: (context, snapshot) {
-//       if (snapshot.connectionState == ConnectionState.waiting) {
-//         return const Center(child: CircularProgressIndicator());
-//       }
-      
-//       if (!snapshot.hasData || snapshot.data!.isEmpty) {
-//         return const Center(
-//           child: Text('No ranking data available', 
-//             style: TextStyle(color: Colors.white))
-//         );
-//       }
-      
-//       return ProductivityRankingDashboard(rankings: snapshot.data!);
-//     },
-//   );
-// }
-

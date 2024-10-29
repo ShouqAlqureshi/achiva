@@ -14,117 +14,149 @@ import 'dart:ui' as ui;
 
 import 'package:share_plus/share_plus.dart';
 
+class UserDataCache {
+  static final Map<String, Map<String, dynamic>> _userCache = {};
+  
+  static void cacheUser(String userId, Map<String, dynamic> userData) {
+    _userCache[userId] = userData;
+  }
+  
+  static Map<String, dynamic>? getCachedUser(String userId) {
+    return _userCache[userId];
+  }
+  
+  static void clearCache() {
+    _userCache.clear();
+  }
+}
+
 class RankingsService {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   Stream<List<Map<String, dynamic>>> fetchProductivityRankings() async* {
     try {
-      User? currentUser = FirebaseAuth.instance.currentUser;
+      User? currentUser = _auth.currentUser;
       if (currentUser == null) {
         yield [];
         return;
       }
 
-      // Fetch friends list
-      QuerySnapshot friendsSnapshot = await FirebaseFirestore.instance
-          .collection('Users')
-          .doc(currentUser.uid)
-          .collection('friends')
-          .get();
+      // Batch queries for better performance
+      final userDoc = _firestore.collection('Users').doc(currentUser.uid);
+      final friendsQuery = userDoc.collection('friends').get();
+      
+      final friendsSnapshot = await friendsQuery;
+      final List<String> userIds = [
+        currentUser.uid,
+        ...friendsSnapshot.docs.map((doc) => doc['userId'] as String)
+      ];
 
-      List<String> userIds =
-          friendsSnapshot.docs.map((doc) => doc['userId'] as String).toList();
-      userIds.add(currentUser.uid);
-
+      final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
       List<Map<String, dynamic>> userProductivity = [];
-      final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
 
-      for (String userId in userIds) {
-        try {
-          // First get all goals
-          QuerySnapshot goalsSnapshot = await FirebaseFirestore.instance
-              .collection('Users')
-              .doc(userId)
-              .collection('goals')
-              .get();
 
-          int totalCompletedTasks = 0;
-          int totalTasks = 0;
 
-          // For each goal, get its tasks
-          for (var goalDoc in goalsSnapshot.docs) {
-            QuerySnapshot tasksSnapshot = await FirebaseFirestore.instance
-                .collection('Users')
-                .doc(userId)
-                .collection('goals')
-                .doc(goalDoc.id)
-                .collection('tasks')
-                .get();
-
-            // Count completed tasks within last 30 days with null-safe checks
-            int completedTasksForGoal = tasksSnapshot.docs.where((task) {
-              final taskData = task.data() as Map<String, dynamic>;
-
-              // Safely check completion status
-              bool isCompleted = taskData['completed'] == true;
-              if (!isCompleted) return false;
-
-              // Safely handle completion date
-              final completedDate =
-                  (taskData['completedDate'] as Timestamp?)?.toDate();
-              if (completedDate == null) return false;
-
-              return completedDate.isAfter(thirtyDaysAgo);
-            }).length;
-
-            totalCompletedTasks += completedTasksForGoal;
-            totalTasks += tasksSnapshot.docs.length;
-          }
-
-          // Fetch user details with null safety
-          DocumentSnapshot userDoc = await FirebaseFirestore.instance
-              .collection('Users')
-              .doc(userId)
-              .get();
-
-          if (!userDoc.exists) continue;
-
-          final userData = userDoc.data() as Map<String, dynamic>?;
-          if (userData == null) continue;
-
-          // Safely access user data with null checks and defaults
-          final firstName = userData['fname'] as String? ?? 'Unknown';
-          final lastName = userData['lname'] as String? ?? 'User';
-          final photoUrl = userData['photo'] as String? ?? '';
-
-          // Calculate productivity metrics
-          double completionRate =
-              totalTasks > 0 ? totalCompletedTasks / totalTasks : 0;
-          int productivityScore =
-              (totalCompletedTasks * 10 + completionRate * 100).round();
-
-          userProductivity.add({
-            'userId': userId,
-            'fullName': '$firstName $lastName',
-            'profilePic': photoUrl,
-            'completedTasks': totalCompletedTasks,
-            'totalGoals': goalsSnapshot.docs.length,
-            'totalTasks': totalTasks,
-            'productivityScore': productivityScore,
-          });
-        } catch (e) {
-          print('Error processing user $userId: $e');
-          continue; // Skip this user and continue with others
-        }
-      }
-
-      // Sort by productivity score
-      userProductivity.sort(
-          (a, b) => b['productivityScore'].compareTo(a['productivityScore']));
+      // Parallel processing for user data
+      final futures = userIds.map((userId) => _processUserData(userId, sevenDaysAgo));
+      final results = await Future.wait(futures);
+      
+      userProductivity = results.where((data) => data != null).cast<Map<String, dynamic>>().toList();
+      userProductivity.sort((a, b) => b['productivityScore'].compareTo(a['productivityScore']));
 
       yield userProductivity;
     } catch (e) {
       print('Error fetching productivity rankings: $e');
       yield [];
     }
+  }
+
+  Future<Map<String, dynamic>?> _processUserData(String userId, DateTime sevenDaysAgo) async {
+    try {
+      // Check cache first
+      final cachedData = UserDataCache.getCachedUser(userId);
+      if (cachedData != null) {
+        return cachedData;
+      }
+
+      final userDoc = await _firestore.collection('Users').doc(userId).get();
+      if (!userDoc.exists) return null;
+
+      final userData = userDoc.data() as Map<String, dynamic>?;
+      if (userData == null) return null;
+
+      final goalsSnapshot = await _firestore
+          .collection('Users')
+          .doc(userId)
+          .collection('goals')
+          .get();
+
+      int totalCompletedTasks = 0;
+      int totalTasks = 0;
+
+      // Process all tasks in parallel
+      final taskFutures = goalsSnapshot.docs.map((goalDoc) =>
+          _processGoalTasks(userId, goalDoc.id, sevenDaysAgo));
+      final taskResults = await Future.wait(taskFutures);
+
+      for (final result in taskResults) {
+        totalCompletedTasks += result['completed'] as int;
+        totalTasks += result['total'] as int;
+      }
+
+      final productivityData = {
+        'userId': userId,
+        'fullName': '${userData['fname'] ?? 'Unknown'} ${userData['lname'] ?? 'User'}',
+        'profilePic': userData['photo'] ?? '',
+        'completedTasks': totalCompletedTasks,
+        'totalGoals': goalsSnapshot.docs.length,
+        'totalTasks': totalTasks,
+        'productivityScore': _calculateProductivityScore(totalCompletedTasks, totalTasks),
+      };
+
+      // Cache the result
+      UserDataCache.cacheUser(userId, productivityData);
+      return productivityData;
+    } catch (e) {
+      print('Error processing user $userId: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, int>> _processGoalTasks(
+      String userId, String goalId, DateTime sevenDaysAgo) async {
+    final tasksSnapshot = await _firestore
+        .collection('Users')
+        .doc(userId)
+        .collection('goals')
+        .doc(goalId)
+        .collection('tasks')
+        .get();
+
+    final completedTasks = tasksSnapshot.docs.where((task) {
+      final taskData = task.data();
+      final isCompleted = taskData['completed'] == true;
+      if (!isCompleted) return false;
+
+      final completedDate = (taskData['completedDate'] as Timestamp?)?.toDate();
+      if (completedDate == null) return false;
+
+      return completedDate.isAfter(sevenDaysAgo);
+    }).length;
+
+    final totalTasks = tasksSnapshot.docs.where((task) {
+      final taskData = task.data();
+      final dueDate = (taskData['dueDate'] as Timestamp?)?.toDate();
+      if (dueDate == null) return false;
+      return dueDate.isAfter(sevenDaysAgo);
+    }).length;
+
+    return {'completed': completedTasks, 'total': totalTasks};
+  }
+
+  int _calculateProductivityScore(int completedTasks, int totalTasks) {
+    final completionRate = totalTasks > 0 ? completedTasks / totalTasks : 0;
+    return (completedTasks * 20 + completionRate * 100).round();
   }
 }
 
@@ -388,15 +420,16 @@ class PeriodSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment:
-          MainAxisAlignment.spaceBetween, // Align elements to space between
+
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Row(
           children: [
-            _PeriodTab(label: 'Last 30 days', isActive: true),
+            _PeriodTab(label: 'Last 7 days', isActive: true), // Updated text
             const SizedBox(width: 8),
           ],
         ),
+
       ],
     );
   }
@@ -438,16 +471,42 @@ class TopThreePodium extends StatelessWidget {
     required this.topUsers,
   });
 
+  String _formatName(String fullName) {
+    final nameParts = fullName.split(' ');
+    if (nameParts.length > 1) {
+      return '${nameParts[0]} .${nameParts[1][0]}';
+    }
+    return fullName;
+  }
+
+  double _calculateFontSize(String name, double containerWidth) {
+    double baseFontSize = 24;
+    int baseCharCount = 8;
+    
+    if (name.length > baseCharCount) {
+      double ratio = baseCharCount / name.length;
+      return math.max(16.0, baseFontSize * ratio);
+    }
+    
+    return baseFontSize;
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      // Calculate dimensions based on available width
+
       final availableWidth = constraints.maxWidth;
-      final podiumWidth = math.min(100.0,
-          (availableWidth - 32 - 16) / 3); // 32 for padding, 16 for spacing
-      final horizontalSpacing =
-          math.min(8.0, (availableWidth - podiumWidth * 3 - 32) / 2);
+      final podiumWidth = math.min(100.0, (availableWidth - 32 - 16) / 3);
+      final horizontalSpacing = math.min(8.0, (availableWidth - podiumWidth * 3 - 32) / 2);
       final leftPadding = 16.0;
+      
+      // Calculate center points for each podium
+      final firstPlaceCenter = (availableWidth - 32) / 2;
+      final secondPlaceCenter = firstPlaceCenter - podiumWidth - horizontalSpacing;
+      final thirdPlaceCenter = firstPlaceCenter + podiumWidth + horizontalSpacing;
+
+      final firstPlaceName = _formatName(topUsers[0]['fullName'] ?? '');
+      final firstPlaceFontSize = _calculateFontSize(firstPlaceName, podiumWidth);
 
       return Container(
         height: 260,
@@ -456,7 +515,9 @@ class TopThreePodium extends StatelessWidget {
           fit: StackFit.loose,
           clipBehavior: Clip.none,
           children: [
-            // Background podium shapes
+
+            // Background podium shapes (unchanged)
+
             Positioned(
               left: leftPadding,
               right: leftPadding,
@@ -468,7 +529,8 @@ class TopThreePodium extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     if (topUsers.length > 1) ...[
-                      // Second place podium
+
+
                       Container(
                         width: podiumWidth,
                         height: 160,
@@ -490,10 +552,8 @@ class TopThreePodium extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
-                                topUsers[1]['fullName']
-                                        ?.toString()
-                                        .split(' ')[0] ??
-                                    '',
+
+                                _formatName(topUsers[1]['fullName'] ?? ''),
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   color: Colors.white,
@@ -503,7 +563,9 @@ class TopThreePodium extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '${topUsers[1]['productivityScore']}🦾',
+
+                                '${topUsers[1]['productivityScore']}${topUsers[1]['productivityScore'] == 0 ? '😢' : '🦾'}',
+
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   color: Colors.pink,
@@ -518,7 +580,8 @@ class TopThreePodium extends StatelessWidget {
                       SizedBox(width: horizontalSpacing),
                     ],
 
-                    // First place podium - always centered
+
+
                     Container(
                       width: podiumWidth,
                       height: 200,
@@ -539,21 +602,26 @@ class TopThreePodium extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Text(
-                              topUsers[0]['fullName']
-                                      ?.toString()
-                                      .split(' ')[0] ??
-                                  '',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 29,
-                                fontWeight: FontWeight.w500,
+
+                            Container(
+                              width: podiumWidth,
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  firstPlaceName,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: firstPlaceFontSize,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${topUsers[0]['productivityScore']}🚀',
+                              '${topUsers[0]['productivityScore']}${topUsers[0]['productivityScore'] == 0 ? '😢' : '🚀'}',
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 color: Colors.purple,
@@ -568,7 +636,6 @@ class TopThreePodium extends StatelessWidget {
 
                     if (topUsers.length > 2) ...[
                       SizedBox(width: horizontalSpacing),
-                      // Third place podium
                       Container(
                         width: podiumWidth,
                         height: 120,
@@ -590,10 +657,7 @@ class TopThreePodium extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
-                                topUsers[2]['fullName']
-                                        ?.toString()
-                                        .split(' ')[0] ??
-                                    '',
+                                _formatName(topUsers[2]['fullName'] ?? ''),
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   color: Colors.white,
@@ -603,7 +667,8 @@ class TopThreePodium extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '${topUsers[2]['productivityScore']}💨',
+                                '${topUsers[2]['productivityScore']}${topUsers[2]['productivityScore'] == 0 ? '😢' : '💨'}',
+
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   color: Colors.orange,
@@ -621,7 +686,9 @@ class TopThreePodium extends StatelessWidget {
               ),
             ),
 
-            // Player photos layer
+
+            // Player photos layer - Updated positioning
+
             Positioned(
               left: leftPadding,
               right: leftPadding,
@@ -630,46 +697,25 @@ class TopThreePodium extends StatelessWidget {
                 height: 260,
                 child: Stack(
                   clipBehavior: Clip.none,
-                  fit: StackFit.loose,
+
                   alignment: Alignment.center,
                   children: [
-                    // Second place
                     if (topUsers.length > 1)
                       Positioned(
-                        left: (availableWidth -
-                                    podiumWidth *
-                                        (topUsers.length > 2 ? 3 : 2) -
-                                    horizontalSpacing *
-                                        (topUsers.length > 2 ? 2 : 1)) /
-                                2 -
-                            3,
+                        // Updated second place positioning to use secondPlaceCenter
+                        left: secondPlaceCenter - 35,
+
                         bottom: 140,
                         child: PlayerPhoto(user: topUsers[1], position: 2),
                       ),
 
-                    // First place - always centered
+
                     Positioned(
-                      left: (availableWidth -
-                                  podiumWidth *
-                                      (topUsers.length == 1
-                                          ? 1
-                                          : topUsers.length > 2
-                                              ? 3
-                                              : 2) -
-                                  horizontalSpacing *
-                                      (topUsers.length > 2
-                                          ? 2
-                                          : topUsers.length == 1
-                                              ? 0
-                                              : 1)) /
-                              2 +
-                          (topUsers.length == 1
-                              ? 0
-                              : podiumWidth + horizontalSpacing) -
-                          3,
+                      left: firstPlaceCenter - 35,
                       bottom: 180,
                       child: Stack(
                         clipBehavior: Clip.none,
+                        alignment: Alignment.center,
                         children: [
                           Transform.scale(
                             scale: 1.2,
@@ -689,15 +735,10 @@ class TopThreePodium extends StatelessWidget {
                       ),
                     ),
 
-                    // Third place
                     if (topUsers.length > 2)
                       Positioned(
-                        left: (availableWidth -
-                                    podiumWidth * 3 -
-                                    horizontalSpacing * 2) /
-                                2 +
-                            (podiumWidth + horizontalSpacing) * 2 -
-                            3,
+                        // Updated third place positioning to use thirdPlaceCenter
+                        left: thirdPlaceCenter - 35,
                         bottom: 100,
                         child: PlayerPhoto(user: topUsers[2], position: 3),
                       ),
@@ -1044,8 +1085,8 @@ class RankingListItem extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.05),
                     borderRadius: BorderRadius.circular(12),
@@ -1054,21 +1095,38 @@ class RankingListItem extends StatelessWidget {
                     ),
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        user['fullName'],
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              user['fullName'],
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                      Text(
-                        '${user['productivityScore']}${_getEmoji()}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            left: BorderSide(
+                              color: Colors.white.withOpacity(0.1),
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          '${user['productivityScore']}${_getEmoji()}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                     ],
