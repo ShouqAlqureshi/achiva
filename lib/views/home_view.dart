@@ -51,35 +51,46 @@ class _HomePageState extends State<HomeScreen> {
     _pageController
         .jumpToPage(index); // Update the PageView when a tab is selected
   }
-   Future<double> calculateGoalProgress(DocumentSnapshot goalDocument) async {
-    try {
-      // Get all tasks for this goal
-      QuerySnapshot tasksSnapshot = await FirebaseFirestore.instance
-          .collection("Users")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .collection('goals')
-          .doc(goalDocument.id)
-          .collection('tasks')
-          .get();
+   Stream<Map<String, dynamic>> getGoalWithProgress(DocumentSnapshot goalDocument) {
+    final goalId = goalDocument.id;
+    final userId = FirebaseAuth.instance.currentUser!.uid;
 
+    // Stream of tasks for the goal
+    final tasksStream = FirebaseFirestore.instance
+        .collection("Users")
+        .doc(userId)
+        .collection('goals')
+        .doc(goalId)
+        .collection('tasks')
+        .snapshots();
+
+    // Transform the stream to include progress calculation
+    return tasksStream.map((tasksSnapshot) {
       if (tasksSnapshot.docs.isEmpty) {
-        return 0.0; // Return 0% if there are no tasks
+        return {
+          'progress': 0.0,
+          'goalDocument': goalDocument,
+        };
       }
 
-      // Count completed tasks
       int completedTasks = tasksSnapshot.docs
           .where((task) => (task.data() as Map<String, dynamic>)['completed'] == true)
           .length;
 
-      // Calculate progress percentage
       double progress = (completedTasks / tasksSnapshot.docs.length) * 100;
-      return progress.roundToDouble();
-    } catch (e) {
-      print('Error calculating progress: $e');
-      return 0.0;
-    }
+
+      return {
+        'progress': progress.roundToDouble(),
+        'goalDocument': goalDocument,
+      };
+    });
   }
 
+Future<DateTime> getGoalDueDate(DocumentSnapshot goalDocument) async {
+    final goalData = goalDocument.data() as Map<String, dynamic>;
+    final dueDate = goalData['date'].toDate();
+    return dueDate;
+  }
   @override
 Widget build(BuildContext context) {
   return Scaffold(
@@ -298,21 +309,23 @@ Widget _buildHomePage(BuildContext context) {
                         itemCount: snapshot.data!.docs.length,
                         itemBuilder: (context, index) {
                           final goalDocument = snapshot.data!.docs[index];
-                          final goalData =
-                              goalDocument.data() as Map<String, dynamic>;
+                          final goalData = goalDocument.data() as Map<String, dynamic>;
                           final String goalName = goalData['name'];
 
-                          return FutureBuilder<double>(
-                            future: calculateGoalProgress(goalDocument),
+                          return StreamBuilder<Map<String, dynamic>>(
+          stream: getGoalWithProgress(goalDocument),
                             builder: (context, progressSnapshot) {
                               if (progressSnapshot.connectionState ==
                                   ConnectionState.waiting) {
                                 return const Center(
                                     child: CircularProgressIndicator());
                               }
+if (!progressSnapshot.hasData) {
+              return const Center(child: Text('Error loading progress'));
+            }
 
-                              double progress = progressSnapshot.data ?? 0.0;
-                              final isDone = progress >= 100;
+            double progress = progressSnapshot.data!['progress'];
+            final isDone = progress >= 100;
 
                               return _buildGoalCard(
                                 goalName,
@@ -337,44 +350,44 @@ Widget _buildHomePage(BuildContext context) {
 }
 
 Widget _buildGoalCard(String goalName, double progress, bool isDone,
-    DocumentSnapshot goalDocument) {
-  return GestureDetector(
-    onTap: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => GoalTasks(goalDocument: goalDocument),
-        ),
-      );
-    },
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-margin: const EdgeInsets.only(left: 15, right: 15, top: 30, bottom: 150),
-      padding: const EdgeInsets.all(20),
-      width: 150,
-      height: 10,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color.fromARGB(255, 66, 32, 101),
-            Color.fromARGB(255, 77, 64, 98),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey,
-            blurRadius: 15,
-            offset: const Offset(0, 3),
+      DocumentSnapshot goalDocument) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => GoalTasks(goalDocument: goalDocument),
           ),
-        ],
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 5),
+        );
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        margin: const EdgeInsets.only(left: 15, right: 15, top: 30, bottom: 150),
+        padding: const EdgeInsets.all(20),
+        width: 150,
+        height: 10,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color.fromARGB(255, 66, 32, 101),
+              Color.fromARGB(255, 77, 64, 98),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey,
+              blurRadius: 15,
+              offset: const Offset(0, 3),
+            ),
+          ],
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 5),
           if (isDone) ...[
             Row(
               children: [
@@ -497,38 +510,85 @@ margin: const EdgeInsets.only(left: 15, right: 15, top: 30, bottom: 150),
                   ],
                 ),
                 const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        goalName,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          goalName,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        progress == 0 ? 'Not started yet' : 'In progress',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
+                        const SizedBox(height: 3),
+                        Text(
+                          progress == 0 ? 'Not started yet' : 'In progress',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 10),
+                        FutureBuilder<DateTime>(
+                          future: getGoalDueDate(goalDocument),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return const SizedBox();
+                            }
+
+                            if (snapshot.hasData) {
+                              final dueDate = snapshot.data!;
+                              final now = DateTime.now();
+                              final difference = dueDate.difference(now);
+
+                              if (difference.inDays > 0) {
+                                return Text(
+                                  '${difference.inDays} days left',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                  ),
+                                );
+                              } else if (difference.inHours > 0) {
+                                return Text(
+                                  '${difference.inHours} hours left',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                  ),
+                                );
+                              } else {
+                                return Text(
+                                  '${difference.inMinutes} minutes left',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                  ),
+                                );
+                              }
+                            } else {
+                              return const SizedBox();
+                            }
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
+            const Spacer(),
           ],
-          const Spacer(),
-        ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
+
+
+
+  
   Widget reportStats(String stat, String label) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
