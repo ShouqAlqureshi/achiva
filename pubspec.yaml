@@ -33,6 +33,7 @@ dependencies:
   path_provider: ^2.0.15
   permission_handler: ^10.2.0
   share_plus: ^10.1.1
+  another_flushbar: ^1.12.30
 
 
 dev_dependencies:

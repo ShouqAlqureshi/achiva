@@ -2,6 +2,7 @@
 
 import 'dart:developer';
 
+import 'package:achiva/utilities/loading.dart';
 import 'package:achiva/views/addition_views/add_redundence_tasks.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -43,6 +44,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
 
   // Add a task to the list
   Future<void> _createGoalAndAddTask() async {
+    showLoadingDialog(context);
     setState(() {
       _isTaskNameValid = _taskNameController.text.isNotEmpty;
       _isDateValid = _selectedDate != null;
@@ -57,6 +59,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
         !_isDateValid ||
         !_isStartTimeValid ||
         !_isEndTimeValid) {
+      Navigator.of(context).pop(); //dismiss loading
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all required fields')),
       );
@@ -94,6 +97,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
 
       if (goalSnapshot.exists) {
         log("The goal name exists, try changing the name");
+        Navigator.of(context).pop(); //dismiss loading
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text("The goal name exists, try changing the name")),
@@ -157,7 +161,9 @@ class _AddTaskPageState extends State<AddTaskPage> {
             .collection('tasks')
             .add(taskData);
       }
-
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
       // Show success message only when the goal and task are successfully created
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -166,6 +172,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
     } catch (e) {
       log("$e");
+      Navigator.of(context).pop(); //dismiss loading
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error creating goal and adding task: $e')),
       );
@@ -243,6 +250,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
       ),
       extendBodyBehindAppBar: true,
       body: Container(
+        height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -275,12 +283,23 @@ class _AddTaskPageState extends State<AddTaskPage> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Task Name',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[700],
-                            ),
+                          Row(
+                            children: [
+                              Text(
+                                'Task Name',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                              Text(
+                                ' *',
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 4),
                           TextField(
@@ -426,12 +445,23 @@ class _AddTaskPageState extends State<AddTaskPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Day',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey[700],
-                                  ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Day',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey[700],
+                                      ),
+                                    ),
+                                    Text(
+                                      ' *',
+                                      style: TextStyle(
+                                        color: Colors.red,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 4),
                                 InkWell(
@@ -484,12 +514,23 @@ class _AddTaskPageState extends State<AddTaskPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Time-From',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey[700],
-                                  ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Time-From',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey[700],
+                                      ),
+                                    ),
+                                    Text(
+                                      ' *',
+                                      style: TextStyle(
+                                        color: Colors.red,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 4),
                                 InkWell(
@@ -535,12 +576,23 @@ class _AddTaskPageState extends State<AddTaskPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Time-To',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey[700],
-                                  ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Time-To',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey[700],
+                                      ),
+                                    ),
+                                    const Text(
+                                      ' *',
+                                      style: TextStyle(
+                                        color: Colors.red,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 4),
                                 InkWell(
@@ -587,16 +639,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          // TextButton(
-                          //   child: Text(
-                          //     'Cancel',
-                          //     style: TextStyle(
-                          //       color: Colors.black,
-                          //       fontSize: 16,
-                          //     ),
-                          //   ),
-                          //   onPressed: () => Navigator.of(context).pop(),
-                          // ),
                           // Save Button (updated with consistent styling)
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
