@@ -361,8 +361,6 @@ Widget _buildGoalCard(String goalName, double progress, bool isDone, DocumentSna
       duration: const Duration(milliseconds: 300),
       margin: const EdgeInsets.only(left: 15, right: 15, top: 30, bottom: 150),
       padding: const EdgeInsets.all(20),
-      width: 150,
-      height: 10,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -372,25 +370,23 @@ Widget _buildGoalCard(String goalName, double progress, bool isDone, DocumentSna
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.circular(25),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey,
-            blurRadius: 15,
-            offset: const Offset(0, 3),
+            color: Colors.grey.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
         ],
-        borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 5),
           if (isDone) ...[
             _buildCompletedGoalContent(goalName)
           ] else ...[
             _buildInProgressGoalContent(goalName, progress, goalDocument)
           ],
-          const Spacer(),
         ],
       ),
     ),
@@ -400,47 +396,7 @@ Widget _buildGoalCard(String goalName, double progress, bool isDone, DocumentSna
 Widget _buildCompletedGoalContent(String goalName) {
   return Row(
     children: [
-      Stack(
-        children: [
-          Container(
-            height: 40,
-            width: 40,
-            decoration: const BoxDecoration(
-              color: Colors.transparent,
-              shape: BoxShape.circle,
-            ),
-          ),
-          Positioned(
-            top: 0,
-            left: 0,
-            child: SizedBox(
-              height: 40,
-              width: 40,
-              child: CircularProgressIndicator(
-                value: 1.0,
-                strokeWidth: 6,
-                backgroundColor: Colors.white,
-                strokeCap: StrokeCap.round,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 0,
-            left: 0,
-            child: Container(
-              height: 40,
-              width: 40,
-              alignment: Alignment.center,
-              child: const Icon(
-                Icons.check,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
-          ),
-        ],
-      ),
+      _buildProgressCircle(1.0, Colors.green, Icons.check),
       const SizedBox(width: 10),
       Expanded(
         child: Column(
@@ -458,8 +414,8 @@ Widget _buildCompletedGoalContent(String goalName) {
             const Text(
               'Done!',
               style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
+                color: Colors.white70,
+                fontSize: 14,
               ),
             ),
           ],
@@ -470,105 +426,91 @@ Widget _buildCompletedGoalContent(String goalName) {
 }
 
 Widget _buildInProgressGoalContent(String goalName, double progress, DocumentSnapshot goalDocument) {
-  return Stack(
+  return Row(
     children: [
-      Row(
-        children: [
-          Stack(
-            children: [
-              Container(
-                height: 40,
-                width: 40,
-                decoration: const BoxDecoration(
-                  color: Colors.transparent,
-                  shape: BoxShape.circle,
-                ),
+      _buildProgressCircle(progress / 100, WellBeingColors.lightMaroon, null, progress),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              goalName,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
               ),
-              Positioned(
-                top: 0,
-                left: 0,
-                child: SizedBox(
-                  height: 40,
-                  width: 40,
-                  child: CircularProgressIndicator(
-                    value: progress / 100,
-                    strokeWidth: 6,
-                    backgroundColor: Colors.white,
-                    strokeCap: StrokeCap.round,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      WellBeingColors.lightMaroon,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 0,
-                left: 0,
-                child: Container(
-                  height: 40,
-                  width: 40,
-                  alignment: Alignment.center,
-                  child: Text(
-                    '${progress.round()}%',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  goalName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  progress == 0 ? 'Not started yet' : 'In progress',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 10),
-              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 3),
+            Text(
+              progress == 0 ? 'Not started yet' : 'In progress',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
       ),
-      Align(
-        alignment: Alignment.bottomRight,
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 8, right: 8),
-          child: StreamBuilder<String>(
-            stream: CountdownManager().getCountdownStream(goalDocument),
-            initialData: '',
-            builder: (context, snapshot) {
-              if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return const SizedBox.shrink();
-              }
-              return Text(
+      const Spacer(),
+      Padding(
+        padding: const EdgeInsets.only(right: 8.0),
+        child: StreamBuilder<String>(
+          stream: CountdownManager().getCountdownStream(goalDocument),
+          initialData: '',
+          builder: (context, snapshot) {
+            if (!snapshot.hasData || snapshot.data!.isEmpty) return const SizedBox.shrink();
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
                 snapshot.data!,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       ),
+    ],
+  );
+}
+
+Widget _buildProgressCircle(double progress, Color color, IconData? icon, [double? percentage]) {
+  return Stack(
+    alignment: Alignment.center,
+    children: [
+      SizedBox(
+        height: 45,
+        width: 45,
+        child: CircularProgressIndicator(
+          value: progress,
+          strokeWidth: 5,
+          backgroundColor: Colors.white.withOpacity(0.3),
+          valueColor: AlwaysStoppedAnimation<Color>(color),
+        ),
+      ),
+      icon != null
+          ? Icon(
+              icon,
+              color: Colors.white,
+              size: 20,
+            )
+          : Text(
+              '${percentage?.round()}%',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
     ],
   );
 }
