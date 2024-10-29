@@ -367,7 +367,7 @@ Future<void> _captureAndShowPreview() async {
                 children: [
                   Row(
                     children: [
-                      _PeriodTab(label: 'Last 30 days', isActive: true),
+                      _PeriodTab(label: 'Last 7 days', isActive: true),
                       const SizedBox(width: 8),
                     ],
                   ),
