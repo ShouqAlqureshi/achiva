@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:achiva/utilities/loading.dart';
 import 'package:achiva/views/addition_views/add_redundence_tasks.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -42,6 +43,7 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
 
   // Add a task to the list
   Future<void> _createGoalAndAddTask() async {
+    showLoadingDialog(context);
     setState(() {
       _isTaskNameValid = _taskNameController.text.isNotEmpty;
       _isDateValid = _selectedDate != null;
@@ -52,6 +54,7 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
         !_isDateValid ||
         !_isStartTimeValid ||
         !_isEndTimeValid) {
+      Navigator.of(context).pop(); // Dismiss loading dialog
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all required fields')),
       );
@@ -89,6 +92,7 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
 
       if (!goalSnapshot.exists) {
         log("the goal name does not exists.");
+        Navigator.of(context).pop(); // Dismiss loading dialog
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("the goal name does not exists.")),
         );
@@ -145,13 +149,16 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
             .doc(widget.goalName)
             .update({'notasks': FieldValue.increment(1)});
       }
-
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('task added successfully')),
       );
       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
     } catch (e) {
       log("$e");
+      Navigator.of(context).pop(); // Dismiss loading dialog
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error adding task: $e')),
       );
@@ -250,6 +257,7 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
       ),
       extendBodyBehindAppBar: true,
       body: Container(
+        height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -282,12 +290,23 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Task Name',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[700],
-                            ),
+                          Row(
+                            children: [
+                              Text(
+                                'Task Name',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                              const Text(
+                                ' *',
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 4),
                           TextField(
@@ -443,12 +462,23 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Day',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey[700],
-                                  ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Day',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey[700],
+                                      ),
+                                    ),
+                                    const Text(
+                                      ' *',
+                                      style: TextStyle(
+                                        color: Colors.red,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 4),
                                 InkWell(
@@ -501,12 +531,23 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Time-From',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey[700],
-                                  ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Time-From',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey[700],
+                                      ),
+                                    ),
+                                    const Text(
+                                      ' *',
+                                      style: TextStyle(
+                                        color: Colors.red,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 4),
                                 InkWell(
@@ -552,12 +593,23 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Time-To',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey[700],
-                                  ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Time-To',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey[700],
+                                      ),
+                                    ),
+                                    const Text(
+                                      ' *',
+                                      style: TextStyle(
+                                        color: Colors.red,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 4),
                                 InkWell(
