@@ -1,7 +1,6 @@
 import 'dart:developer';
 import 'dart:io';
 import 'dart:typed_data';
-
 import 'package:achiva/utilities/loading.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -11,8 +10,9 @@ import 'dart:math' as math;
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:ui' as ui;
-
 import 'package:share_plus/share_plus.dart';
+import 'dart:ui' as ui;
+
 
 class UserDataCache {
   static final Map<String, Map<String, dynamic>> _userCache = {};
@@ -182,11 +182,45 @@ bool _shareIsLoading = false;
 // Function to capture the widget as an image
 Future<Uint8List?> _captureWidget() async {
   try {
-    final RenderRepaintBoundary boundary = _boundaryKey.currentContext!
-        .findRenderObject() as RenderRepaintBoundary;
+    final RenderRepaintBoundary boundary =
+        _boundaryKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+
+    // Capture the widget as an image
     final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
-    final ByteData? byteData =
-        await image.toByteData(format: ui.ImageByteFormat.png);
+    
+    // Create a new image with a gradient background
+    final ui.PictureRecorder recorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(recorder);
+    
+    // Define the gradient
+    final Rect rect = Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
+    final Gradient gradient = LinearGradient(
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+      colors: [
+        Color.fromARGB(255, 30, 12, 48),
+        Color.fromARGB(255, 59, 38, 91),
+      ],
+    );
+
+    // Apply the gradient as a shader to the paint
+    final Paint paint = Paint()..shader = gradient.createShader(rect);
+
+    // Draw the gradient background
+    canvas.drawRect(rect, paint);
+
+    // Draw the captured widget image on top of the gradient background
+    canvas.drawImage(image, Offset.zero, Paint());
+
+    // Convert the final image to bytes
+    final ui.Image finalImage = await recorder.endRecording().toImage(
+      image.width,
+      image.height,
+    );
+    final ByteData? byteData = await finalImage.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
+
     final Uint8List? pngBytes = byteData?.buffer.asUint8List();
     return pngBytes;
   } catch (e) {
@@ -211,7 +245,7 @@ Future<void> _captureAndShowPreview() async {
         context: context,
         builder: (BuildContext context) {
           return Dialog(
-            backgroundColor: Colors.transparent,
+            backgroundColor: Color(0xFF241c2e),
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.grey[900]?.withOpacity(0.95),
@@ -416,24 +450,6 @@ Future<void> _captureAndShowPreview() async {
   }
 }
 
-// class PeriodSelector extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return Row(
-
-//       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//       children: [
-//         Row(
-//           children: [
-//             _PeriodTab(label: 'Last 7 days', isActive: true), // Updated text
-//             const SizedBox(width: 8),
-//           ],
-//         ),
-
-//       ],
-//     );
-//   }
-// }
 
 class _PeriodTab extends StatelessWidget {
   final String label;

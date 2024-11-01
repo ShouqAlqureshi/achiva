@@ -51,77 +51,99 @@ class _GoalTasksState extends State<GoalTasks> {
     });
   }
 
-  void _showTaskDetails(BuildContext context, Map<String, dynamic> task) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          contentPadding: EdgeInsets.only(left: 24, right: 24, bottom: 24),
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Align(
-                alignment: Alignment.topRight,
-                child: IconButton(
-                  icon: Icon(Icons.close, color: Colors.black),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  padding: EdgeInsets.zero,
-                  constraints: BoxConstraints(),
-                ),
+void _showTaskDetails(BuildContext context, Map<String, dynamic> task) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: Colors.white,
+        contentPadding: EdgeInsets.only(left: 24, right: 24, bottom: 24),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Align(
+              alignment: Alignment.topRight,
+              child: IconButton(
+                icon: Icon(Icons.close, color: Colors.black),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                padding: EdgeInsets.zero,
+                constraints: BoxConstraints(),
               ),
-              Text(
-                task['taskName'] ?? 'Task Details',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                ),
+            ),
+            Text(
+              task['taskName'] ?? 'Task Details',
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
               ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-                Text('Date: ${task['date'] ?? 'Not set'}',
-                    style: TextStyle(color: Colors.black)),
-                Text('Description: ${task['description'] ?? 'No description'}',
-                    style: TextStyle(color: Colors.black)),
-                Text('Duration: ${task['duration'] ?? 'Not set'}',
-                    style: TextStyle(color: Colors.black)),
-                Text('Start Time: ${task['startTime'] ?? 'Not set'}',
-                    style: TextStyle(color: Colors.black)),
-                Text('End Time: ${task['endTime'] ?? 'Not set'}',
-                    style: TextStyle(color: Colors.black)),
-                Text('Location: ${task['location'] ?? 'No location'}',
-                    style: TextStyle(color: Colors.black)),
-                Text('Recurrence: ${task['recurrence'] ?? 'No recurrence'}',
-                    style: TextStyle(color: Colors.black)),
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: Text('Edit', style: TextStyle(color: Colors.black)),
-              onPressed: () {
-                // TODO: Implement edit functionality
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('Delete', style: TextStyle(color: Colors.black)),
-              onPressed: () {
-                // TODO: Implement delete functionality
-                Navigator.of(context).pop();
-              },
             ),
           ],
-        );
-      },
-    );
-  }
+        ),
+        content: SingleChildScrollView(
+          child: ListBody(
+            children: <Widget>[
+              _buildDetailRow('Date', task['date']),
+              _buildDetailRow('Description', task['description']),
+              _buildDetailRow('Duration', task['duration']),
+              _buildDetailRow('Start Time', task['startTime']),
+              _buildDetailRow('End Time', task['endTime']),
+              _buildDetailRow('Location', task['location']),
+              _buildDetailRow('Recurrence', task['recurrence']),
+            ],
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            child: Text('Edit', style: TextStyle(color: Colors.black)),
+            onPressed: () {
+              // TODO: Implement edit functionality
+              Navigator.of(context).pop();
+            },
+          ),
+          TextButton(
+            child: Text('Delete', style: TextStyle(color: Colors.black)),
+            onPressed: () {
+              // TODO: Implement delete functionality
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Widget _buildDetailRow(String title, String? value) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8.0),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$title: ',
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value ?? 'Not set',
+            style: TextStyle(
+              color: Colors.black87,
+              fontSize: 16,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
   void _toggleTaskCompletion(BuildContext context, DocumentReference taskRef,
       bool currentStatus, String taskName) {
