@@ -1,7 +1,11 @@
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
+import 'package:flutter/services.dart';
+
+import 'package:uuid/uuid.dart';
+
 
 class SearchFriendsScreen extends StatefulWidget {
   @override
@@ -91,7 +95,8 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
         .get();
 
     setState(() {
-      _requestStatuses[friendId] = requestDoc.exists; // Set status based on existence
+      _requestStatuses[friendId] =
+          requestDoc.exists; // Set status based on existence
     });
   }
 
@@ -118,7 +123,8 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
     try {
       String userId = FirebaseAuth.instance.currentUser!.uid;
       String friendId = friend.id;
-
+      final Uuid uuid = Uuid();
+      final String requestId = uuid.v4();
       DocumentSnapshot requestDoc = await FirebaseFirestore.instance
           .collection('Users')
           .doc(friendId)
@@ -138,6 +144,7 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
           .doc(userId)
           .set({
         'userId': userId,
+        'requestId': requestId,
         'username': FirebaseAuth.instance.currentUser!.displayName,
         'status': 'pending',
         'requestedAt': FieldValue.serverTimestamp(),
@@ -150,6 +157,7 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
           .doc(friendId)
           .set({
         'userId': friendId,
+        'requestId': requestId,
         'username': friend['fname'] + ' ' + friend['lname'],
         'status': 'pending',
         'requestedAt': FieldValue.serverTimestamp(),
@@ -237,15 +245,21 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
           children: [
             // Message above the phone number field
             Text(
-              'Please enter a phone number starting with +966',
+              'Please enter a phone number in this format:+966[5xxxxxxxx]"',
               style: TextStyle(fontSize: 14, color: Colors.grey[700]),
             ),
             SizedBox(height: 8),
             Form(
               key: _formKey,
               child: TextFormField(
-                controller: _searchController,
+                keyboardType: TextInputType.phone,
                 style: TextStyle(fontSize: 18),
+                controller: _searchController,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(13),
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
+                  FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                ],
                 decoration: InputDecoration(
                   labelText: 'Enter Phone Number',
                   labelStyle: TextStyle(
@@ -287,7 +301,8 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
                   ),
                 ),
                 validator: (value) => _validatePhoneNumber(value!),
-                onChanged: (value) => _removeWhitespace(), // Remove spaces on change
+                onChanged: (value) =>
+                    _removeWhitespace(), // Remove spaces on change
               ),
             ),
             SizedBox(height: 16),
@@ -306,7 +321,12 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
                         friend.id), // Fetch user profile picture
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) {
-                        return CircularProgressIndicator();
+                        return Align(
+                          alignment: Alignment.center,
+                          child: CircularProgressIndicator(
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.grey)),
+                        );
                       }
 
                       final profilePicUrl = snapshot.data!;

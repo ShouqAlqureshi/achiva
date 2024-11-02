@@ -1,7 +1,8 @@
 import 'package:achiva/enum/menu_action.dart';
 import 'package:achiva/exceptions/auth_exceptions.dart';
 import 'package:achiva/utilities/show_error_dialog.dart';
-import 'package:achiva/views/incoming_request_view.dart';
+import 'package:achiva/views/activity/activity.dart';
+import 'package:achiva/views/activity/incoming_request_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -16,6 +17,8 @@ import 'package:achiva/views/friends_feed_page.dart';
 import 'package:achiva/views/profile/profile_screen.dart';
 import 'package:achiva/views/home_view.dart';
 import 'GoalTasks.dart';
+import 'dart:async';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -37,10 +40,11 @@ class _HomePageState extends State<HomeScreen> {
   }
 
   @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
+void dispose() {
+  CountdownManager().dispose();
+  _pageController.dispose();
+  super.dispose();
+}
 
   // Method to switch between pages when the navigation item is tapped
   void _onTabSelected(int index) {
@@ -50,48 +54,93 @@ class _HomePageState extends State<HomeScreen> {
     _pageController
         .jumpToPage(index); // Update the PageView when a tab is selected
   }
+   Stream<Map<String, dynamic>> getGoalWithProgress(DocumentSnapshot goalDocument) {
+    final goalId = goalDocument.id;
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+
+    // Stream of tasks for the goal
+    final tasksStream = FirebaseFirestore.instance
+        .collection("Users")
+        .doc(userId)
+        .collection('goals')
+        .doc(goalId)
+        .collection('tasks')
+        .snapshots();
+
+    // Transform the stream to include progress calculation
+    return tasksStream.map((tasksSnapshot) {
+      if (tasksSnapshot.docs.isEmpty) {
+        return {
+          'progress': 0.0,
+          'goalDocument': goalDocument,
+        };
+      }
+
+      int completedTasks = tasksSnapshot.docs
+          .where((task) => (task.data() as Map<String, dynamic>)['completed'] == true)
+          .length;
+
+      double progress = (completedTasks / tasksSnapshot.docs.length) * 100;
+
+      return {
+        'progress': progress.roundToDouble(),
+        'goalDocument': goalDocument,
+      };
+    });
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: _currentIndex == 0 ? AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(
-              CupertinoIcons.search,
-              size: 32,
-              color: CoursesColors.darkGreen,
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SearchFriendsScreen()),
-              );
-            },
+Widget build(BuildContext context) {
+  return Scaffold(
+    backgroundColor: Colors.white,
+    appBar: _currentIndex == 0
+        ? AppBar(
+            automaticallyImplyLeading: false,
+            backgroundColor: Colors.white,
+            actions: [
+              IconButton(
+                icon: const Icon(
+                  CupertinoIcons.person_add,
+                  size: 32,
+                  color: CoursesColors.darkGreen,
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => SearchFriendsScreen()),
+                  );
+                },
+              ),
+            ],
+          )
+        : null,
+    body: Stack(
+      children: [
+        PageView(
+          controller: _pageController,
+          physics: const NeverScrollableScrollPhysics(),
+          children: [
+            _buildHomePage(context),
+            const FriendsFeedScreen(),
+            const Activity(),
+            const ProfileScreen(),
+          ],
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: FloatingBottomNavigationBarWidget(
+            currentIndex: _currentIndex,
+            onTabSelected: _onTabSelected,
           ),
-        ],
-      ) : null,
-      body: PageView(
-        controller: _pageController,
-        physics:
-            const NeverScrollableScrollPhysics(), // Disable swipe to switch pages
-        children: [
-          _buildHomePage(context),
-          const FriendsFeedScreen(), // Your Friends Feed Page
-          const IncomingRequestsPage(), //Your Incoming Requests Page
-          const ProfileScreen(), // Your Profile Page
-        ],
-      ),
+        ),
+      ],
+    ),
+  );
+}
 
-
-      bottomNavigationBar: FloatingBottomNavigationBarWidget(
-        currentIndex: _currentIndex,
-        onTabSelected: _onTabSelected,
-      ),
-    );
-  }
 Widget _buildHomePage(BuildContext context) {
   return Stack(
     children: [
@@ -109,11 +158,9 @@ Widget _buildHomePage(BuildContext context) {
                         .where("id",
                             isEqualTo: FirebaseAuth.instance.currentUser!.uid)
                         .snapshots(),
-                    builder:
-                        (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                      if (snapshot.connectionState ==
-                          ConnectionState.waiting) {
-                        return const CircularProgressIndicator();
+                    builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
                       }
 
                       if (snapshot.hasError) {
@@ -137,7 +184,6 @@ Widget _buildHomePage(BuildContext context) {
                             ),
                             const SizedBox(height: 15),
                             if (goalDocuments.isEmpty)
-                              // Display a message when there are no goals
                               Text(
                                 "You have no goals yet. Start adding some!",
                                 style: TextStyle(
@@ -146,66 +192,71 @@ Widget _buildHomePage(BuildContext context) {
                                 ),
                               )
                             else
-                            Container(
-                      height: 105,
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Colors.grey[400]!,
-                          width: 1,
-                        ),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 13),
-                          Row(
-                            children: [
-                              Text(
-                                'Your productivity',
-                                style: TextStyle(
-                                  color: WellBeingColors.mediumGrey,
-                                  fontSize: 14,
-                                  fontWeight:FontWeight.w400,
+                              Container(
+                                height: 105,
+                                width: double.infinity,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 20),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: Colors.grey[400]!,
+                                    width: 1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                child: Column(
+                                  children: [
+                                    const SizedBox(height: 13),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          'Your productivity',
+                                          style: TextStyle(
+                                            color: WellBeingColors.mediumGrey,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w400,
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 5),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          reportStats('2 Tasks', 'Today'),
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              color: WellBeingColors.mediumGrey
+                                                  .withOpacity(0.3),
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                            ),
+                                            height: 40,
+                                            width: 1.2,
+                                          ),
+                                          reportStats('13 Tasks', 'This Week'),
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              color: WellBeingColors.mediumGrey
+                                                  .withOpacity(0.3),
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                            ),
+                                            height: 40,
+                                            width: 1.2,
+                                          ),
+                                          reportStats('56 🚀', 'Steark'),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const Spacer(),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 5),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                reportStats('2 Tasks', 'Today'),
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: WellBeingColors.mediumGrey
-                                        .withOpacity(0.3),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  height: 40,
-                                  width: 1.2,
-                                ),
-                                reportStats('13 Tasks', 'This Week'),
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: WellBeingColors.mediumGrey
-                                        .withOpacity(0.3),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  height: 40,
-                                  width: 1.2,
-                                ),
-                                reportStats('56 🚀', 'Steark'),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                           ],
                         );
                       } else {
@@ -213,7 +264,6 @@ Widget _buildHomePage(BuildContext context) {
                       }
                     },
                   ),
-                  const SizedBox(height: 2),
                 ],
               ),
             ),
@@ -226,64 +276,66 @@ Widget _buildHomePage(BuildContext context) {
                       .doc(FirebaseAuth.instance.currentUser!.uid)
                       .collection('goals')
                       .snapshots(),
-                  builder:
-                      (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                    if (snapshot.connectionState ==
-                        ConnectionState.waiting) {
-                      return const CircularProgressIndicator();
+                  builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
                     }
 
                     if (snapshot.hasError) {
                       return const Text("Error fetching goals");
                     }
 
-                    if (snapshot.hasData && snapshot.data != null) {
-                      final goalDocuments = snapshot.data!.docs;
-
-                      if (goalDocuments.isEmpty) {
-                        // Display a white background when there are no goals
-                        return Container(
-                          color: Colors.white,
-                          child: Center(
-                            child: Text(
-                              "No goals available. Please add some goals!",
-                              style: TextStyle(
-                                color: WellBeingColors.mediumGrey,
-                                fontSize: 16,
-                              ),
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return Container(
+                        color: Colors.white,
+                        child: Center(
+                          child: Text(
+                            "No goals available. Please add some goals!",
+                            style: TextStyle(
+                              color: WellBeingColors.mediumGrey,
+                              fontSize: 16,
                             ),
                           ),
-                        );
-                      }
-
-                      return SizedBox(
-                        height: 250,
-                        child: PageView.builder(
-                          controller:
-
-                              PageController(viewportFraction: 0.87),
-
-                          itemCount: goalDocuments.length,
-                          itemBuilder: (context, index) {
-                            final goalDocument = goalDocuments[index];
-                            final goalData = goalDocument.data()
-                                as Map<String, dynamic>;
-                            final String goalName = goalData['name'];
-                            double progress = (index + 1) * 10.0;
-                            final isDone = progress >= 100;
-
-                            return _buildGoalCard(
-                              goalName,
-                              progress,
-                              isDone,
-                              goalDocument,
-                            );
-                          },
                         ),
                       );
-                    } else {
-                      return const Text("No goals available");
                     }
+
+                    return SizedBox(
+                      height: 250,
+                      child: PageView.builder(
+                        controller: PageController(viewportFraction: 0.87),
+                        itemCount: snapshot.data!.docs.length,
+                        itemBuilder: (context, index) {
+                          final goalDocument = snapshot.data!.docs[index];
+                          final goalData = goalDocument.data() as Map<String, dynamic>;
+                          final String goalName = goalData['name'];
+
+                          return StreamBuilder<Map<String, dynamic>>(
+          stream: getGoalWithProgress(goalDocument),
+                            builder: (context, progressSnapshot) {
+                              if (progressSnapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const Center(
+                                    child: CircularProgressIndicator());
+                              }
+if (!progressSnapshot.hasData) {
+              return const Center(child: Text('Error loading progress'));
+            }
+
+            double progress = progressSnapshot.data!['progress'];
+            final isDone = progress >= 100;
+
+                              return _buildGoalCard(
+                                goalName,
+                                progress,
+                                isDone,
+                                goalDocument,
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    );
                   },
                 ),
               ),
@@ -295,9 +347,7 @@ Widget _buildHomePage(BuildContext context) {
   );
 }
 
-
-Widget _buildGoalCard(String goalName, double progress, bool isDone,
-    DocumentSnapshot goalDocument) {
+Widget _buildGoalCard(String goalName, double progress, bool isDone, DocumentSnapshot goalDocument) {
   return GestureDetector(
     onTap: () {
       Navigator.push(
@@ -309,138 +359,169 @@ Widget _buildGoalCard(String goalName, double progress, bool isDone,
     },
     child: AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 35), // Adjust margin as needed
-      padding: const EdgeInsets.all(20), // Padding around the content
-      width: 150, // Set width to desired square size
-      height: 100, // Set height to the same value as width for square shape
+      margin: const EdgeInsets.only(left: 15, right: 15, top: 30, bottom: 150),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Color.fromARGB(255, 66, 32, 101),
+            Color.fromARGB(255, 30, 12, 48),
             Color.fromARGB(255, 77, 64, 98),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.circular(25),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey,
-            blurRadius: 15,
-            offset: const Offset(0, 3),
+            color: Colors.grey.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
         ],
-        borderRadius: BorderRadius.circular(20), // Optional: for rounded corners
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 5), // Space before the progress indicator
-          if (isDone)
-            Center(
-              child: Container(
-                height: 40,
-                width: 40,
-                decoration: BoxDecoration(
-                  color: WellBeingColors.yellowColor,
-                  shape: BoxShape.circle,
-                ),
-                padding: const EdgeInsets.all(8),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.check_rounded,
-                    color: WellBeingColors.yellowColor,
-                    size: 20, // Adjust size for better fit
-                  ),
-                ),
-              ),
-            ),
-          if (!isDone)
-            Row(
-              children: [
-                Stack(
-                  children: [
-                    Container(
-                      height: 40,
-                      width: 40,
-                      decoration: const BoxDecoration(
-                        color: Colors.transparent,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      child: SizedBox(
-                        height: 40,
-                        width: 40,
-                        child: CircularProgressIndicator(
-                          value: progress / 100,
-                          strokeWidth: 6, // Slightly thinner for better aesthetics
-                          backgroundColor: Colors.white,
-                          strokeCap: StrokeCap.round,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            WellBeingColors.lightMaroon,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      child: Container(
-                        height: 40,
-                        width: 40,
-                        alignment: Alignment.center,
-                        child: Text(
-                          '${progress.round()}%',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
-                            fontSize: 12, // Slightly smaller for a better fit
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        goalName,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20, 
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      const Text(
-                        'In progress',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12, // Consistent with other text sizes
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          const Spacer(),
+          if (isDone) ...[
+            _buildCompletedGoalContent(goalName)
+          ] else ...[
+            _buildInProgressGoalContent(goalName, progress, goalDocument)
+          ],
         ],
       ),
     ),
   );
 }
 
+Widget _buildCompletedGoalContent(String goalName) {
+  return Row(
+    children: [
+      _buildProgressCircle(1.0, Colors.green, Icons.check),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              goalName,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 3),
+            const Text(
+              'Done!',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+}
 
+Widget _buildInProgressGoalContent(String goalName, double progress, DocumentSnapshot goalDocument) {
+  return Stack(
+    children: [
+      // Main content of the card
+      Row(
+        children: [
+          _buildProgressCircle(progress / 100, WellBeingColors.lightMaroon, null, progress),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  goalName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  progress == 0 ? 'Not started yet' : 'In progress',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+            ),
+          ),
+          const Spacer(),
+        ],
+      ),
+      // Countdown at the bottom right
+      Positioned(
+        right: 8.0,
+        bottom: 8.0,
+        child: StreamBuilder<String>(
+          stream: CountdownManager().getCountdownStream(goalDocument),
+          initialData: '',
+          builder: (context, snapshot) {
+            if (!snapshot.hasData || snapshot.data!.isEmpty) return const SizedBox.shrink();
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                snapshot.data!,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    ],
+  );
+}
+
+
+Widget _buildProgressCircle(double progress, Color color, IconData? icon, [double? percentage]) {
+  return Stack(
+    alignment: Alignment.center,
+    children: [
+      SizedBox(
+        height: 50,
+        width: 50,
+        child: CircularProgressIndicator(
+          value: progress,
+          strokeWidth: 5,
+          backgroundColor: Colors.white.withOpacity(0.2),
+          valueColor: AlwaysStoppedAnimation<Color>(color),
+        ),
+      ),
+      icon != null
+          ? Icon(
+              icon,
+              color: Colors.white,
+              size: 22,
+            )
+          : Text(
+              '${percentage?.round()}%',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+    ],
+  );
+}
 
 
   Widget reportStats(String stat, String label) {
@@ -465,5 +546,99 @@ Widget _buildGoalCard(String goalName, double progress, bool isDone,
         ),
       ],
     );
+  }
+}
+class CountdownManager {
+  static final CountdownManager _instance = CountdownManager._internal();
+  factory CountdownManager() => _instance;
+  CountdownManager._internal();
+
+  final Map<String, StreamController<String>> _controllers = {};
+  final Map<String, Timer> _timers = {};
+
+  void dispose() {
+    _controllers.forEach((_, controller) => controller.close());
+    _timers.forEach((_, timer) => timer.cancel());
+    _controllers.clear();
+    _timers.clear();
+  }
+
+  Stream<String> getCountdownStream(DocumentSnapshot goalDocument) {
+    final String goalId = goalDocument.id;
+    
+    if (!_controllers.containsKey(goalId)) {
+      _controllers[goalId] = StreamController<String>.broadcast();
+      _startCountdown(goalDocument);
+    }
+    
+    return _controllers[goalId]!.stream;
+  }
+
+  void _startCountdown(DocumentSnapshot goalDocument) {
+    final String goalId = goalDocument.id;
+    final goalData = goalDocument.data() as Map<String, dynamic>;
+    
+    if (!goalData.containsKey('date')) {
+      _controllers[goalId]?.add('');
+      return;
+    }
+
+    DateTime? dueDate = _parseDate(goalData['date']);
+    if (dueDate == null) {
+      _controllers[goalId]?.add('');
+      return;
+    }
+
+    // Initial update
+    _updateCountdown(goalId, dueDate);
+
+    // Set up periodic updates
+    _timers[goalId] = Timer.periodic(const Duration(seconds: 1), (_) {
+      _updateCountdown(goalId, dueDate!);
+    });
+  }
+
+  DateTime? _parseDate(dynamic dateField) {
+    try {
+      if (dateField is Timestamp) {
+        return dateField.toDate();
+      } else if (dateField is String) {
+        return DateTime.parse(dateField);
+      }
+    } catch (e) {
+      print('Error parsing date: $e');
+    }
+    return null;
+  }
+
+  void _updateCountdown(String goalId, DateTime dueDate) {
+    final now = DateTime.now();
+    final difference = dueDate.difference(now);
+
+    String countdownText;
+    if (difference.isNegative) {
+      countdownText = 'Overdue';
+    } else if (difference.inDays ==1) {
+      countdownText = '${difference.inDays} day left';
+    } else if (difference.inDays > 0) {
+      countdownText = '${difference.inDays} days left';
+    } else if (difference.inHours > 0) {
+      countdownText = '${difference.inHours} hours left';
+    } else if (difference.inMinutes > 0) {
+      countdownText = '${difference.inMinutes} minutes left';
+    } else if (difference.inSeconds > 0) {
+      countdownText = '${difference.inSeconds} seconds left';
+    } else {
+      countdownText = 'Due now';
+    }
+
+    _controllers[goalId]?.add(countdownText);
+  }
+
+  void cancelCountdown(String goalId) {
+    _timers[goalId]?.cancel();
+    _timers.remove(goalId);
+    _controllers[goalId]?.close();
+    _controllers.remove(goalId);
   }
 }

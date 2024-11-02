@@ -1,9 +1,12 @@
+import 'dart:async';
+
+import 'package:achiva/views/PostCard.dart';
+import 'package:achiva/views/productivity_ranking.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:http/http.dart' as http;
 
 class FriendsFeedScreen extends StatefulWidget {
   const FriendsFeedScreen({super.key});
@@ -14,50 +17,99 @@ class FriendsFeedScreen extends StatefulWidget {
 
 class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
   late Stream<List<Map<String, dynamic>>> _postsStream;
+  late Stream<List<Map<String, dynamic>>> _rankingsStream;
+  bool _showPosts = true;
+  final PageController _pageController = PageController();
+  
+  // Cache for user information
+  final Map<String, Map<String, String>> _userCache = {};
+  
+  // Cache for posts
+  List<Map<String, dynamic>>? _cachedPosts;
+  List<Map<String, dynamic>>? _cachedRankings;
 
   @override
   void initState() {
     super.initState();
-    _postsStream = _fetchTaskPosts();
+    _initializeStreams();
   }
 
-  Future<void> _refreshPosts() async {
-    setState(() {
-      _postsStream = _fetchTaskPosts();
+  void _initializeStreams() {
+    _postsStream = _createPostsStream().asBroadcastStream();
+    _rankingsStream = RankingsService().fetchProductivityRankings().asBroadcastStream();
+
+    // Listen to streams and cache data
+    _postsStream.listen((data) {
+      _cachedPosts = data;
+    });
+    _rankingsStream.listen((data) {
+      _cachedRankings = data;
     });
   }
 
-Stream<List<Map<String, dynamic>>> _fetchTaskPosts() async* {
-  try {
-    User? currentUser = FirebaseAuth.instance.currentUser;
+  void _toggleView(bool showPosts) {
+    if (_showPosts != showPosts) {
+      setState(() {
+        _showPosts = showPosts;
+        _pageController.animateToPage(
+          showPosts ? 0 : 1,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      });
+    }
+  }
 
-    if (currentUser == null) {
+  void _onPageChanged(int page) {
+    if (_showPosts != (page == 0)) {
+      setState(() {
+        _showPosts = page == 0;
+      });
+    }
+  }
+
+  Stream<List<Map<String, dynamic>>> _createPostsStream() async* {
+    try {
+      final User? currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        yield [];
+        return;
+      }
+
+      // Get friends list
+      final friendsSnapshot = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(currentUser.uid)
+          .collection('friends')
+          .get();
+
+      final friendIds = friendsSnapshot.docs
+          .map((doc) => doc['userId'] as String)
+          .toList()
+        ..add(currentUser.uid); // Include current user
+
+      // Fetch posts for all users in parallel
+      final futures = friendIds.map((userId) => _fetchUserPosts(userId));
+      final postsLists = await Future.wait(futures);
+
+      // Combine and sort all posts
+      final allPosts = postsLists.expand((posts) => posts).toList()
+        ..sort((a, b) => (b['dateTime'] as DateTime)
+            .compareTo(a['dateTime'] as DateTime));
+
+      yield allPosts.take(20).toList();
+    } catch (e, stackTrace) {
       if (kDebugMode) {
-        print('No user is logged in.');
+        print('Error in _createPostsStream: $e');
+        print('Stack trace: $stackTrace');
       }
       yield [];
-      return;
     }
+  }
 
-    // Fetch friends list
-    QuerySnapshot friendsSnapshot = await FirebaseFirestore.instance
-        .collection('Users')
-        .doc(currentUser.uid)
-        .collection('friends')
-        .get();
-
-    List<String> friendIds = friendsSnapshot.docs
-        .map((doc) => doc['userId'] as String)
-        .toList();
-
-    // Add current user's ID to the list
-    friendIds.add(currentUser.uid);
-
-    List<Map<String, dynamic>> allPosts = [];
-    
-    // Fetch posts for each user (including current user)
-    for (String userId in friendIds) {
-      QuerySnapshot userPostsSnapshot = await FirebaseFirestore.instance
+  Future<List<Map<String, dynamic>>> _fetchUserPosts(String userId) async {
+    try {
+      final postsSnapshot = await FirebaseFirestore.instance
           .collection('Users')
           .doc(userId)
           .collection('allPosts')
@@ -65,692 +117,283 @@ Stream<List<Map<String, dynamic>>> _fetchTaskPosts() async* {
           .limit(20)
           .get();
 
-      for (var postDoc in userPostsSnapshot.docs) {
-        final postData = postDoc.data() as Map<String, dynamic>;
-        final postId = postDoc.id;
+      final userInfo = await _getCachedUserInfo(userId);
+      
+      return Future.wait(postsSnapshot.docs.map((doc) async {
+        final postData = doc.data();
+        final postId = doc.id;
 
-        if (kDebugMode) {
-          print('Raw post data: $postData');
-          print('Post ID: $postId');
+        if (!postData.containsKey('content') || !postData.containsKey('postDate')) {
+          return null;
         }
 
-        if (postData.containsKey('content') &&
-            postData.containsKey('postDate')) {
-          String formattedDate = 'Unknown Date';
-          try {
-            if (postData['postDate'] is Timestamp) {
-              DateTime dateTime = (postData['postDate'] as Timestamp).toDate();
-              formattedDate = DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
-            } else if (postData['postDate'] is String) {
-              formattedDate = postData['postDate'];
-            }
-          } catch (e) {
-            if (kDebugMode) {
-              print('Error formatting date: $e');
-            }
-          }
+        final timestamp = postData['postDate'] as Timestamp;
+        final dateTime = timestamp.toDate();
+        final formattedDate = DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
 
-          final userInfo = await _fetchUserName(userId);
-
-          allPosts.add({
-            'id': postId,
-            'userName': userInfo['fullName'],
-            'profilePic': userInfo['profilePic'],
-            'content': postData['content'].toString(),
-            'photo': postData['photo']?.toString(),
-            'timestamp': formattedDate,
-            'dateTime': (postData['postDate'] as Timestamp).toDate(),
-          });
-        }
+        return {
+          'id': postId,
+          'userName': userInfo['fullName'],
+          'profilePic': userInfo['profilePic'],
+          'content': postData['content']?.toString() ?? 'No content',
+          'photo': postData['photo']?.toString() ?? '',
+          'timestamp': formattedDate,
+          'dateTime': dateTime,
+        };
+      }))
+      .then((posts) => posts.whereType<Map<String, dynamic>>().toList());
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error fetching posts for user $userId: $e');
       }
+      return [];
     }
-
-    // Sort all posts by date
-    allPosts.sort((a, b) => b['dateTime'].compareTo(a['dateTime']));
-
-    // Limit to the most recent 20 posts
-    allPosts = allPosts.take(20).toList();
-
-    if (kDebugMode) {
-      print('All posts: $allPosts');
-    }
-
-    yield allPosts;
-  } catch (e, stackTrace) {
-    if (kDebugMode) {
-      print('Error in _fetchTaskPosts: $e');
-      print('Stack trace: $stackTrace');
-    }
-    yield [];
   }
-}
 
-  Future<Map<String, String>> _fetchUserName(String userId) async {
+  Future<Map<String, String>> _getCachedUserInfo(String userId) async {
+    if (_userCache.containsKey(userId)) {
+      return _userCache[userId]!;
+    }
+
     try {
-      DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+      final userSnapshot = await FirebaseFirestore.instance
           .collection('Users')
           .doc(userId)
           .get();
 
       if (userSnapshot.exists) {
-        Map<String, dynamic> userData =
-            userSnapshot.data() as Map<String, dynamic>;
-        String firstName = userData['fname'] ?? 'Unknown';
-        String lastName = userData['lname'] ?? 'User';
-        String profilePic = userData['photo'] ?? '';
-
-        return {
-          'fullName': '$firstName $lastName',
-          'profilePic': profilePic,
+        final userData = userSnapshot.data() as Map<String, dynamic>;
+        final userInfo = {
+          'fullName': '${userData['fname'] ?? 'Unknown'} ${userData['lname'] ?? 'User'}',
+          'profilePic': userData['photo']?.toString() ?? '',
         };
-      } else {
-        return {
-          'fullName': 'Unknown User',
-          'profilePic': '',
-        };
+        _userCache[userId] = userInfo;
+        return userInfo;
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error fetching user name: $e');
+        print('Error fetching user info: $e');
       }
-      return {
-        'fullName': 'Unknown User',
-        'profilePic': '',
-      };
     }
+
+    return {
+      'fullName': 'Unknown User',
+      'profilePic': '',
+    };
   }
 
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
             colors: [
-                  Color.fromARGB(255, 66, 32, 101),
-                  Color.fromARGB(255, 77, 64, 98),
-                ],              
-          ),
-        ),
-        child: RefreshIndicator(
-          onRefresh: _refreshPosts,
-          child: CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                pinned: false,
-                expandedHeight: 160.0,
-                automaticallyImplyLeading: false,
-                backgroundColor: Colors.transparent,
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Center(
-                    child: _buildRankingDashboard(),
-                  ),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    "Recent Posts",
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              _buildPostsFeed(),
+              Color.fromARGB(255, 30, 12, 48),
+              Color.fromARGB(255, 77, 64, 98),
             ],
           ),
         ),
+        child: Column(
+          children: [
+            _buildAppBar(),
+            _buildToggleSwitch(),
+            const SizedBox(height: 16),
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                onPageChanged: _onPageChanged,
+                children: [
+                  _buildPostsView(),
+                  _buildRankingsView(),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // Widget for the feed of posts (fetch posts from tasks)
- Widget _buildPostsFeed() {
-    return StreamBuilder<List<Map<String, dynamic>>>(
+Widget _buildPostsView() {
+  return RefreshIndicator(
+    onRefresh: () async => _initializeStreams(),
+    child: StreamBuilder<List<Map<String, dynamic>>>(
       stream: _postsStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SliverFillRemaining(
-            child: Center(child: CircularProgressIndicator()),
+          // Show loading spinner while waiting for data
+          return const Center(
+            child: CircularProgressIndicator(),
           );
         }
 
-         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const SliverFillRemaining(
-            child: Center(child: Text('No posts available.', style: TextStyle(color: Colors.white))),
+        final posts = snapshot.data ?? _cachedPosts ?? [];
+
+        if (posts.isEmpty) {
+          return ListView(
+            children: const [
+              Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text(
+                    'No posts available.',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
           );
         }
 
-        final posts = snapshot.data!;
+        return ListView.separated(
+          padding: const EdgeInsets.all(16.0),
+          physics: const AlwaysScrollableScrollPhysics(),
+          itemCount: posts.length + 1,
+          separatorBuilder: (_, __) => const SizedBox(height: 16.0),
+          itemBuilder: (context, index) {
+            if (index == posts.length) {
+              return const SizedBox(height: kBottomNavigationBarHeight);
+            }
 
-        return SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final post = posts[index];
-              return  Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: _PostCard(
-                userName: post['userName'] ?? 'Unknown User',
-                content: post['content'] ?? 'No content',
-                photoUrl: post['photo'],
-                timestamp: post['timestamp'] ?? 'Unknown time',
-                profilePicUrl: post['profilePic'],
-                postId: post['id'] ?? '',),
-              );
-            },
-            childCount: posts.length,
+            final post = posts[index];
+            return PostCard(
+              userName: post['userName'],
+              content: post['content'],
+              photoUrl: post['photo'],
+              timestamp: post['timestamp'],
+              profilePicUrl: post['profilePic'],
+              postId: post['id'],
+            );
+          },
+        );
+      },
+    ),
+  );
+}
+
+Widget _buildRankingsView() {
+  return RefreshIndicator(
+    onRefresh: () async => _initializeStreams(),
+    child: StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _rankingsStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          // Show loading spinner while waiting for data
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        final rankings = snapshot.data ?? _cachedRankings ?? [];
+
+        if (rankings.isEmpty) {
+          return ListView(
+            children: const [
+              Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text(
+                    'No ranking data available',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            children: [
+              ProductivityRankingDashboard(rankings: rankings),
+              const SizedBox(height: kBottomNavigationBarHeight),
+            ],
           ),
         );
       },
-    );
-  }
-
-  // Widget for the ranking dashboard
-    Widget _buildRankingDashboard() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0),
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(16.0),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Top Ranked Users",
-            style: TextStyle(
-              fontSize: 18.0,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 10.0),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: const [
-                _RankingCard(user: 'Alice', score: '🏅 1500'),
-                SizedBox(width: 10),
-                _RankingCard(user: 'Bob', score: '🥈 1200'),
-                SizedBox(width: 10),
-                _RankingCard(user: 'Charlie', score: '🥉 1100'),
-                SizedBox(width: 10),
-                _RankingCard(user: 'David', score: '1000'),
-                SizedBox(width: 10),
-                _RankingCard(user: 'Eva', score: '950'),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-
-
-
-
-
-
-
-// Widget for each post card (display post content)
-class _PostCard extends StatefulWidget {
-  final String userName;
-  final String content;
-  final String? photoUrl;
-  final String timestamp;
-  final String? profilePicUrl;
-  final String? postId; // Add this line to receive the postId
-
-  const _PostCard({
-    required this.userName,
-    required this.content,
-    this.photoUrl,
-    required this.timestamp,
-    this.profilePicUrl,
-    this.postId, // Add this line
-  });
-
-  @override
-  _PostCardState createState() => _PostCardState();
-}
-
-class _PostCardState extends State<_PostCard> {
-  String? selectedEmoji;
-  bool showHeart = false;
-  Map<String, dynamic> reactions = {};
-
-
-  final List<String> emojis = ['❤️', '😀', '😍', '👍', '🎉', '😮', '😢'];
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchReactions();
-
-  }
-
-void _fetchReactions() async {
-  try {
-    var postDoc = await _findPostDocument(widget.postId!);
-    if (postDoc == null) return;
-
-    setState(() {
-      var data = postDoc.data() as Map<String, dynamic>?;
-      reactions = data?['reactions'] as Map<String, dynamic>? ?? {};
-    });
-  } catch (error) {
-    print('Failed to fetch reactions: $error');
-  }
-}
-
-  
-void _showReactionsDialog() {
-  // Check if there are any reactions
-  bool hasReactions = reactions.entries.any((entry) => emojis.contains(entry.value));
-
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Reactions'),
-        content: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.7,
-            minHeight: 50,
-          ),
-          child: hasReactions
-              ? SizedBox(
-                  width: double.maxFinite,
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: emojis.where((emoji) {
-                      return reactions.entries.any((entry) => entry.value == emoji);
-                    }).map((emoji) {
-                      var usersReacted = reactions.entries
-                          .where((entry) => entry.value == emoji)
-                          .map((entry) => entry.key)
-                          .toList();
-                      return ListTile(
-                        leading: Text(emoji, style: const TextStyle(fontSize: 24)),
-                        title: Text('${usersReacted.length}'),
-                        onTap: () {
-                          print('Users who reacted with $emoji: $usersReacted');
-                        },
-                      );
-                    }).toList(),
-                  ),
-                )
-              : const SizedBox(
-                  height: 50,
-                  child: Center(
-                    child: Text(
-                      'No reactions yet',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                  ),
-                ),
-        ),
-        actions: [
-          TextButton(
-            child: const Text('Close'),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-        ],
-      );
-    },
+    ),
   );
 }
 
-  void _showEmojiPicker() {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Choose a reaction'),
-        content: Wrap(
-          spacing: 10,
-          children: emojis.map((emoji) {
-            return GestureDetector(
-              onTap: () {
-                _updateReaction(emoji);
-                Navigator.of(context).pop();
-              },
-              child: Text(emoji, style: const TextStyle(fontSize: 30)),
-            );
-          }).toList(),
-        ),
-      );
-    },
-  );
-}
 
-void _updateReaction(String emoji) async {
-  try {
-    User? currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return;
-
-    // Find the post document
-    var postDoc = await FirebaseFirestore.instance
-        .collection('Users')
-        .doc(currentUser.uid)
-        .collection('allPosts')
-        .doc(widget.postId)
-        .get();
-
-    if (!postDoc.exists) {
-      // If not found in current user's posts, search in friends' posts
-      var friendsSnapshot = await FirebaseFirestore.instance
-          .collection('Users')
-          .doc(currentUser.uid)
-          .collection('friends')
-          .get();
-
-      for (var friendDoc in friendsSnapshot.docs) {
-        String friendId = friendDoc['userId'];
-        postDoc = await FirebaseFirestore.instance
-            .collection('Users')
-            .doc(friendId)
-            .collection('allPosts')
-            .doc(widget.postId)
-            .get();
-
-        if (postDoc.exists) break;
-      }
-    }
-
-    if (!postDoc.exists) {
-      throw Exception('Post document not found');
-    }
-
-    // Update the reaction field in the post document
-    await postDoc.reference.update({
-      'reactions.${currentUser.uid}': emoji,
-    });
-
-    setState(() {
-      reactions[currentUser.uid] = emoji;
-      selectedEmoji = emoji;
-    });
-  } catch (error) {
-    print('Failed to update reaction: $error');
-  }
-}
-
-Future<DocumentSnapshot?> _findPostDocument(String postId) async {
-  User? currentUser = FirebaseAuth.instance.currentUser;
-  if (currentUser == null) return null;
-
-  // Search in the user's own posts first
-  var postDoc = await FirebaseFirestore.instance
-      .collection('Users')
-      .doc(currentUser.uid)
-      .collection('allPosts')
-      .doc(postId)
-      .get();
-
-  if (postDoc.exists) return postDoc;
-
-  // If not found in user's posts, search in friends' posts
-  var friendsSnapshot = await FirebaseFirestore.instance
-      .collection('Users')
-      .doc(currentUser.uid)
-      .collection('friends')
-      .get();
-
-  for (var friendDoc in friendsSnapshot.docs) {
-    String friendId = friendDoc['userId'];
-    postDoc = await FirebaseFirestore.instance
-        .collection('Users')
-        .doc(friendId)
-        .collection('allPosts')
-        .doc(postId)
-        .get();
-
-    if (postDoc.exists) return postDoc;
-  }
-
-  return null;
-}
-
-  // Handle double tap for heart reaction
-  void _handleDoubleTap() {
-     _updateReaction('❤️');
-  setState(() {
-    showHeart = true;
-  });
-
-    // Show the heart for a brief moment
-    Future.delayed(const Duration(seconds: 1), () {
-      setState(() {
-        showHeart = false;
-      });
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onLongPress: _showEmojiPicker,
-      onDoubleTap: _handleDoubleTap,
-      child: Stack(
-        children: [
-           Card(
-            margin: EdgeInsets.zero,
+  Widget _buildAppBar() {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Text(
+          _showPosts ? "Recent Posts" : "Productivity Leaderboard",
+          style: const TextStyle(
             color: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16.0),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children:  [
-               Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      if (widget.profilePicUrl != null &&
-                          widget.profilePicUrl!.isNotEmpty)
-                        CircleAvatar(
-                          backgroundImage: NetworkImage(widget.profilePicUrl!),
-                          radius: 30.0,
-                        )
-                      else
-                        const CircleAvatar(
-                          child: Icon(Icons.person),
-                          radius: 30.0,
-                        ),
-                      const SizedBox(width: 10.0),
-                      Expanded(
-                        child: Text(
-                          widget.userName,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16.0),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Text(widget.content, style: const TextStyle(fontSize: 14.0)),
-                ),
-                const SizedBox(height: 10.0),
-                if (widget.photoUrl != null && widget.photoUrl!.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: AspectRatio(
-                      aspectRatio: 1.0,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12.0),
-                        child: _buildImageWidget(),
-                      ),
-                    ),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.timestamp,
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 10.0),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Wrap(
-                            spacing: 8,
-                            children: reactions.entries
-                              .groupBy((entry) => entry.value)
-                              .entries
-                              .map((entry) {
-                                return Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(entry.key, style: const TextStyle(fontSize: 24)),
-                                    const SizedBox(width: 4),
-                                    Text('${entry.value.length}', style: const TextStyle(fontSize: 14)),
-                                  ],
-                                );
-                              }).toList(),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.emoji_emotions_outlined),
-                            onPressed: _showReactionsDialog,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
           ),
-          if (showHeart)
-            Positioned.fill(
-              child: Center(
-                child: Icon(Icons.favorite,
-                    color: Colors.red.withOpacity(0.8), size: 80),
+        ),
+      ),
+    );
+  }
+
+ 
+  Widget _buildToggleSwitch() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(25), // Increased border radius
+        ),
+        padding: const EdgeInsets.all(4), // Added padding inside container
+        child: Row(
+          children: [
+            Expanded(
+              child: _buildToggleButton(
+                text: "Posts",
+                isSelected: _showPosts,
+                onTap: () => _toggleView(true),
               ),
             ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildImageWidget() {
-    return Image.network(
-      widget.photoUrl!,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) {
-        if (kDebugMode) {
-          print('Error loading image: $error');
-          print('Image URL: ${widget.photoUrl}');
-        }
-        return _buildErrorWidget();
-      },
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return Center(
-          child: CircularProgressIndicator(
-            value: loadingProgress.expectedTotalBytes != null
-                ? loadingProgress.cumulativeBytesLoaded /
-                    loadingProgress.expectedTotalBytes!
-                : null,
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildErrorWidget() {
-    return Container(
-      color: Colors.grey[300],
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error, color: Colors.red, size: 40),
-          const SizedBox(height: 10),
-          Text('Failed to load image',
-              style: TextStyle(color: Colors.red[700])),
-          const SizedBox(height: 5),
-          if (kDebugMode)
-            Text(
-              'URL: ${widget.photoUrl}',
-              style: const TextStyle(fontSize: 10),
-              textAlign: TextAlign.center,
+            Expanded(
+              child: _buildToggleButton(
+                text: "Leaderboard",
+                isSelected: !_showPosts,
+                onTap: () => _toggleView(false),
+              ),
             ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Future<bool> _checkImageAvailability(String url) async {
-    try {
-      final response = await http.head(Uri.parse(url));
-      return response.statusCode == 200;
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error checking image availability: $e');
-      }
-      return false;
-    }
-  }
+
+  
 }
-
-// Widget for the ranking cards
-class _RankingCard extends StatelessWidget {
-  final String user;
-  final String score;
-
-  const _RankingCard({
-    required this.user,
-    required this.score,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(8.0),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(8.0),
-      ),
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: 20.0,
-            child: Text(user.substring(0, 1)),
+ Widget _buildToggleButton({
+    required String text,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          color:
+              isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
+          borderRadius: BorderRadius.circular(25),
+        ),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
           ),
-          const SizedBox(height: 5.0),
-          Text(
-            user,
-            style: const TextStyle(color: Colors.white, fontSize: 12.0),
-          ),
-          Text(
-            score,
-            style: const TextStyle(color: Colors.white, fontSize: 10.0),
-          ),
-        ],
+        ),
       ),
     );
   }
-}
-extension Iterables<E> on Iterable<E> {
-  Map<K, List<E>> groupBy<K>(K Function(E) keyFunction) => fold(
-    <K, List<E>>{},
-    (Map<K, List<E>> map, E element) => map..putIfAbsent(keyFunction(element), () => <E>[]).add(element),
-  );
-}

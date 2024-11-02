@@ -17,18 +17,10 @@ class UserFriendsListviewWidget extends StatefulWidget {
   const UserFriendsListviewWidget({super.key, required this.layoutCubit});
 
   @override
-  State<UserFriendsListviewWidget> createState() =>
-      _UserFriendsListviewWidgetState();
+  State<UserFriendsListviewWidget> createState() => _UserFriendsListviewWidgetState();
 }
 
 class _UserFriendsListviewWidgetState extends State<UserFriendsListviewWidget> {
-  // قائمة من الألوان لتمييز المستطيلات
-  final List<Color> colors = [
-    Colors.lightBlueAccent,
-    Colors.lightGreenAccent,
-    Colors.amberAccent,
-  ];
-
   @override
   void initState() {
     widget.layoutCubit.getMyFriends();
@@ -40,84 +32,14 @@ class _UserFriendsListviewWidgetState extends State<UserFriendsListviewWidget> {
     return BlocBuilder<LayoutCubit, LayoutStates>(
       builder: (context, state) {
         if (widget.layoutCubit.myFriends.isNotEmpty) {
-          return ListView.separated(
-              itemCount: widget.layoutCubit.myFriends.length,
-              shrinkWrap: true,
-              padding: EdgeInsets.zero,
-              separatorBuilder: AppConstants.kSeparatorBuilder(),
-              itemBuilder: (context, index) {
-                UserModel user = widget.layoutCubit.myFriends[index];
-                return InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => FriendProfileScreen(
-                                userModel: user,
-                              )),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: const Color.fromARGB(255, 240, 240, 240),
-                      borderRadius: AppConstants.kMainRadius,
-                    ),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Colors.amber,
-                        backgroundImage: NetworkImage(user.photo ?? ""),
-                        onBackgroundImageError: (exception, stackTrace) =>
-                            const SizedBox(),
-                      ),
-                      title: Text(
-                        "${user.fname}  ${user.lname}",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.kBlack,
-                        ),
-                      ),
-                      trailing: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                        ),
-                        onPressed: () async {
-    // Show a confirmation dialog
-    bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Remove Friend"),
-          content: Text("Are you sure you want to remove ${user.fname} ${user.lname} from your friends?"),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false), // Close the dialog and return false
-              child: Text("Cancel"),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true), // Close the dialog and return true
-              child: Text("Remove"),
-            ),
-          ],
-        );
-      },
-    );
-
-    // If the user confirmed, proceed with the removal
-    if (confirm == true) {
-      await widget.layoutCubit.removeFrieand(userId: user.id);
-    }
-  },
-                        child: Text(
-                          "remove",
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              });
+          return Column(
+            children: [
+              for (int index = 0; index < widget.layoutCubit.myFriends.length; index++) ...[
+                if (index > 0) AppConstants.kSeparatorBuilder()(context, index),
+                _buildFriendItem(widget.layoutCubit.myFriends[index]),
+              ],
+            ],
+          );
         } else if (state is GetUserFriendsWithFailureState) {
           if (state.failure.runtimeType == InternetNotFoundFailure) {
             return InternetLostColumnWidget(
@@ -149,5 +71,75 @@ class _UserFriendsListviewWidgetState extends State<UserFriendsListviewWidget> {
       },
     );
   }
-}
 
+  Widget _buildFriendItem(UserModel user) {
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => FriendProfileScreen(
+                    userModel: user,
+                  )),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: const Color.fromARGB(255, 240, 240, 240),
+          borderRadius: AppConstants.kMainRadius,
+        ),
+        child: ListTile(
+          leading: CircleAvatar(
+            backgroundColor: Colors.amber,
+            backgroundImage: NetworkImage(user.photo ?? ""),
+            onBackgroundImageError: (exception, stackTrace) =>
+                const SizedBox(),
+          ),
+          title: Text(
+            "${user.fname}  ${user.lname}",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.kBlack,
+            ),
+          ),
+          trailing: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            onPressed: () async {
+              bool? confirm = await showDialog<bool>(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: Text("Remove Friend"),
+                    content: Text("Are you sure you want to remove ${user.fname} ${user.lname} from your friends?"),
+                    actions: <Widget>[
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: Text("Cancel"),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        child: Text("Remove"),
+                      ),
+                    ],
+                  );
+                },
+              );
+
+              if (confirm == true) {
+                await widget.layoutCubit.removeFrieand(userId: user.id);
+              }
+            },
+            child: Text(
+              "remove",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

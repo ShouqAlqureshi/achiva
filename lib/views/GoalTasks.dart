@@ -16,12 +16,14 @@ class GoalTasks extends StatefulWidget {
   @override
   _GoalTasksState createState() => _GoalTasksState();
 
-
+  
+  
 }
 
 class _GoalTasksState extends State<GoalTasks> {
-  double _progress = 0.0;
+ double _progress = 0.0;
   late Stream<double> _progressStream;
+  
 
   @override
   void initState() {
@@ -51,75 +53,153 @@ class _GoalTasksState extends State<GoalTasks> {
     });
   }
 
-  void _showTaskDetails(BuildContext context, Map<String, dynamic> task) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          contentPadding: EdgeInsets.only(left: 24, right: 24, bottom: 24),
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Align(
-                alignment: Alignment.topRight,
-                child: IconButton(
-                  icon: Icon(Icons.close, color: Colors.black),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  padding: EdgeInsets.zero,
-                  constraints: BoxConstraints(),
-                ),
+
+void _showTaskDetails(BuildContext context, Map<String, dynamic> task) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: Colors.white,
+        contentPadding: EdgeInsets.only(left: 24, right: 24, bottom: 24),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Align(
+              alignment: Alignment.topRight,
+              child: IconButton(
+                icon: Icon(Icons.close, color: Colors.black),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                padding: EdgeInsets.zero,
+                constraints: BoxConstraints(),
               ),
-              Text(
-                task['taskName'] ?? 'Task Details',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+            ),
+            Text(
+              task['taskName'] ?? 'Task Details',
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+
               ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: ListBody(
+            children: <Widget>[
+              _buildDetailRow('Date', task['date']),
+              _buildDetailRow('Description', task['description']),
+              _buildDetailRow('Duration', task['duration']),
+              _buildDetailRow('Start Time', task['startTime']),
+              _buildDetailRow('End Time', task['endTime']),
+              _buildDetailRow('Location', task['location']),
+              _buildDetailRow('Recurrence', task['recurrence']),
             ],
           ),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-                _buildDetailRow('Date', task['date']),
-                _buildDetailRow('Description', task['description']),
-                _buildDetailRow('Duration', task['duration']),
-                _buildDetailRow('Start Time', task['startTime']),
-                _buildDetailRow('End Time', task['endTime']),
-                _buildDetailRow('Location', task['location']),
-                _buildDetailRow('Recurrence', task['recurrence']),
-              ],
-            ),
+content: SingleChildScrollView(
+  child: ListBody(
+    children: <Widget>[
+      _buildDetailRow('Date', task['date']),
+      _buildDetailRow('Description', task['description']),
+      _buildDetailRow('Duration', task['duration']),
+      _buildDetailRow('Start Time', task['startTime']),
+      _buildDetailRow('End Time', task['endTime']),
+      _buildDetailRow('Location', task['location']),
+      _buildDetailRow('Recurrence', task['recurrence']),
+    ],
+  ),
+),
+actions: <Widget>[
+  TextButton(
+    child: Text('Edit', style: TextStyle(color: Colors.black)),
+    onPressed: () {
+      // TODO: Implement edit functionality
+      Navigator.of(context).pop();
+    },
+  ),
+],
+
           ),
-          actions: <Widget>[
-            TextButton(
-              child: Text('Edit', style: TextStyle(color: Colors.black)),
-              onPressed: () {
-                // TODO: Implement edit functionality
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('Delete', style: TextStyle(color: Colors.black)),
-              onPressed: () {
-                // TODO: Implement delete functionality
-                Navigator.of(context).pop();
-              },
+          TextButton(
+            child: Text('Delete', style: TextStyle(color: Colors.black)),
+            onPressed: () {
+              // TODO: Implement delete functionality
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Widget _buildDetailRow(String title, String? value) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8.0),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$title: ',
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value ?? 'Not set',
+            style: TextStyle(
+              color: Colors.black87,
+              fontSize: 16,
             ),
           ],
         );
       },
     );
   }
+
   void _toggleTaskCompletion(BuildContext context, DocumentReference taskRef,
-      bool currentStatus, String taskName)
-  {
-    if (!currentStatus){
+      bool currentStatus, String taskName) {
+    if (currentStatus) {
+      // Unchecking a completed task
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            title: Text('Uncheck Task',
+                style: TextStyle(
+                    color: Colors.black, fontWeight: FontWeight.bold)),
+            content: Text(
+                'Are you sure you want to mark this task as incomplete?',
+                style: TextStyle(color: Colors.black)),
+            actions: <Widget>[
+              TextButton(
+                child: Text('No', style: TextStyle(color: Colors.black)),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              TextButton(
+                child: Text('Yes', style: TextStyle(color: Colors.black)),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _updateTaskStatus(context, taskRef, false);
+                },
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      // Implement your code for marking a task as complete
+    }
+
       // Checking an uncompleted task
       _updateTaskStatus(context, taskRef, true);
 
@@ -300,23 +380,23 @@ class _GoalTasksState extends State<GoalTasks> {
         // Marking the task as completed, add 'completedDate'
         await taskRef.update({
           'completed': true,
-          'wasPreviouslyCompleted': true,
-          'completedDate': FieldValue.serverTimestamp(),
-          // Add current timestamp as completedDate
+'wasPreviouslyCompleted': true,
+'completedDate': FieldValue.serverTimestamp(), // Add current timestamp as completedDate
+
         });
       } else {
         // Unmarking the task, remove 'completedDate'
         await taskRef.update({
           'completed': false,
-          'completedDate': FieldValue.delete(),
-          // Remove the completedDate field
-        });
-        var tasks = await widget
-            .goalDocument.reference
-            .collection('tasks')
-            .orderBy('startTime')
-            .get();
-        updateStreak(tasks.docs);
+await taskRef.update({
+  'completedDate': FieldValue.delete(), // Remove the completedDate field
+});
+var tasks = await widget.goalDocument.reference
+    .collection('tasks')
+    .orderBy('startTime')
+    .get();
+updateStreak(tasks.docs);
+
       }
 
       // Trigger a rebuild of the widget tree
@@ -432,7 +512,8 @@ class _GoalTasksState extends State<GoalTasks> {
                                     : 'Select Date (mandatory)',
                                 style: TextStyle(
                                   color:
-                                  isDateValid ? Colors.black : Colors.red,
+isDateValid ? Colors.black : Colors.red,
+
                                 ),
                               ),
                             ),
@@ -441,7 +522,8 @@ class _GoalTasksState extends State<GoalTasks> {
                               onPressed: () async {
                                 final DateTime now = DateTime.now();
                                 final DateTime? pickedDate =
-                                await showDatePicker(
+await showDatePicker(
+
                                   context: context,
                                   initialDate: now,
                                   firstDate: now,
@@ -475,7 +557,8 @@ class _GoalTasksState extends State<GoalTasks> {
                               icon: const Icon(Icons.access_time),
                               onPressed: () async {
                                 final TimeOfDay? pickedTime =
-                                await showTimePicker(
+await showTimePicker(
+
                                   context: context,
                                   initialTime: TimeOfDay.now(),
                                 );
@@ -515,7 +598,8 @@ class _GoalTasksState extends State<GoalTasks> {
                                   return;
                                 }
                                 final TimeOfDay? pickedTime =
-                                await showTimePicker(
+await showTimePicker(
+
                                   context: context,
                                   initialTime: TimeOfDay.now(),
                                 );
@@ -607,12 +691,12 @@ class _GoalTasksState extends State<GoalTasks> {
                               }
 
                               QuerySnapshot userSnapshot =
-                              await FirebaseFirestore.instance
-                                  .collection('Users')
-                                  .where('phoneNumber',
-                                  isEqualTo: userPhoneNumber)
-                                  .limit(1)
-                                  .get();
+await FirebaseFirestore.instance
+    .collection('Users')
+    .where('phoneNumber', isEqualTo: userPhoneNumber)
+    .limit(1)
+    .get();
+
 
                               DocumentReference userDocRef;
                               if (userSnapshot.docs.isEmpty) {
@@ -626,14 +710,16 @@ class _GoalTasksState extends State<GoalTasks> {
                               }
 
                               CollectionReference tasksCollectionRef =
-                              userDocRef.collection('tasks');
+userDocRef.collection('tasks');
+
 
                               Map<String, dynamic> taskData = {
                                 'taskName': taskNameController.text,
                                 'description':
-                                descriptionController.text.isNotEmpty
-                                    ? descriptionController.text
-                                    : null,
+descriptionController.text.isNotEmpty
+    ? descriptionController.text
+    : null,
+
                                 'location': locationController.text.isNotEmpty
                                     ? locationController.text
                                     : null,
@@ -642,7 +728,8 @@ class _GoalTasksState extends State<GoalTasks> {
                                 'startTime': startTime!.format(context),
                                 'endTime': endTime!.format(context),
                                 'recurrence':
-                                selectedRecurrence ?? 'No recurrence',
+selectedRecurrence ?? 'No recurrence',
+
                                 'completed': false,
                               };
 
@@ -890,88 +977,90 @@ class _GoalTasksState extends State<GoalTasks> {
     final bool visibilty = goalData['visibility'];
 
     return Scaffold(
-      body: Stack(
+body: Stack(
+  children: [
+    // Background Gradient
+    Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color.fromARGB(255, 30, 12, 48),
+            Color.fromARGB(255, 77, 64, 98),
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+      ),
+    ),
+    SafeArea(
+      child: Column(
         children: [
-          // Background Gradient
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color.fromARGB(255, 30, 12, 48),
-                  Color.fromARGB(255, 77, 64, 98),
-                ],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Column(
+          // App Bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // App Bar
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                      Expanded(
-                        child: Text(
-                          goalName,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ),
-                      // Updated Progress Indicator
-                      StreamBuilder<double>(
-                        stream: _progressStream,
-                        builder: (context, snapshot) {
-                          final progress = snapshot.data ?? 0.0;
-
-                          return Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              SizedBox(
-                                height: 45,
-                                width: 45,
-                                child: CircularProgressIndicator(
-                                  value: progress / 100,
-                                  strokeWidth: 5,
-                                  backgroundColor: Colors.white.withOpacity(0.2),
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    progress >= 100 ? Colors.green : WellBeingColors.lightMaroon,
-                                  ),
-                                ),
-                              ),
-                              if (progress >= 100)
-                                const Icon(
-                                  Icons.check,
-                                  color: Color.fromARGB(255, 255, 255, 255),
-                                  size: 20,
-                                )
-                              else
-                                Text(
-                                  '${progress.round()}%',
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                            ],
-                          );
-                        },
-                      ),
-
-                    ],
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                Expanded(
+                  child: Text(
+                    goalName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                 ),
+                // Updated Progress Indicator
+                StreamBuilder<double>(
+                  stream: _progressStream,
+                  builder: (context, snapshot) {
+                    final progress = snapshot.data ?? 0.0;
+
+                    return Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          height: 45,
+                          width: 45,
+                          child: CircularProgressIndicator(
+                            value: progress / 100,
+                            strokeWidth: 5,
+                            backgroundColor: Colors.white.withOpacity(0.2),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              progress >= 100 ? Colors.green : WellBeingColors.lightMaroon,
+                            ),
+                          ),
+                        ),
+                        if (progress >= 100)
+                          const Icon(
+                            Icons.check,
+                            color: Color.fromARGB(255, 255, 255, 255),
+                            size: 20,
+                          )
+                        else
+                          Text(
+                            '${progress.round()}%',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+
+                ),
+              ),
                 // Tasks Timeline
                 Expanded(
                   child: Container(
@@ -1022,11 +1111,13 @@ class _GoalTasksState extends State<GoalTasks> {
                               final taskDoc = tasks[index];
                               final task =
                               taskDoc.data() as Map<String, dynamic>;
+
                               final taskName =
                                   task['taskName'] ?? 'Unnamed Task';
                               final startTime = task['startTime'] ?? 'Not set';
                               final date = task['date'] ?? 'Not set';
                               final isCompleted = task['completed'] ?? false;
+
                               return GestureDetector(
                                 onTap: () => _showTaskDetails(context, task),
                                 child: Padding(
@@ -1034,16 +1125,13 @@ class _GoalTasksState extends State<GoalTasks> {
                                       left: 22.0, bottom: 40.0, right: 22.0),
                                   child: Column(
                                     crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                    children: [
-                                      SizedBox(
-                                          height:
-                                          16), // Increased space above task details
-                                      Row(
-                                        mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                        crossAxisAlignment:
-                                        CrossAxisAlignment.center,
+CrossAxisAlignment.start,
+children: [
+  SizedBox(height: 16), // Increased space above task details
+  Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    crossAxisAlignment: CrossAxisAlignment.center,
+
                                         children: [
                                           Expanded(
                                             child: Text(

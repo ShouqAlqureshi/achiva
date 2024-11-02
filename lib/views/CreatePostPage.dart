@@ -28,7 +28,7 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
   int _characterCount = 0;
   final int _characterLimit = 280;
 
-  final Color customPurple = Color.fromARGB(255, 0, 0, 0);
+  final Color customPurple = Color.fromARGB(255, 66, 32, 101);
 
   @override
   void initState() {
@@ -72,79 +72,81 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
       return null;
     }
   }
-void _createPost() async {
-  String postContent = _postContentController.text;
-  if (postContent.isNotEmpty || _imageFile != null) {
-    setState(() {
-      _isUploading = true;
-    });
 
-    String? imageUrl;
-    if (_imageFile != null) {
-      imageUrl = await _uploadImage(_imageFile!);
-    }
-
-    try {
-      CollectionReference allPostsCollection = FirebaseFirestore.instance
-          .collection('Users')
-          .doc(widget.userId)
-          .collection('allPosts');
-
-      await allPostsCollection.add({
-        'content': postContent,
-        'postDate': FieldValue.serverTimestamp(),
-        'photo': imageUrl ?? '',
-        'userId': widget.userId,
-        'goalId': widget.goalId,
-        'taskId': widget.taskId,
+  void _createPost() async {
+    String postContent = _postContentController.text;
+    if (postContent.isNotEmpty || _imageFile != null) {
+      setState(() {
+        _isUploading = true;
       });
-      if (kDebugMode) {
-        print('Post created successfully in Firestore.');
-      }
-      
-      // Close the dialog and return true to indicate success
-      Navigator.of(context).pop(true);
 
-      // Show confirmation message
+      String? imageUrl;
+      if (_imageFile != null) {
+        imageUrl = await _uploadImage(_imageFile!);
+      }
+
+      try {
+        CollectionReference allPostsCollection = FirebaseFirestore.instance
+            .collection('Users')
+            .doc(widget.userId)
+            .collection('allPosts');
+
+        await allPostsCollection.add({
+          'content': postContent,
+          'postDate': FieldValue.serverTimestamp(),
+          'photo': imageUrl ?? '',
+          'userId': widget.userId,
+          'goalId': widget.goalId,
+          'taskId': widget.taskId,
+        });
+        if (kDebugMode) {
+          print('Post created successfully in Firestore.');
+        }
+
+        // Close the dialog and return true to indicate success
+        Navigator.of(context).pop(true);
+
+        // Show confirmation message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Post created successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        if (kDebugMode) {
+          print('Dialog closed with success status.');
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('Error creating post: $e');
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating post. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+
+      setState(() {
+        _isUploading = false;
+      });
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Post created successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      if (kDebugMode) {
-        print('Dialog closed with success status.');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error creating post: $e');
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error creating post. Please try again.'),
-          backgroundColor: Colors.red,
+          content: Text('Please add some content or an image to your post.'),
+          backgroundColor: Colors.orange,
         ),
       );
     }
-
-    setState(() {
-      _isUploading = false;
-    });
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Please add some content or an image to your post.'),
-        backgroundColor: Colors.orange,
-      ),
-    );
   }
-}
 
   @override
   Widget build(BuildContext context) {
-    bool isNearLimit = _characterCount > _characterLimit - 10 && _characterCount <= _characterLimit;
+    bool isNearLimit = _characterCount > _characterLimit - 10 &&
+        _characterCount <= _characterLimit;
     bool isOverLimit = _characterCount > _characterLimit;
 
     return Dialog(
@@ -172,7 +174,11 @@ void _createPost() async {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Create Post', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: customPurple)),
+                      Text('Create Post',
+                          style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: customPurple)),
                       IconButton(
                         icon: Icon(Icons.close, color: customPurple),
                         onPressed: () => Navigator.of(context).pop(),
@@ -208,14 +214,19 @@ void _createPost() async {
                                 ? 'Character limit exceeded'
                                 : '${_characterCount}/${_characterLimit}',
                         style: TextStyle(
-                          color: isOverLimit ? Colors.red : (isNearLimit ? Colors.orange : Colors.grey),
-                          fontWeight: isNearLimit || isOverLimit ? FontWeight.bold : FontWeight.normal,
+                          color: isOverLimit
+                              ? Colors.red
+                              : (isNearLimit ? Colors.orange : Colors.grey),
+                          fontWeight: isNearLimit || isOverLimit
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                       ),
                       Row(
                         children: [
                           IconButton(
-                            icon: Icon(Icons.photo_library, color: customPurple),
+                            icon:
+                                Icon(Icons.photo_library, color: customPurple),
                             onPressed: () => _pickImage(ImageSource.gallery),
                           ),
                           IconButton(
@@ -232,7 +243,10 @@ void _createPost() async {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: Image.file(_imageFile!, height: 200, width: double.infinity, fit: BoxFit.cover),
+                          child: Image.file(_imageFile!,
+                              height: 200,
+                              width: double.infinity,
+                              fit: BoxFit.cover),
                         ),
                         IconButton(
                           icon: Icon(Icons.close, color: Colors.white),
@@ -242,18 +256,49 @@ void _createPost() async {
                     ),
                   SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: (_characterCount > 0 && _characterCount <= _characterLimit) || _imageFile != null
+                    onPressed: (_characterCount > 0 &&
+                                _characterCount <= _characterLimit) ||
+                            _imageFile != null
                         ? _createPost
-                        : null,
-                    child: _isUploading
-                        ? CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
-                        : Text('Post'),
+                        : null, // Button is disabled when no content or image
                     style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      backgroundColor: customPurple,
-                      padding: EdgeInsets.symmetric(vertical: 12),
+                      padding: EdgeInsets
+                          .zero, // Ensures full button is covered by gradient or color
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                  ),
+                    child: Ink(
+                      decoration: BoxDecoration(
+                        gradient: (_characterCount > 0 &&
+                                    _characterCount <= _characterLimit) ||
+                                _imageFile != null
+                            ? LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: [
+                                  Color.fromARGB(255, 66, 32, 101),
+                                  Color.fromARGB(255, 77, 64, 98),
+                                ],
+                              )
+                            : null, // No gradient when disabled
+                        color: (_characterCount == 0 && _imageFile == null)
+                            ? Colors.grey // Gray color when input is empty
+                            : null,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        alignment: Alignment.center,
+                        child: _isUploading
+                            ? CircularProgressIndicator(
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white))
+                            : Text('Post',
+                                style: TextStyle(color: Colors.white)),
+                      ),
+                    ),
+                  )
                 ],
               ),
             ),
@@ -263,7 +308,6 @@ void _createPost() async {
               bottom: 0,
               child: Container(
                 height: 50,
-              
               ),
             ),
           ],
