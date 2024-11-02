@@ -18,6 +18,7 @@ import 'package:achiva/views/profile/profile_screen.dart';
 import 'package:achiva/views/home_view.dart';
 import 'GoalTasks.dart';
 import 'dart:async';
+import 'ChatPage.dart';
 import 'package:rxdart/rxdart.dart';
 
 class HomeScreen extends StatefulWidget {
