@@ -253,6 +253,7 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
                           "fname": fn.text,
                           "lname": ln.text,
                           "email": email.text,
+                          "streak":0,
                         });
                         Navigator.of(context).pop();
                         Navigator.of(contextBeforeAsync).pushNamed(
