@@ -15,6 +15,7 @@ class GoalTasks extends StatefulWidget {
   GoalTasks({Key? key, required this.goalDocument}) : super(key: key);
   @override
   _GoalTasksState createState() => _GoalTasksState();
+
   
   
 }
@@ -23,6 +24,7 @@ class _GoalTasksState extends State<GoalTasks> {
  double _progress = 0.0;
   late Stream<double> _progressStream;
   
+
   @override
   void initState() {
     super.initState();
@@ -50,6 +52,7 @@ class _GoalTasksState extends State<GoalTasks> {
       return progress.roundToDouble();
     });
   }
+
 
 void _showTaskDetails(BuildContext context, Map<String, dynamic> task) {
   showDialog(
@@ -79,6 +82,7 @@ void _showTaskDetails(BuildContext context, Map<String, dynamic> task) {
                 color: Colors.black,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
+
               ),
             ),
           ],
@@ -95,14 +99,29 @@ void _showTaskDetails(BuildContext context, Map<String, dynamic> task) {
               _buildDetailRow('Recurrence', task['recurrence']),
             ],
           ),
-        ),
-        actions: <Widget>[
-          TextButton(
-            child: Text('Edit', style: TextStyle(color: Colors.black)),
-            onPressed: () {
-              // TODO: Implement edit functionality
-              Navigator.of(context).pop();
-            },
+content: SingleChildScrollView(
+  child: ListBody(
+    children: <Widget>[
+      _buildDetailRow('Date', task['date']),
+      _buildDetailRow('Description', task['description']),
+      _buildDetailRow('Duration', task['duration']),
+      _buildDetailRow('Start Time', task['startTime']),
+      _buildDetailRow('End Time', task['endTime']),
+      _buildDetailRow('Location', task['location']),
+      _buildDetailRow('Recurrence', task['recurrence']),
+    ],
+  ),
+),
+actions: <Widget>[
+  TextButton(
+    child: Text('Edit', style: TextStyle(color: Colors.black)),
+    onPressed: () {
+      // TODO: Implement edit functionality
+      Navigator.of(context).pop();
+    },
+  ),
+],
+
           ),
           TextButton(
             child: Text('Delete', style: TextStyle(color: Colors.black)),
@@ -138,12 +157,11 @@ Widget _buildDetailRow(String title, String? value) {
               color: Colors.black87,
               fontSize: 16,
             ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
+          ],
+        );
+      },
+    );
+  }
 
   void _toggleTaskCompletion(BuildContext context, DocumentReference taskRef,
       bool currentStatus, String taskName) {
@@ -179,6 +197,9 @@ Widget _buildDetailRow(String title, String? value) {
         },
       );
     } else {
+      // Implement your code for marking a task as complete
+    }
+
       // Checking an uncompleted task
       _updateTaskStatus(context, taskRef, true);
 
@@ -232,7 +253,6 @@ Widget _buildDetailRow(String title, String? value) {
                     Navigator.of(context).pop(); // Close the current dialog
                     String goalId = widget.goalDocument.id;
                     String taskId = taskRef.id;
-
                     // Show the CreatePostDialog
                     bool? result = await showDialog<bool>(
                       context: context,
@@ -243,6 +263,17 @@ Widget _buildDetailRow(String title, String? value) {
                           taskId: taskId,
                         );
                       },
+                    ).then((value) async{
+                      if(value == true){
+                        var tasks = await widget.goalDocument.reference
+                            .collection('tasks')
+                            .orderBy('startTime')
+                            .get();
+                        updateStreak(tasks.docs);
+                      }
+                      return null;
+                    }
+
                     );
                   },
                 ),
@@ -253,6 +284,94 @@ Widget _buildDetailRow(String title, String? value) {
       }
     }
   }
+  // void _toggleTaskCompletion(BuildContext context, DocumentReference taskRef,
+  //     bool currentStatus, String taskName)
+  // {
+  //   if (!currentStatus){
+  //     // Checking an uncompleted task
+  //     _updateTaskStatus(context, taskRef, true);
+  //
+  //     // Check the visibility of the goal before asking to post
+  //     if (widget.goalDocument['visibility'] == false) {
+  //       // If the goal is not visible, show completion message only
+  //       showDialog(
+  //         context: context,
+  //         builder: (BuildContext context) {
+  //           return AlertDialog(
+  //             backgroundColor: Colors.white,
+  //             title: Text('Task Completed!',
+  //                 style: TextStyle(
+  //                     color: Colors.black, fontWeight: FontWeight.bold)),
+  //             content: Text('Congratulations on completing your task!',
+  //                 style: TextStyle(color: Colors.black)),
+  //             actions: <Widget>[
+  //               TextButton(
+  //                 child: Text('OK', style: TextStyle(color: Colors.black)),
+  //                 onPressed: () {
+  //                   Navigator.of(context).pop();
+  //                 },
+  //               ),
+  //             ],
+  //           );
+  //         },
+  //       );
+  //     } else {
+  //       // If the goal is visible, ask about posting
+  //       showDialog(
+  //         context: context,
+  //         builder: (BuildContext context) {
+  //           return AlertDialog(
+  //             backgroundColor: Colors.white,
+  //             title: Text('Task Completed!',
+  //                 style: TextStyle(
+  //                     color: Colors.black, fontWeight: FontWeight.bold)),
+  //             content: Text(
+  //                 'Congratulations on completing your task!\nDo you want to make a post about it?',
+  //                 style: TextStyle(color: Colors.black)),
+  //             actions: <Widget>[
+  //               TextButton(
+  //                 child: Text('No', style: TextStyle(color: Colors.black)),
+  //                 onPressed: () {
+  //                   Navigator.of(context).pop();
+  //                 },
+  //               ),
+  //               TextButton(
+  //                 child: Text('Yes', style: TextStyle(color: Colors.black)),
+  //                 onPressed: () async {
+  //                   Navigator.of(context).pop(); // Close the current dialog
+  //                   String goalId = widget.goalDocument.id;
+  //                   String taskId = taskRef.id;
+  //                   // Show the CreatePostDialog
+  //                   bool? result = await showDialog<bool>(
+  //                     context: context,
+  //                     builder: (BuildContext context) {
+  //                       return CreatePostDialog(
+  //                         userId: widget.userId,
+  //                         goalId: goalId,
+  //                         taskId: taskId,
+  //                       );
+  //                     },
+  //                   ).then((value) async{
+  //                     if(value == true){
+  //                       var tasks = await widget.goalDocument.reference
+  //                           .collection('tasks')
+  //                           .orderBy('startTime')
+  //                           .get();
+  //                       updateStreak(tasks.docs);
+  //                     }
+  //                     return null;
+  //                   }
+  //
+  //                   );
+  //                 },
+  //               ),
+  //             ],
+  //           );
+  //         },
+  //       );
+  //     }
+  //   }
+  // }
 
   Future<void> _updateTaskStatus(
       BuildContext context, DocumentReference taskRef, bool isCompleted) async {
@@ -261,16 +380,23 @@ Widget _buildDetailRow(String title, String? value) {
         // Marking the task as completed, add 'completedDate'
         await taskRef.update({
           'completed': true,
-          'completedDate': FieldValue
-              .serverTimestamp(), // Add current timestamp as completedDate
+'wasPreviouslyCompleted': true,
+'completedDate': FieldValue.serverTimestamp(), // Add current timestamp as completedDate
+
         });
       } else {
         // Unmarking the task, remove 'completedDate'
         await taskRef.update({
           'completed': false,
-          'completedDate':
-              FieldValue.delete(), // Remove the completedDate field
-        });
+await taskRef.update({
+  'completedDate': FieldValue.delete(), // Remove the completedDate field
+});
+var tasks = await widget.goalDocument.reference
+    .collection('tasks')
+    .orderBy('startTime')
+    .get();
+updateStreak(tasks.docs);
+
       }
 
       // Trigger a rebuild of the widget tree
@@ -386,7 +512,8 @@ Widget _buildDetailRow(String title, String? value) {
                                     : 'Select Date (mandatory)',
                                 style: TextStyle(
                                   color:
-                                      isDateValid ? Colors.black : Colors.red,
+isDateValid ? Colors.black : Colors.red,
+
                                 ),
                               ),
                             ),
@@ -395,7 +522,8 @@ Widget _buildDetailRow(String title, String? value) {
                               onPressed: () async {
                                 final DateTime now = DateTime.now();
                                 final DateTime? pickedDate =
-                                    await showDatePicker(
+await showDatePicker(
+
                                   context: context,
                                   initialDate: now,
                                   firstDate: now,
@@ -429,7 +557,8 @@ Widget _buildDetailRow(String title, String? value) {
                               icon: const Icon(Icons.access_time),
                               onPressed: () async {
                                 final TimeOfDay? pickedTime =
-                                    await showTimePicker(
+await showTimePicker(
+
                                   context: context,
                                   initialTime: TimeOfDay.now(),
                                 );
@@ -469,7 +598,8 @@ Widget _buildDetailRow(String title, String? value) {
                                   return;
                                 }
                                 final TimeOfDay? pickedTime =
-                                    await showTimePicker(
+await showTimePicker(
+
                                   context: context,
                                   initialTime: TimeOfDay.now(),
                                 );
@@ -561,12 +691,12 @@ Widget _buildDetailRow(String title, String? value) {
                               }
 
                               QuerySnapshot userSnapshot =
-                                  await FirebaseFirestore.instance
-                                      .collection('Users')
-                                      .where('phoneNumber',
-                                          isEqualTo: userPhoneNumber)
-                                      .limit(1)
-                                      .get();
+await FirebaseFirestore.instance
+    .collection('Users')
+    .where('phoneNumber', isEqualTo: userPhoneNumber)
+    .limit(1)
+    .get();
+
 
                               DocumentReference userDocRef;
                               if (userSnapshot.docs.isEmpty) {
@@ -580,14 +710,16 @@ Widget _buildDetailRow(String title, String? value) {
                               }
 
                               CollectionReference tasksCollectionRef =
-                                  userDocRef.collection('tasks');
+userDocRef.collection('tasks');
+
 
                               Map<String, dynamic> taskData = {
                                 'taskName': taskNameController.text,
                                 'description':
-                                    descriptionController.text.isNotEmpty
-                                        ? descriptionController.text
-                                        : null,
+descriptionController.text.isNotEmpty
+    ? descriptionController.text
+    : null,
+
                                 'location': locationController.text.isNotEmpty
                                     ? locationController.text
                                     : null,
@@ -596,7 +728,8 @@ Widget _buildDetailRow(String title, String? value) {
                                 'startTime': startTime!.format(context),
                                 'endTime': endTime!.format(context),
                                 'recurrence':
-                                    selectedRecurrence ?? 'No recurrence',
+selectedRecurrence ?? 'No recurrence',
+
                                 'completed': false,
                               };
 
@@ -655,6 +788,187 @@ Widget _buildDetailRow(String title, String? value) {
     }
   }
 
+  DateTime getLatestEndTime(List<DocumentSnapshot> tasks) {
+    return tasks.map((task) {
+      var date = task["date"]; // Should be in format "2024-10-23"
+      var time = task["endTime"]; // Should be in format like "8:10 PM"
+
+      // Ensure time is not null and trim any extra spaces
+      if (date is String && time is String) {
+        // Replace non-breaking spaces with regular spaces
+        time = time.replaceAll(
+            String.fromCharCode(0xA0), ' '); // Replace non-breaking spaces
+        time = time.replaceAll(RegExp(r'\s+'), ' ').trim(); // Normalize spaces
+
+        print(
+            "Parsed time string: '$time' with code points: ${time.codeUnits}");
+        print(
+            "Hex representation: ${time.codeUnits.map((c) => c.toRadixString(16).padLeft(2, '0')).toList()}");
+
+        DateTime parsedTime;
+        try {
+          DateFormat timeFormat = DateFormat.jm("en_US"); // Specify locale
+          parsedTime = timeFormat.parseStrict(time); // Use strict parsing
+        } catch (e) {
+          print("Error parsing time: '$time'. Exception: $e");
+          // Fallback parsing method
+          try {
+            parsedTime = DateFormat("h:mm a").parseStrict(time);
+          } catch (e) {
+            print("Fallback error: $e");
+            throw Exception("Invalid time format: '$time'");
+          }
+        }
+
+        // Parse the date part
+        DateTime taskDate = DateTime.parse(date); // Parse date string
+
+        // Combine the date and time to create a full DateTime object
+        DateTime taskDateTime = DateTime(
+          taskDate.year,
+          taskDate.month,
+          taskDate.day,
+          parsedTime.hour,
+          parsedTime.minute,
+        );
+        return taskDateTime;
+      } else {
+        throw Exception("Invalid date or time format");
+      }
+    }).reduce((a, b) => a.isAfter(b) ? a : b); // Return the latest DateTime
+  }
+
+  bool isAnyTaskCompleted(List<DocumentSnapshot> tasks) {
+    return tasks.any((task) => task["completed"]);
+  }
+
+  bool isBeforeEndTime(List<DocumentSnapshot> tasks) {
+    DateTime latestEndTime = getLatestEndTime(tasks);
+    DateTime now = DateTime.now();
+    return now.isBefore(latestEndTime);
+  }
+  // Use this function to check if at least one task is completed and if it's before the latest end time.
+  bool isAnyTaskCompletedBeforeEndTime(List<DocumentSnapshot> tasks) {
+    return isAnyTaskCompleted(tasks) && isBeforeEndTime(tasks);
+  }
+
+  updateStreak(List<DocumentSnapshot> tasks, {taskOne}) async {
+    var postsSnapshot = await FirebaseFirestore.instance
+        .collection("Users")
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .collection("allPosts")
+        .get();
+
+    // التحقق من وجود مهمة في جميع المهام
+    bool hasTaskId(List<DocumentSnapshot> tasks) {
+      for (var post in postsSnapshot.docs) {
+        var postTaskId = post['taskId'];
+        if (tasks.any((task) => task.id == postTaskId)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    // التحقق من وجود مهمة معينة فقط
+    bool hasTaskIdForSingleTask(String taskId) {
+      for (var post in postsSnapshot.docs) {
+        if (post['taskId'] == taskId) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    var goalDocRef = FirebaseFirestore.instance
+        .collection("Users")
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .collection("goals")
+        .doc(widget.goalDocument.id);
+
+    var goalSnapshot = await goalDocRef.get();
+    bool isGoalCompleted = goalSnapshot.data()?['completed'] ?? false;
+    bool isGoalFinished = goalSnapshot.data()?['finished'] ?? false;
+
+    bool isAnyTaskCompleted = this.isAnyTaskCompleted(tasks);
+    bool isBeforeEndTime = this.isBeforeEndTime(tasks);
+    bool hasMatchingTaskId = hasTaskId(tasks);
+
+    // إذا تم استيفاء الشروط، قم بزيادة الـ streak وتحديث wasPreviouslyCompleted
+    if (hasMatchingTaskId && isAnyTaskCompleted && isBeforeEndTime && !isGoalCompleted) {
+      await goalDocRef.update({"completed": true});
+      await FirebaseFirestore.instance
+          .collection("Users")
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .update({"streak": FieldValue.increment(1)});
+      print("Streak increased by 1!");
+    } else {
+      DateTime latestEndTime = getLatestEndTime(tasks);
+
+      if (DateTime.now().isAfter(latestEndTime) && !hasMatchingTaskId && !isGoalFinished) {
+        await goalDocRef.update({"completed": false, "finished": true});
+        await FirebaseFirestore.instance
+            .collection("Users")
+            .doc(FirebaseAuth.instance.currentUser!.uid)
+            .update({"streak": 0});
+        print("Streak reset to 0 due to end time.");
+      } else if (taskOne != null) {
+        // في حالة إلغاء تفعيل مهمة واحدة
+
+      }
+    }
+    // print(taskOne);
+    // bool isHasTaskIdForSingleTask = taskOne["completed"] == false && hasTaskIdForSingleTask(taskOne.id);
+    // print("isHasTaskIdForSingleTask: $isHasTaskIdForSingleTask");
+    //
+    // if (isHasTaskIdForSingleTask && !hasMatchingTaskId) {
+    //   await goalDocRef.update({"completed": false});
+    //   await FirebaseFirestore.instance
+    //       .collection("Users")
+    //       .doc(FirebaseAuth.instance.currentUser!.uid)
+    //       .update({"streak": 0});
+    //   print("Streak reset to 0 due to incomplete task.");
+    //
+    //   // تحديث wasPreviouslyCompleted للمهمة المحددة فقط
+    //   await FirebaseFirestore.instance
+    //       .collection("Users")
+    //       .doc(FirebaseAuth.instance.currentUser!.uid)
+    //       .collection('goals')
+    //       .doc(widget.goalDocument.id)
+    //       .collection('tasks')
+    //       .doc(taskOne.id)
+    //       .update({"wasPreviouslyCompleted": false});
+    // }
+  }
+  Widget _buildDetailRow(String title, String? value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$title: ',
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value ?? 'Not set',
+              style: TextStyle(
+                color: Colors.black87,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final goalData = widget.goalDocument.data() as Map<String, dynamic>;
@@ -663,86 +977,88 @@ Widget _buildDetailRow(String title, String? value) {
     final bool visibilty = goalData['visibility'];
 
     return Scaffold(
-    body: Stack(
-      children: [
-        // Background Gradient
-        Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-              Color.fromARGB(255, 30, 12, 48),
-              Color.fromARGB(255, 77, 64, 98),
-              ],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
-          ),
+body: Stack(
+  children: [
+    // Background Gradient
+    Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color.fromARGB(255, 30, 12, 48),
+            Color.fromARGB(255, 77, 64, 98),
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
         ),
-        SafeArea(
-          child: Column(
-            children: [
-              // App Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.of(context).pop(),
+      ),
+    ),
+    SafeArea(
+      child: Column(
+        children: [
+          // App Bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                Expanded(
+                  child: Text(
+                    goalName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w400,
                     ),
-                    Expanded(
-                      child: Text(
-                        goalName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w400,
+                  ),
+                ),
+                // Updated Progress Indicator
+                StreamBuilder<double>(
+                  stream: _progressStream,
+                  builder: (context, snapshot) {
+                    final progress = snapshot.data ?? 0.0;
+
+                    return Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          height: 45,
+                          width: 45,
+                          child: CircularProgressIndicator(
+                            value: progress / 100,
+                            strokeWidth: 5,
+                            backgroundColor: Colors.white.withOpacity(0.2),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              progress >= 100 ? Colors.green : WellBeingColors.lightMaroon,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    // Updated Progress Indicator
-                    StreamBuilder<double>(
-  stream: _progressStream,
-  builder: (context, snapshot) {
-    final progress = snapshot.data ?? 0.0;
-
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        SizedBox(
-          height: 45,
-          width: 45,
-          child: CircularProgressIndicator(
-            value: progress / 100,
-            strokeWidth: 5,
-            backgroundColor: Colors.white.withOpacity(0.2),
-            valueColor: AlwaysStoppedAnimation<Color>(
-              progress >= 100 ? Colors.green : WellBeingColors.lightMaroon,
+                        if (progress >= 100)
+                          const Icon(
+                            Icons.check,
+                            color: Color.fromARGB(255, 255, 255, 255),
+                            size: 20,
+                          )
+                        else
+                          Text(
+                            '${progress.round()}%',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ],
             ),
           ),
-        ),
-        if (progress >= 100)
-          const Icon(
-            Icons.check,
-            color: Color.fromARGB(255, 255, 255, 255),
-            size: 20,
-          )
-        else
-          Text(
-            '${progress.round()}%',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-      ],
-    );
-  },
-),
 
-                  ],
                 ),
               ),
                 // Tasks Timeline
@@ -794,7 +1110,8 @@ Widget _buildDetailRow(String title, String? value) {
                             contentsBuilder: (_, index) {
                               final taskDoc = tasks[index];
                               final task =
-                                  taskDoc.data() as Map<String, dynamic>;
+                              taskDoc.data() as Map<String, dynamic>;
+
                               final taskName =
                                   task['taskName'] ?? 'Unnamed Task';
                               final startTime = task['startTime'] ?? 'Not set';
@@ -808,16 +1125,13 @@ Widget _buildDetailRow(String title, String? value) {
                                       left: 22.0, bottom: 40.0, right: 22.0),
                                   child: Column(
                                     crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      SizedBox(
-                                          height:
-                                              16), // Increased space above task details
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
+CrossAxisAlignment.start,
+children: [
+  SizedBox(height: 16), // Increased space above task details
+  Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    crossAxisAlignment: CrossAxisAlignment.center,
+
                                         children: [
                                           Expanded(
                                             child: Text(
@@ -858,14 +1172,30 @@ Widget _buildDetailRow(String title, String? value) {
                             },
                             indicatorBuilder: (_, index) {
                               final taskDoc = tasks[index];
-                              final task =
-                                  taskDoc.data() as Map<String, dynamic>;
+                              final task = taskDoc.data() as Map<String, dynamic>;
+                              updateStreak(tasks);
                               final isCompleted = task['completed'] ?? false;
                               final taskName =
                                   task['taskName'] ?? 'Unnamed Task';
                               return GestureDetector(
-                                onTap: () => _toggleTaskCompletion(context,
-                                    taskDoc.reference, isCompleted, taskName),
+                                onTap: () async {
+                                  print(taskDoc.data());
+                                  _toggleTaskCompletion(
+                                      context,
+                                      taskDoc.reference,
+                                      isCompleted,
+                                      taskName
+                                  );
+                                  if (isCompleted == false) {
+                                    var tasks = await widget
+                                        .goalDocument.reference
+                                        .collection('tasks')
+                                        .orderBy('startTime')
+                                        .get();
+                                    print('objectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobject');
+                                    updateStreak(tasks.docs,taskOne: taskDoc.data());
+                                  }
+                                },
                                 child: Container(
                                   width: 30.0, // Increased from 20.0 to 30.0
                                   height: 30.0,
@@ -883,14 +1213,14 @@ Widget _buildDetailRow(String title, String? value) {
                                   ),
                                   child: isCompleted
                                       ? Icon(Icons.check,
-                                          color: Colors.white, size: 20.0)
+                                      color: Colors.white, size: 20.0)
                                       : null,
                                 ),
                               );
                             },
                             connectorBuilder: (_, index, connectorType) {
                               final task =
-                                  tasks[index].data() as Map<String, dynamic>;
+                              tasks[index].data() as Map<String, dynamic>;
                               final isCompleted = task['completed'] ?? false;
                               return SolidLineConnector(
                                 color: isCompleted
