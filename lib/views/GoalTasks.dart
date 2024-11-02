@@ -15,14 +15,12 @@ class GoalTasks extends StatefulWidget {
   GoalTasks({Key? key, required this.goalDocument}) : super(key: key);
   @override
   _GoalTasksState createState() => _GoalTasksState();
-  
-  
 }
 
 class _GoalTasksState extends State<GoalTasks> {
- double _progress = 0.0;
+  double _progress = 0.0;
   late Stream<double> _progressStream;
-  
+
   @override
   void initState() {
     super.initState();
@@ -43,7 +41,8 @@ class _GoalTasksState extends State<GoalTasks> {
       }
 
       int completedTasks = snapshot.docs
-          .where((task) => (task.data() as Map<String, dynamic>)['completed'] == true)
+          .where((task) =>
+              (task.data() as Map<String, dynamic>)['completed'] == true)
           .length;
 
       double progress = (completedTasks / snapshot.docs.length) * 100;
@@ -639,90 +638,93 @@ class _GoalTasksState extends State<GoalTasks> {
     final String goalName = goalData['name'];
     final goalDate = DateTime.parse(goalData['date']);
     final bool visibilty = goalData['visibility'];
-
+    final bool _isGoalDateValid = !goalDate.isBefore(DateTime.now());
     return Scaffold(
-    body: Stack(
-      children: [
-        // Background Gradient
-        Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-              Color.fromARGB(255, 30, 12, 48),
-              Color.fromARGB(255, 77, 64, 98),
-              ],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
+      body: Stack(
+        children: [
+          // Background Gradient
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color.fromARGB(255, 30, 12, 48),
+                  Color.fromARGB(255, 77, 64, 98),
+                ],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
             ),
           ),
-        ),
-        SafeArea(
-          child: Column(
-            children: [
-              // App Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                    Expanded(
-                      child: Text(
-                        goalName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w400,
+          SafeArea(
+            child: Column(
+              children: [
+                // App Bar
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0, vertical: 30.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                      Expanded(
+                        child: Text(
+                          goalName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
                       ),
-                    ),
-                    // Updated Progress Indicator
-                    StreamBuilder<double>(
-  stream: _progressStream,
-  builder: (context, snapshot) {
-    final progress = snapshot.data ?? 0.0;
+                      // Updated Progress Indicator
+                      StreamBuilder<double>(
+                        stream: _progressStream,
+                        builder: (context, snapshot) {
+                          final progress = snapshot.data ?? 0.0;
 
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        SizedBox(
-          height: 45,
-          width: 45,
-          child: CircularProgressIndicator(
-            value: progress / 100,
-            strokeWidth: 5,
-            backgroundColor: Colors.white.withOpacity(0.2),
-            valueColor: AlwaysStoppedAnimation<Color>(
-              progress >= 100 ? Colors.green : WellBeingColors.lightMaroon,
-            ),
-          ),
-        ),
-        if (progress >= 100)
-          const Icon(
-            Icons.check,
-            color: Color.fromARGB(255, 255, 255, 255),
-            size: 20,
-          )
-        else
-          Text(
-            '${progress.round()}%',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-      ],
-    );
-  },
-),
-
-                  ],
+                          return Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              SizedBox(
+                                height: 45,
+                                width: 45,
+                                child: CircularProgressIndicator(
+                                  value: progress / 100,
+                                  strokeWidth: 5,
+                                  backgroundColor:
+                                      Colors.white.withOpacity(0.2),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    progress >= 100
+                                        ? Colors.green
+                                        : WellBeingColors.lightMaroon,
+                                  ),
+                                ),
+                              ),
+                              if (progress >= 100)
+                                const Icon(
+                                  Icons.check,
+                                  color: Color.fromARGB(255, 255, 255, 255),
+                                  size: 20,
+                                )
+                              else
+                                Text(
+                                  '${progress.round()}%',
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
                 // Tasks Timeline
                 Expanded(
                   child: Container(
@@ -890,18 +892,31 @@ class _GoalTasksState extends State<GoalTasks> {
             right: 16,
             child: FloatingActionButton(
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => AddTaskIndependentlyPage(
-                      goalName: goalName,
-                      goalDate: goalDate,
-                      goalVisibility: visibilty,
+                if (_isGoalDateValid) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AddTaskIndependentlyPage(
+                        goalName: goalName,
+                        goalDate: goalDate,
+                        goalVisibility: visibilty,
+                      ),
                     ),
-                  ),
-                );
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Goal date has already passed.'),
+                      backgroundColor: Colors.red,
+                      duration:
+                          Duration(seconds: 3), // How long it stays visible
+                    ),
+                  );
+                }
               },
-              backgroundColor: Color.fromARGB(255, 66, 32, 101),
+              backgroundColor: _isGoalDateValid
+                  ? Color.fromARGB(255, 66, 32, 101)
+                  : Colors.grey,
               child: Icon(Icons.add, color: Colors.white),
             ),
           ),
