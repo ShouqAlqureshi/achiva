@@ -672,7 +672,7 @@ class _GoalTasksState extends State<GoalTasks> {
     final String goalName = goalData['name'];
     final goalDate = DateTime.parse(goalData['date']);
     final bool visibilty = goalData['visibility'];
-
+    final bool _isGoalDateValid = !goalDate.isBefore(DateTime.now());
     return Scaffold(
       body: Stack(
         children: [
@@ -935,18 +935,31 @@ class _GoalTasksState extends State<GoalTasks> {
             right: 16,
             child: FloatingActionButton(
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => AddTaskIndependentlyPage(
-                      goalName: goalName,
-                      goalDate: goalDate,
-                      goalVisibility: visibilty,
+                if (_isGoalDateValid) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AddTaskIndependentlyPage(
+                        goalName: goalName,
+                        goalDate: goalDate,
+                        goalVisibility: visibilty,
+                      ),
                     ),
-                  ),
-                );
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Goal date has already passed.'),
+                      backgroundColor: Colors.red,
+                      duration:
+                          Duration(seconds: 3), // How long it stays visible
+                    ),
+                  );
+                }
               },
-              backgroundColor: Color.fromARGB(255, 66, 32, 101),
+              backgroundColor: _isGoalDateValid
+                  ? Color.fromARGB(255, 66, 32, 101)
+                  : Colors.grey,
               child: Icon(Icons.add, color: Colors.white),
             ),
           ),
