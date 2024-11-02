@@ -18,6 +18,7 @@ import 'package:achiva/views/profile/profile_screen.dart';
 import 'package:achiva/views/home_view.dart';
 import 'GoalTasks.dart';
 import 'dart:async';
+import 'package:rxdart/rxdart.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -96,34 +97,39 @@ Stream<int> getCompletedTodayTasksCount() {
   final today = DateTime(now.year, now.month, now.day);
   final tomorrow = today.add(const Duration(days: 1));
 
+  // Listen to all goals
   return FirebaseFirestore.instance
       .collection("Users")
       .doc(userId)
       .collection('goals')
       .snapshots()
-      .asyncMap((goalSnapshots) async {
-    int completedTasks = 0;
-    
-    for (var goalDoc in goalSnapshots.docs) {
-      // Query tasks that were completed today
-      final taskQuery = await goalDoc.reference
+      .switchMap((goalSnapshots) {
+    // Create a stream for each goal's tasks
+    final taskStreams = goalSnapshots.docs.map((goalDoc) {
+      return goalDoc.reference
           .collection('tasks')
           .where('completed', isEqualTo: true)
-          .get();
+          .snapshots()
+          .map((taskSnapshot) {
+        return taskSnapshot.docs.where((task) {
+          final completedDate = (task.data()['completedDate'] as Timestamp?)?.toDate();
+          if (completedDate == null) return false;
           
-      // Filter tasks completed today in memory
-      final todayTasks = taskQuery.docs.where((task) {
-        final completedDate = (task.data()['completedDate'] as Timestamp?)?.toDate();
-        if (completedDate == null) return false;
-        
-        return completedDate.isAfter(today) && 
-               completedDate.isBefore(tomorrow);
+          return completedDate.isAfter(today) && 
+                 completedDate.isBefore(tomorrow);
+        }).length;
       });
-      
-      completedTasks += todayTasks.length;
+    });
+
+    // If there are no goals, return a stream of 0
+    if (taskStreams.isEmpty) {
+      return Stream.value(0);
     }
-    
-    return completedTasks;
+
+    // Combine all task streams and sum their values
+    return Rx.combineLatest(taskStreams, (List<int> counts) {
+      return counts.reduce((sum, count) => sum + count);
+    });
   });
 }
 
@@ -134,34 +140,39 @@ Stream<int> getCompletedWeekTasksCount() {
   final startDate = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
   final endDate = startDate.add(const Duration(days: 7));
 
+  // Listen to all goals
   return FirebaseFirestore.instance
       .collection("Users")
       .doc(userId)
       .collection('goals')
       .snapshots()
-      .asyncMap((goalSnapshots) async {
-    int completedTasks = 0;
-    
-    for (var goalDoc in goalSnapshots.docs) {
-      // Query completed tasks
-      final taskQuery = await goalDoc.reference
+      .switchMap((goalSnapshots) {
+    // Create a stream for each goal's tasks
+    final taskStreams = goalSnapshots.docs.map((goalDoc) {
+      return goalDoc.reference
           .collection('tasks')
           .where('completed', isEqualTo: true)
-          .get();
+          .snapshots()
+          .map((taskSnapshot) {
+        return taskSnapshot.docs.where((task) {
+          final completedDate = (task.data()['completedDate'] as Timestamp?)?.toDate();
+          if (completedDate == null) return false;
           
-      // Filter tasks completed this week in memory
-      final weekTasks = taskQuery.docs.where((task) {
-        final completedDate = (task.data()['completedDate'] as Timestamp?)?.toDate();
-        if (completedDate == null) return false;
-        
-        return completedDate.isAfter(startDate) && 
-               completedDate.isBefore(endDate);
+          return completedDate.isAfter(startDate) && 
+                 completedDate.isBefore(endDate);
+        }).length;
       });
-      
-      completedTasks += weekTasks.length;
+    });
+
+    // If there are no goals, return a stream of 0
+    if (taskStreams.isEmpty) {
+      return Stream.value(0);
     }
-    
-    return completedTasks;
+
+    // Combine all task streams and sum their values
+    return Rx.combineLatest(taskStreams, (List<int> counts) {
+      return counts.reduce((sum, count) => sum + count);
+    });
   });
 }
 

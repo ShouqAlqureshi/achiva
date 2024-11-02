@@ -34,6 +34,8 @@ dependencies:
   permission_handler: ^10.2.0
   share_plus: ^10.1.1
   another_flushbar: ^1.12.30
+  rxdart: ^0.27.0
+
 
 
 dev_dependencies:
