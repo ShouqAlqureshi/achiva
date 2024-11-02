@@ -18,6 +18,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:flutter_gemini/flutter_gemini.dart';
 import '../utilities/filestore_services.dart';
 import '../utilities/show_log_out_dialog.dart';
 import 'GoalTasks.dart';
