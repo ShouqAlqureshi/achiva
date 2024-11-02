@@ -472,8 +472,14 @@ class _AddTaskPageState extends State<AddTaskPage> {
                                         horizontal: 8, vertical: 8),
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(30),
-                                      border:
-                                          Border.all(color: Colors.grey[300]!),
+                                      border: Border.all(
+                                        color: !_isDateValid
+                                            ? Colors.red
+                                            : !_isDateValid
+                                                ? Colors.red
+                                                : Colors.grey[300]!,
+                                        width: !_isDateValid ? 2 : 1,
+                                      ),
                                       color: Colors.white,
                                     ),
                                     child: Row(
@@ -540,11 +546,16 @@ class _AddTaskPageState extends State<AddTaskPage> {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8, vertical: 8),
                                     decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(30),
-                                      border:
-                                          Border.all(color: Colors.grey[300]!),
-                                      color: Colors.white,
-                                    ),
+                                        borderRadius: BorderRadius.circular(30),
+                                        border: Border.all(
+                                          color: !_isStartTimeValid
+                                              ? Colors.red
+                                              : !_isDateValid
+                                                  ? Colors.red
+                                                  : Colors.grey[300]!,
+                                          width: !_isDateValid ? 2 : 1,
+                                        )),
+
                                     child: Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
@@ -602,11 +613,15 @@ class _AddTaskPageState extends State<AddTaskPage> {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8, vertical: 8),
                                     decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(30),
-                                      border:
-                                          Border.all(color: Colors.grey[300]!),
-                                      color: Colors.white,
-                                    ),
+                                        borderRadius: BorderRadius.circular(30),
+                                        border: Border.all(
+                                          color: !_isEndTimeValid
+                                              ? Colors.red
+                                              : !_isDateValid
+                                                  ? Colors.red
+                                                  : Colors.grey[300]!,
+                                          width: !_isDateValid ? 2 : 1,
+                                        )),
                                     child: Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,

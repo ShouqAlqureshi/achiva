@@ -218,20 +218,25 @@ class _AddGoalPageState extends State<AddGoalPage> {
                 const SizedBox(height: 16),
 
                 // Submit Button
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 30, 12, 48),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 32, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                Align(
+                  alignment: Alignment.bottomRight,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isNameValid && _isDateValid
+                          ? const Color.fromARGB(255, 30, 12, 48)
+                          : Colors.grey[800],
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
                     ),
-                  ),
-                  onPressed: _goToAddTaskPage,
-                  child: const Text(
-                    'Next: Add Tasks',
-                    style: TextStyle(
-                      color: Colors.white,
+                    onPressed: _goToAddTaskPage,
+                    child: const Text(
+                      'Next: Add Tasks',
+                      style: TextStyle(
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),

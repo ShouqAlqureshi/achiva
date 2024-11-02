@@ -38,6 +38,7 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
   final taskManager = RecurringTaskManager();
   bool _isTaskNameValid = true;
   bool _isDateValid = true;
+  bool _isGoalDateValid = true;
   bool _isStartTimeValid = true;
   bool _isEndTimeValid = true;
 
@@ -168,12 +169,29 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
   // Method to select date
   Future<void> _selectDate(BuildContext context) async {
     final DateTime today = DateTime.now();
+    final DateTime firstDate = today;
+    final DateTime lastDate = widget.goalDate;
+    setState(() {
+      _isGoalDateValid = !lastDate.isBefore(firstDate);
+    });
+    // Ensure lastDate is not before firstDate
+    if (lastDate.isBefore(firstDate)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Goal date has already passed. Please update the goal date.'),
+        ),
+      );
+      return;
+    }
+
     final DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialDate: today,
-      firstDate: today,
-      lastDate: widget.goalDate,
+      initialDate: _selectedDate ?? firstDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
     );
+
     if (pickedDate != null && pickedDate != _selectedDate) {
       setState(() {
         _selectedDate = pickedDate;
@@ -484,13 +502,21 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
                                 InkWell(
                                   onTap: () => _selectDate(context),
                                   child: Container(
-                                    height: 40, // Consistent height
+                                    height: 40,
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 8),
+                                      horizontal: 8,
+                                      vertical: 8,
+                                    ),
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(30),
-                                      border:
-                                          Border.all(color: Colors.grey[300]!),
+                                      border: Border.all(
+                                        color: !_isGoalDateValid
+                                            ? Colors.red
+                                            : !_isDateValid
+                                                ? Colors.red
+                                                : Colors.grey[300]!,
+                                        width: !_isGoalDateValid ? 2 : 1,
+                                      ),
                                       color: Colors.white,
                                     ),
                                     child: Row(
@@ -505,18 +531,37 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
                                                 : 'Select Date',
                                             style: TextStyle(
                                               fontSize: 13,
-                                              color: _isDateValid
-                                                  ? Colors.black
-                                                  : Colors.red,
+                                              color: !_isGoalDateValid ||
+                                                      !_isDateValid
+                                                  ? Colors.red
+                                                  : Colors.black,
                                             ),
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
-                                        Icon(Icons.calendar_today, size: 16),
+                                        Icon(
+                                          Icons.calendar_today,
+                                          size: 16,
+                                          color:
+                                              !_isGoalDateValid || !_isDateValid
+                                                  ? Colors.red
+                                                  : Colors.grey[600],
+                                        ),
                                       ],
                                     ),
                                   ),
                                 ),
+                                if (!_isGoalDateValid)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 1),
+                                    child: Text(
+                                      'Goal date has passed',
+                                      style: TextStyle(
+                                        color: Colors.red,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
@@ -558,8 +603,14 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
                                         horizontal: 8, vertical: 8),
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(30),
-                                      border:
-                                          Border.all(color: Colors.grey[300]!),
+                                      border: Border.all(
+                                        color: !_isStartTimeValid
+                                            ? Colors.red
+                                            : !_isDateValid
+                                                ? Colors.red
+                                                : Colors.grey[300]!,
+                                        width: !_isGoalDateValid ? 2 : 1,
+                                      ),
                                       color: Colors.white,
                                     ),
                                     child: Row(
@@ -620,8 +671,14 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
                                         horizontal: 8, vertical: 8),
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(30),
-                                      border:
-                                          Border.all(color: Colors.grey[300]!),
+                                      border: Border.all(
+                                        color: !_isEndTimeValid
+                                            ? Colors.red
+                                            : !_isDateValid
+                                                ? Colors.red
+                                                : Colors.grey[300]!,
+                                        width: !_isGoalDateValid ? 2 : 1,
+                                      ),
                                       color: Colors.white,
                                     ),
                                     child: Row(
