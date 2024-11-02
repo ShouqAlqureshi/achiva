@@ -113,11 +113,6 @@
 // class MyApp extends StatelessWidget {
 //   const MyApp({super.key});
 
-//   @override
-//   Widget build(BuildContext context) {
-//     final chatGPTService = ChatGPTService(
-//       apiKey: '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',
-//     );
 
 //     return MaterialApp(
 //       home: ChatPage(chatGPTService: chatGPTService),
