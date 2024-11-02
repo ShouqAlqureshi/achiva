@@ -15,8 +15,6 @@ class GoalTasks extends StatefulWidget {
   GoalTasks({Key? key, required this.goalDocument}) : super(key: key);
   @override
   _GoalTasksState createState() => _GoalTasksState();
-
-
 }
 
 class _GoalTasksState extends State<GoalTasks> {
@@ -43,7 +41,8 @@ class _GoalTasksState extends State<GoalTasks> {
       }
 
       int completedTasks = snapshot.docs
-          .where((task) => (task.data() as Map<String, dynamic>)['completed'] == true)
+          .where((task) =>
+              (task.data() as Map<String, dynamic>)['completed'] == true)
           .length;
 
       double progress = (completedTasks / snapshot.docs.length) * 100;
@@ -116,18 +115,22 @@ class _GoalTasksState extends State<GoalTasks> {
       },
     );
   }
+
   void _toggleTaskCompletion(BuildContext context, DocumentReference taskRef,
-      bool currentStatus, String taskName)
-  {
-     if (currentStatus) {
+      bool currentStatus, String taskName) {
+    if (currentStatus) {
       // Unchecking a completed task
       showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
             backgroundColor: Colors.white,
-            title: Text('Uncheck Task', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-            content: Text('Are you sure you want to mark this task as incomplete?', style: TextStyle(color: Colors.black)),
+            title: Text('Uncheck Task',
+                style: TextStyle(
+                    color: Colors.black, fontWeight: FontWeight.bold)),
+            content: Text(
+                'Are you sure you want to mark this task as incomplete?',
+                style: TextStyle(color: Colors.black)),
             actions: <Widget>[
               TextButton(
                 child: Text('No', style: TextStyle(color: Colors.black)),
@@ -210,18 +213,15 @@ class _GoalTasksState extends State<GoalTasks> {
                           taskId: taskId,
                         );
                       },
-                    ).then((value) async{
-                      if(value == true){
+                    ).then((value) async {
+                      if (value == true) {
                         var tasks = await widget.goalDocument.reference
                             .collection('tasks')
                             .orderBy('startTime')
                             .get();
-                        updateStreak(tasks.docs);
                       }
                       return null;
-                    }
-
-                    );
+                    });
                   },
                 ),
               ],
@@ -231,7 +231,6 @@ class _GoalTasksState extends State<GoalTasks> {
       }
     }
   }
-
 
   Future<void> _updateTaskStatus(
       BuildContext context, DocumentReference taskRef, bool isCompleted) async {
@@ -251,12 +250,10 @@ class _GoalTasksState extends State<GoalTasks> {
           'completedDate': FieldValue.delete(),
           // Remove the completedDate field
         });
-        var tasks = await widget
-            .goalDocument.reference
+        var tasks = await widget.goalDocument.reference
             .collection('tasks')
             .orderBy('startTime')
             .get();
-        updateStreak(tasks.docs);
       }
 
       // Trigger a rebuild of the widget tree
@@ -372,7 +369,7 @@ class _GoalTasksState extends State<GoalTasks> {
                                     : 'Select Date (mandatory)',
                                 style: TextStyle(
                                   color:
-                                  isDateValid ? Colors.black : Colors.red,
+                                      isDateValid ? Colors.black : Colors.red,
                                 ),
                               ),
                             ),
@@ -381,7 +378,7 @@ class _GoalTasksState extends State<GoalTasks> {
                               onPressed: () async {
                                 final DateTime now = DateTime.now();
                                 final DateTime? pickedDate =
-                                await showDatePicker(
+                                    await showDatePicker(
                                   context: context,
                                   initialDate: now,
                                   firstDate: now,
@@ -415,7 +412,7 @@ class _GoalTasksState extends State<GoalTasks> {
                               icon: const Icon(Icons.access_time),
                               onPressed: () async {
                                 final TimeOfDay? pickedTime =
-                                await showTimePicker(
+                                    await showTimePicker(
                                   context: context,
                                   initialTime: TimeOfDay.now(),
                                 );
@@ -455,7 +452,7 @@ class _GoalTasksState extends State<GoalTasks> {
                                   return;
                                 }
                                 final TimeOfDay? pickedTime =
-                                await showTimePicker(
+                                    await showTimePicker(
                                   context: context,
                                   initialTime: TimeOfDay.now(),
                                 );
@@ -547,12 +544,12 @@ class _GoalTasksState extends State<GoalTasks> {
                               }
 
                               QuerySnapshot userSnapshot =
-                              await FirebaseFirestore.instance
-                                  .collection('Users')
-                                  .where('phoneNumber',
-                                  isEqualTo: userPhoneNumber)
-                                  .limit(1)
-                                  .get();
+                                  await FirebaseFirestore.instance
+                                      .collection('Users')
+                                      .where('phoneNumber',
+                                          isEqualTo: userPhoneNumber)
+                                      .limit(1)
+                                      .get();
 
                               DocumentReference userDocRef;
                               if (userSnapshot.docs.isEmpty) {
@@ -566,14 +563,14 @@ class _GoalTasksState extends State<GoalTasks> {
                               }
 
                               CollectionReference tasksCollectionRef =
-                              userDocRef.collection('tasks');
+                                  userDocRef.collection('tasks');
 
                               Map<String, dynamic> taskData = {
                                 'taskName': taskNameController.text,
                                 'description':
-                                descriptionController.text.isNotEmpty
-                                    ? descriptionController.text
-                                    : null,
+                                    descriptionController.text.isNotEmpty
+                                        ? descriptionController.text
+                                        : null,
                                 'location': locationController.text.isNotEmpty
                                     ? locationController.text
                                     : null,
@@ -582,7 +579,7 @@ class _GoalTasksState extends State<GoalTasks> {
                                 'startTime': startTime!.format(context),
                                 'endTime': endTime!.format(context),
                                 'recurrence':
-                                selectedRecurrence ?? 'No recurrence',
+                                    selectedRecurrence ?? 'No recurrence',
                                 'completed': false,
                               };
 
@@ -641,158 +638,6 @@ class _GoalTasksState extends State<GoalTasks> {
     }
   }
 
-  DateTime getLatestEndTime(List<DocumentSnapshot> tasks) {
-    return tasks.map((task) {
-      var date = task["date"]; // Should be in format "2024-10-23"
-      var time = task["endTime"]; // Should be in format like "8:10 PM"
-
-      // Ensure time is not null and trim any extra spaces
-      if (date is String && time is String) {
-        // Replace non-breaking spaces with regular spaces
-        time = time.replaceAll(
-            String.fromCharCode(0xA0), ' '); // Replace non-breaking spaces
-        time = time.replaceAll(RegExp(r'\s+'), ' ').trim(); // Normalize spaces
-
-        print(
-            "Parsed time string: '$time' with code points: ${time.codeUnits}");
-        print(
-            "Hex representation: ${time.codeUnits.map((c) => c.toRadixString(16).padLeft(2, '0')).toList()}");
-
-        DateTime parsedTime;
-        try {
-          DateFormat timeFormat = DateFormat.jm("en_US"); // Specify locale
-          parsedTime = timeFormat.parseStrict(time); // Use strict parsing
-        } catch (e) {
-          print("Error parsing time: '$time'. Exception: $e");
-          // Fallback parsing method
-          try {
-            parsedTime = DateFormat("h:mm a").parseStrict(time);
-          } catch (e) {
-            print("Fallback error: $e");
-            throw Exception("Invalid time format: '$time'");
-          }
-        }
-
-        // Parse the date part
-        DateTime taskDate = DateTime.parse(date); // Parse date string
-
-        // Combine the date and time to create a full DateTime object
-        DateTime taskDateTime = DateTime(
-          taskDate.year,
-          taskDate.month,
-          taskDate.day,
-          parsedTime.hour,
-          parsedTime.minute,
-        );
-        return taskDateTime;
-      } else {
-        throw Exception("Invalid date or time format");
-      }
-    }).reduce((a, b) => a.isAfter(b) ? a : b); // Return the latest DateTime
-  }
-
-  bool isAnyTaskCompleted(List<DocumentSnapshot> tasks) {
-    return tasks.any((task) => task["completed"]);
-  }
-
-  bool isBeforeEndTime(List<DocumentSnapshot> tasks) {
-    DateTime latestEndTime = getLatestEndTime(tasks);
-    DateTime now = DateTime.now();
-    return now.isBefore(latestEndTime);
-  }
-  // Use this function to check if at least one task is completed and if it's before the latest end time.
-  bool isAnyTaskCompletedBeforeEndTime(List<DocumentSnapshot> tasks) {
-    return isAnyTaskCompleted(tasks) && isBeforeEndTime(tasks);
-  }
-
-  updateStreak(List<DocumentSnapshot> tasks, {taskOne}) async {
-    var postsSnapshot = await FirebaseFirestore.instance
-        .collection("Users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection("allPosts")
-        .get();
-
-    // التحقق من وجود مهمة في جميع المهام
-    bool hasTaskId(List<DocumentSnapshot> tasks) {
-      for (var post in postsSnapshot.docs) {
-        var postTaskId = post['taskId'];
-        if (tasks.any((task) => task.id == postTaskId)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    // التحقق من وجود مهمة معينة فقط
-    bool hasTaskIdForSingleTask(String taskId) {
-      for (var post in postsSnapshot.docs) {
-        if (post['taskId'] == taskId) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    var goalDocRef = FirebaseFirestore.instance
-        .collection("Users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection("goals")
-        .doc(widget.goalDocument.id);
-
-    var goalSnapshot = await goalDocRef.get();
-    bool isGoalCompleted = goalSnapshot.data()?['completed'] ?? false;
-    bool isGoalFinished = goalSnapshot.data()?['finished'] ?? false;
-
-    bool isAnyTaskCompleted = this.isAnyTaskCompleted(tasks);
-    bool isBeforeEndTime = this.isBeforeEndTime(tasks);
-    bool hasMatchingTaskId = hasTaskId(tasks);
-
-    // إذا تم استيفاء الشروط، قم بزيادة الـ streak وتحديث wasPreviouslyCompleted
-    if (hasMatchingTaskId && isAnyTaskCompleted && isBeforeEndTime && !isGoalCompleted) {
-      await goalDocRef.update({"completed": true});
-      await FirebaseFirestore.instance
-          .collection("Users")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .update({"streak": FieldValue.increment(1)});
-      print("Streak increased by 1!");
-    } else {
-      DateTime latestEndTime = getLatestEndTime(tasks);
-
-      if (DateTime.now().isAfter(latestEndTime) && !hasMatchingTaskId && !isGoalFinished) {
-        await goalDocRef.update({"completed": false, "finished": true});
-        await FirebaseFirestore.instance
-            .collection("Users")
-            .doc(FirebaseAuth.instance.currentUser!.uid)
-            .update({"streak": 0});
-        print("Streak reset to 0 due to end time.");
-      } else if (taskOne != null) {
-        // في حالة إلغاء تفعيل مهمة واحدة
-
-      }
-    }
-    // print(taskOne);
-    // bool isHasTaskIdForSingleTask = taskOne["completed"] == false && hasTaskIdForSingleTask(taskOne.id);
-    // print("isHasTaskIdForSingleTask: $isHasTaskIdForSingleTask");
-    //
-    // if (isHasTaskIdForSingleTask && !hasMatchingTaskId) {
-    //   await goalDocRef.update({"completed": false});
-    //   await FirebaseFirestore.instance
-    //       .collection("Users")
-    //       .doc(FirebaseAuth.instance.currentUser!.uid)
-    //       .update({"streak": 0});
-    //   print("Streak reset to 0 due to incomplete task.");
-    //
-    //   // تحديث wasPreviouslyCompleted للمهمة المحددة فقط
-    //   await FirebaseFirestore.instance
-    //       .collection("Users")
-    //       .doc(FirebaseAuth.instance.currentUser!.uid)
-    //       .collection('goals')
-    //       .doc(widget.goalDocument.id)
-    //       .collection('tasks')
-    //       .doc(taskOne.id)
-    //       .update({"wasPreviouslyCompleted": false});
-    // }
-  }
   Widget _buildDetailRow(String title, String? value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -820,7 +665,6 @@ class _GoalTasksState extends State<GoalTasks> {
       ),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -850,7 +694,8 @@ class _GoalTasksState extends State<GoalTasks> {
               children: [
                 // App Bar
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0, vertical: 30.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -883,9 +728,12 @@ class _GoalTasksState extends State<GoalTasks> {
                                 child: CircularProgressIndicator(
                                   value: progress / 100,
                                   strokeWidth: 5,
-                                  backgroundColor: Colors.white.withOpacity(0.2),
+                                  backgroundColor:
+                                      Colors.white.withOpacity(0.2),
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                    progress >= 100 ? Colors.green : WellBeingColors.lightMaroon,
+                                    progress >= 100
+                                        ? Colors.green
+                                        : WellBeingColors.lightMaroon,
                                   ),
                                 ),
                               ),
@@ -908,7 +756,6 @@ class _GoalTasksState extends State<GoalTasks> {
                           );
                         },
                       ),
-
                     ],
                   ),
                 ),
@@ -961,7 +808,7 @@ class _GoalTasksState extends State<GoalTasks> {
                             contentsBuilder: (_, index) {
                               final taskDoc = tasks[index];
                               final task =
-                              taskDoc.data() as Map<String, dynamic>;
+                                  taskDoc.data() as Map<String, dynamic>;
                               final taskName =
                                   task['taskName'] ?? 'Unnamed Task';
                               final startTime = task['startTime'] ?? 'Not set';
@@ -974,16 +821,16 @@ class _GoalTasksState extends State<GoalTasks> {
                                       left: 22.0, bottom: 40.0, right: 22.0),
                                   child: Column(
                                     crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                        CrossAxisAlignment.start,
                                     children: [
                                       SizedBox(
                                           height:
-                                          16), // Increased space above task details
+                                              16), // Increased space above task details
                                       Row(
                                         mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
+                                            MainAxisAlignment.spaceBetween,
                                         crossAxisAlignment:
-                                        CrossAxisAlignment.center,
+                                            CrossAxisAlignment.center,
                                         children: [
                                           Expanded(
                                             child: Text(
@@ -1024,28 +871,22 @@ class _GoalTasksState extends State<GoalTasks> {
                             },
                             indicatorBuilder: (_, index) {
                               final taskDoc = tasks[index];
-                              final task = taskDoc.data() as Map<String, dynamic>;
-                              updateStreak(tasks);
+                              final task =
+                                  taskDoc.data() as Map<String, dynamic>;
                               final isCompleted = task['completed'] ?? false;
                               final taskName =
                                   task['taskName'] ?? 'Unnamed Task';
                               return GestureDetector(
                                 onTap: () async {
                                   print(taskDoc.data());
-                                  _toggleTaskCompletion(
-                                      context,
-                                      taskDoc.reference,
-                                      isCompleted,
-                                      taskName
-                                  );
+                                  _toggleTaskCompletion(context,
+                                      taskDoc.reference, isCompleted, taskName);
                                   if (isCompleted == false) {
                                     var tasks = await widget
                                         .goalDocument.reference
                                         .collection('tasks')
                                         .orderBy('startTime')
                                         .get();
-                                    print('objectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobjectobject');
-                                    updateStreak(tasks.docs,taskOne: taskDoc.data());
                                   }
                                 },
                                 child: Container(
@@ -1065,14 +906,14 @@ class _GoalTasksState extends State<GoalTasks> {
                                   ),
                                   child: isCompleted
                                       ? Icon(Icons.check,
-                                      color: Colors.white, size: 20.0)
+                                          color: Colors.white, size: 20.0)
                                       : null,
                                 ),
                               );
                             },
                             connectorBuilder: (_, index, connectorType) {
                               final task =
-                              tasks[index].data() as Map<String, dynamic>;
+                                  tasks[index].data() as Map<String, dynamic>;
                               final isCompleted = task['completed'] ?? false;
                               return SolidLineConnector(
                                 color: isCompleted
