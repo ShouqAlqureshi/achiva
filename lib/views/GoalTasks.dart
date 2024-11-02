@@ -119,7 +119,34 @@ class _GoalTasksState extends State<GoalTasks> {
   void _toggleTaskCompletion(BuildContext context, DocumentReference taskRef,
       bool currentStatus, String taskName)
   {
-    if (!currentStatus){
+     if (currentStatus) {
+      // Unchecking a completed task
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            title: Text('Uncheck Task', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            content: Text('Are you sure you want to mark this task as incomplete?', style: TextStyle(color: Colors.black)),
+            actions: <Widget>[
+              TextButton(
+                child: Text('No', style: TextStyle(color: Colors.black)),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              TextButton(
+                child: Text('Yes', style: TextStyle(color: Colors.black)),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _updateTaskStatus(context, taskRef, false);
+                },
+              ),
+            ],
+          );
+        },
+      );
+    } else {
       // Checking an uncompleted task
       _updateTaskStatus(context, taskRef, true);
 
