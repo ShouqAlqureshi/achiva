@@ -34,39 +34,53 @@ class StreakCalculator {
     }
   }
 
-  static Future<void> updateStreak() async {
-    final userDoc = FirebaseFirestore.instance
-        .collection("Users")
-        .doc(FirebaseAuth.instance.currentUser!.uid);
+static Future<void> updateStreak() async {
+  final userDoc = FirebaseFirestore.instance
+      .collection("Users")
+      .doc(FirebaseAuth.instance.currentUser!.uid);
 
-    var postsSnapshot = await userDoc
-        .collection("allPosts")
-        .orderBy('postDate', descending: true)
-        .get();
-    
-    if (postsSnapshot.docs.isEmpty) {
-      await _resetStreak(userDoc);
-      return;
-    }
+  // Fetch the user document
+  DocumentSnapshot userSnapshot = await userDoc.get();
 
-    List<DateTime> postDates = postsSnapshot.docs
-        .map((doc) {
-          return (doc.data()['postDate'] as Timestamp).toDate();
-        })
-        .toList();
-
-    int streak = _calculateStreak(postDates);
-
-    if (streak > 0) {
-      DateTime streakStartDate = DateTime.now().subtract(Duration(days: streak - 1));
-      await userDoc.update({
-        'streak': streak,
-        'streakStartDate': Timestamp.fromDate(streakStartDate)
-      });
-    } else {
-      await _resetStreak(userDoc);
-    }
+  // Check if 'streak' field exists
+  if (!userSnapshot.exists || (userSnapshot.data() as Map<String, dynamic>?)?.containsKey('streak') != true) {
+    // Initialize 'streak' and 'streakStartDate' if they don't exist
+    await userDoc.set({
+      'streak': 0,
+      'streakStartDate': Timestamp.fromDate(DateTime.now())
+    }, SetOptions(merge: true));
   }
+
+  var postsSnapshot = await userDoc
+      .collection("allPosts")
+      .orderBy('postDate', descending: true)
+      .get();
+  
+  if (postsSnapshot.docs.isEmpty) {
+    await _resetStreak(userDoc);
+    return;
+  }
+
+  List<DateTime> postDates = postsSnapshot.docs
+      .map((doc) {
+        return (doc.data()['postDate'] as Timestamp).toDate();
+      })
+      .toList();
+
+  int streak = _calculateStreak(postDates);
+
+  if (streak > 0) {
+    DateTime streakStartDate = DateTime.now().subtract(Duration(days: streak - 1));
+    await userDoc.update({
+      'streak': streak,
+      'streakStartDate': Timestamp.fromDate(streakStartDate)
+    });
+  } else {
+    await _resetStreak(userDoc);
+  }
+}
+
+
 
   static int _calculateStreak(List<DateTime> postDates) {
     if (postDates.isEmpty) return 0;

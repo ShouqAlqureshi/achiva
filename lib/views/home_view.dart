@@ -417,7 +417,7 @@ Widget _buildHomePage(BuildContext context) {
                                             width: 1.2,
                                           ),
                                           reportStats(
-                                            "${userData["streak"]}",
+                                            "${userData["streak"] ?? 0}",
                                             'Streak'
                                           ),
                                         ],
