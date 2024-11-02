@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:achiva/views/streakCalculator.dart';
 
 class CreatePostDialog extends StatefulWidget {
   final String userId;
@@ -113,6 +114,7 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
             backgroundColor: Colors.green,
           ),
         );
+        await StreakCalculator.updateStreak();
 
         if (kDebugMode) {
           print('Dialog closed with success status.');
