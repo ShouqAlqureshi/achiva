@@ -11,7 +11,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
+import 'package:achiva/views/streakCalculator.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -24,7 +24,17 @@ void main() async {
     androidProvider: AndroidProvider
         .playIntegrity, // [DO NOT DO THIS] change for debug for emulators and add debug token in terminal and playIntegrity for android device
   );
-
+// Initialize streak if user is logged in
+  if (FirebaseAuth.instance.currentUser != null) {
+    await StreakCalculator.initialize();
+  }
+  
+  // Set up auth state listener
+  FirebaseAuth.instance.authStateChanges().listen((User? user) async {
+    if (user != null) {
+      await StreakCalculator.initialize();
+    }
+  });
   runApp(const MyApp());
 }
 
