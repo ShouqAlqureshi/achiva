@@ -19,7 +19,6 @@ import 'package:achiva/views/home_view.dart';
 import 'GoalTasks.dart';
 import 'dart:async';
 
-
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -40,11 +39,11 @@ class _HomePageState extends State<HomeScreen> {
   }
 
   @override
-void dispose() {
-  CountdownManager().dispose();
-  _pageController.dispose();
-  super.dispose();
-}
+  void dispose() {
+    CountdownManager().dispose();
+    _pageController.dispose();
+    super.dispose();
+  }
 
   // Method to switch between pages when the navigation item is tapped
   void _onTabSelected(int index) {
@@ -54,7 +53,9 @@ void dispose() {
     _pageController
         .jumpToPage(index); // Update the PageView when a tab is selected
   }
-   Stream<Map<String, dynamic>> getGoalWithProgress(DocumentSnapshot goalDocument) {
+
+  Stream<Map<String, dynamic>> getGoalWithProgress(
+      DocumentSnapshot goalDocument) {
     final goalId = goalDocument.id;
     final userId = FirebaseAuth.instance.currentUser!.uid;
 
@@ -77,7 +78,8 @@ void dispose() {
       }
 
       int completedTasks = tasksSnapshot.docs
-          .where((task) => (task.data() as Map<String, dynamic>)['completed'] == true)
+          .where((task) =>
+              (task.data() as Map<String, dynamic>)['completed'] == true)
           .length;
 
       double progress = (completedTasks / tasksSnapshot.docs.length) * 100;
@@ -88,58 +90,116 @@ void dispose() {
       };
     });
   }
+   Stream<int> getCompletedTodayTasksCount() {
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+
+    return FirebaseFirestore.instance
+        .collection("Users")
+        .doc(userId)
+        .collection('goals')
+        .snapshots()
+        .asyncMap((goalSnapshots) async {
+      int completedTasks = 0;
+      
+      for (var goalDoc in goalSnapshots.docs) {
+        final taskSnapshot = await goalDoc.reference
+            .collection('tasks')
+            .where('completed', isEqualTo: true)
+            .where('completedDate', isGreaterThanOrEqualTo: Timestamp.fromDate(today))
+            .where('completedDate', isLessThan: Timestamp.fromDate(tomorrow))
+            .get();
+        
+        completedTasks += taskSnapshot.docs.length;
+      }
+      
+      return completedTasks;
+    });
+  }
+
+  Stream<int> getCompletedWeekTasksCount() {
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+    final now = DateTime.now();
+    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    final startDate = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+    final endDate = startDate.add(const Duration(days: 7));
+
+    return FirebaseFirestore.instance
+        .collection("Users")
+        .doc(userId)
+        .collection('goals')
+        .snapshots()
+        .asyncMap((goalSnapshots) async {
+      int completedTasks = 0;
+      
+      for (var goalDoc in goalSnapshots.docs) {
+        final taskSnapshot = await goalDoc.reference
+            .collection('tasks')
+            .where('completed', isEqualTo: true)
+            .where('completedDate', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+            .where('completedDate', isLessThan: Timestamp.fromDate(endDate))
+            .get();
+        
+        completedTasks += taskSnapshot.docs.length;
+      }
+      
+      return completedTasks;
+    });
+  }
 
   @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    backgroundColor: Colors.white,
-    appBar: _currentIndex == 0
-        ? AppBar(
-            automaticallyImplyLeading: false,
-            backgroundColor: Colors.white,
-            actions: [
-              IconButton(
-                icon: const Icon(
-                  CupertinoIcons.person_add,
-                  size: 32,
-                  color: CoursesColors.darkGreen,
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: _currentIndex == 0
+          ? AppBar(
+              automaticallyImplyLeading: false,
+              backgroundColor: Colors.white,
+              actions: [
+                IconButton(
+                  icon: const Icon(
+                    CupertinoIcons.person_add,
+                    size: 32,
+                    color: CoursesColors.darkGreen,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => SearchFriendsScreen()),
+                    );
+                  },
                 ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => SearchFriendsScreen()),
-                  );
-                },
-              ),
+              ],
+            )
+          : null,
+      body: Stack(
+        children: [
+          PageView(
+            controller: _pageController,
+            physics: const NeverScrollableScrollPhysics(),
+            children: [
+              _buildHomePage(context),
+              const FriendsFeedScreen(),
+              const Activity(),
+              const ProfileScreen(),
             ],
-          )
-        : null,
-    body: Stack(
-      children: [
-        PageView(
-          controller: _pageController,
-          physics: const NeverScrollableScrollPhysics(),
-          children: [
-            _buildHomePage(context),
-            const FriendsFeedScreen(),
-            const Activity(),
-            const ProfileScreen(),
-          ],
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: FloatingBottomNavigationBarWidget(
-            currentIndex: _currentIndex,
-            onTabSelected: _onTabSelected,
           ),
-        ),
-      ],
-    ),
-  );
-}
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: FloatingBottomNavigationBarWidget(
+              currentIndex: _currentIndex,
+              onTabSelected: _onTabSelected,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
 Widget _buildHomePage(BuildContext context) {
   return Stack(
@@ -158,9 +218,12 @@ Widget _buildHomePage(BuildContext context) {
                         .where("id",
                             isEqualTo: FirebaseAuth.instance.currentUser!.uid)
                         .snapshots(),
-                    builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
+                    builder:
+                        (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                      if (snapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const Center(
+                            child: CircularProgressIndicator());
                       }
 
                       if (snapshot.hasError) {
@@ -195,8 +258,8 @@ Widget _buildHomePage(BuildContext context) {
                               Container(
                                 height: 105,
                                 width: double.infinity,
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 20),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 20),
                                 decoration: BoxDecoration(
                                   border: Border.all(
                                     color: Colors.grey[400]!,
@@ -228,10 +291,20 @@ Widget _buildHomePage(BuildContext context) {
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
                                         children: [
-                                          reportStats('2 Tasks', 'Today'),
+                                          StreamBuilder<int>(
+                                            stream: getCompletedTodayTasksCount(),
+                                            builder: (context, snapshot) {
+                                              final count = snapshot.data ?? 0;
+                                              return reportStats(
+                                                '$count Tasks',
+                                                'Today'
+                                              );
+                                            },
+                                          ),
                                           Container(
                                             decoration: BoxDecoration(
-                                              color: WellBeingColors.mediumGrey
+                                              color: WellBeingColors
+                                                  .mediumGrey
                                                   .withOpacity(0.3),
                                               borderRadius:
                                                   BorderRadius.circular(10),
@@ -239,10 +312,20 @@ Widget _buildHomePage(BuildContext context) {
                                             height: 40,
                                             width: 1.2,
                                           ),
-                                          reportStats('13 Tasks', 'This Week'),
+                                          StreamBuilder<int>(
+                                            stream: getCompletedWeekTasksCount(),
+                                            builder: (context, snapshot) {
+                                              final count = snapshot.data ?? 0;
+                                              return reportStats(
+                                                '$count Tasks',
+                                                'This Week'
+                                              );
+                                            },
+                                          ),
                                           Container(
                                             decoration: BoxDecoration(
-                                              color: WellBeingColors.mediumGrey
+                                              color: WellBeingColors
+                                                  .mediumGrey
                                                   .withOpacity(0.3),
                                               borderRadius:
                                                   BorderRadius.circular(10),
@@ -250,7 +333,10 @@ Widget _buildHomePage(BuildContext context) {
                                             height: 40,
                                             width: 1.2,
                                           ),
-                                          reportStats('56 🚀', 'Steark'),
+                                          reportStats(
+                                            "${userData["streak"]}",
+                                            'Streak'
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -307,23 +393,26 @@ Widget _buildHomePage(BuildContext context) {
                         itemCount: snapshot.data!.docs.length,
                         itemBuilder: (context, index) {
                           final goalDocument = snapshot.data!.docs[index];
-                          final goalData = goalDocument.data() as Map<String, dynamic>;
+                          final goalData =
+                              goalDocument.data() as Map<String, dynamic>;
                           final String goalName = goalData['name'];
 
                           return StreamBuilder<Map<String, dynamic>>(
-          stream: getGoalWithProgress(goalDocument),
+                            stream: getGoalWithProgress(goalDocument),
                             builder: (context, progressSnapshot) {
                               if (progressSnapshot.connectionState ==
                                   ConnectionState.waiting) {
                                 return const Center(
                                     child: CircularProgressIndicator());
                               }
-if (!progressSnapshot.hasData) {
-              return const Center(child: Text('Error loading progress'));
-            }
+                              if (!progressSnapshot.hasData) {
+                                return const Center(
+                                    child: Text('Error loading progress'));
+                              }
 
-            double progress = progressSnapshot.data!['progress'];
-            final isDone = progress >= 100;
+                              double progress =
+                                  progressSnapshot.data!['progress'];
+                              final isDone = progress >= 100;
 
                               return _buildGoalCard(
                                 goalName,
@@ -347,182 +436,186 @@ if (!progressSnapshot.hasData) {
   );
 }
 
-Widget _buildGoalCard(String goalName, double progress, bool isDone, DocumentSnapshot goalDocument) {
-  return GestureDetector(
-    onTap: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => GoalTasks(goalDocument: goalDocument),
-        ),
-      );
-    },
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.only(left: 15, right: 15, top: 30, bottom: 150),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color.fromARGB(255, 30, 12, 48),
-            Color.fromARGB(255, 77, 64, 98),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
+  Widget _buildGoalCard(String goalName, double progress, bool isDone,
+      DocumentSnapshot goalDocument) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => GoalTasks(goalDocument: goalDocument),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (isDone) ...[
-            _buildCompletedGoalContent(goalName)
-          ] else ...[
-            _buildInProgressGoalContent(goalName, progress, goalDocument)
+        );
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        margin:
+            const EdgeInsets.only(left: 15, right: 15, top: 30, bottom: 150),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color.fromARGB(255, 30, 12, 48),
+              Color.fromARGB(255, 77, 64, 98),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 4),
+            ),
           ],
-        ],
-      ),
-    ),
-  );
-}
-
-Widget _buildCompletedGoalContent(String goalName) {
-  return Row(
-    children: [
-      _buildProgressCircle(1.0, Colors.green, Icons.check),
-      const SizedBox(width: 10),
-      Expanded(
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              goalName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 3),
-            const Text(
-              'Done!',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-              ),
-            ),
+            if (isDone) ...[
+              _buildCompletedGoalContent(goalName)
+            ] else ...[
+              _buildInProgressGoalContent(goalName, progress, goalDocument)
+            ],
           ],
         ),
       ),
-    ],
-  );
-}
+    );
+  }
 
-Widget _buildInProgressGoalContent(String goalName, double progress, DocumentSnapshot goalDocument) {
-  return Stack(
-    children: [
-      // Main content of the card
-      Row(
-        children: [
-          _buildProgressCircle(progress / 100, WellBeingColors.lightMaroon, null, progress),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  goalName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  progress == 0 ? 'Not started yet' : 'In progress',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 10),
-              ],
-            ),
-          ),
-          const Spacer(),
-        ],
-      ),
-      // Countdown at the bottom right
-      Positioned(
-        right: 8.0,
-        bottom: 8.0,
-        child: StreamBuilder<String>(
-          stream: CountdownManager().getCountdownStream(goalDocument),
-          initialData: '',
-          builder: (context, snapshot) {
-            if (!snapshot.hasData || snapshot.data!.isEmpty) return const SizedBox.shrink();
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                snapshot.data!,
+  Widget _buildCompletedGoalContent(String goalName) {
+    return Row(
+      children: [
+        _buildProgressCircle(1.0, Colors.green, Icons.check),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                goalName,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 12,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            );
-          },
+              const SizedBox(height: 3),
+              const Text(
+                'Done!',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-    ],
-  );
-}
+      ],
+    );
+  }
 
-
-Widget _buildProgressCircle(double progress, Color color, IconData? icon, [double? percentage]) {
-  return Stack(
-    alignment: Alignment.center,
-    children: [
-      SizedBox(
-        height: 50,
-        width: 50,
-        child: CircularProgressIndicator(
-          value: progress,
-          strokeWidth: 5,
-          backgroundColor: Colors.white.withOpacity(0.2),
-          valueColor: AlwaysStoppedAnimation<Color>(color),
-        ),
-      ),
-      icon != null
-          ? Icon(
-              icon,
-              color: Colors.white,
-              size: 22,
-            )
-          : Text(
-              '${percentage?.round()}%',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
+  Widget _buildInProgressGoalContent(
+      String goalName, double progress, DocumentSnapshot goalDocument) {
+    return Stack(
+      children: [
+        // Main content of the card
+        Row(
+          children: [
+            _buildProgressCircle(
+                progress / 100, WellBeingColors.lightMaroon, null, progress),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    goalName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    progress == 0 ? 'Not started yet' : 'In progress',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
               ),
             ),
-    ],
-  );
-}
+            const Spacer(),
+          ],
+        ),
+        // Countdown at the bottom right
+        Positioned(
+          right: 8.0,
+          bottom: 8.0,
+          child: StreamBuilder<String>(
+            stream: CountdownManager().getCountdownStream(goalDocument),
+            initialData: '',
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data!.isEmpty)
+                return const SizedBox.shrink();
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  snapshot.data!,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
 
+  Widget _buildProgressCircle(double progress, Color color, IconData? icon,
+      [double? percentage]) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        SizedBox(
+          height: 50,
+          width: 50,
+          child: CircularProgressIndicator(
+            value: progress,
+            strokeWidth: 5,
+            backgroundColor: Colors.white.withOpacity(0.2),
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
+        ),
+        icon != null
+            ? Icon(
+                icon,
+                color: Colors.white,
+                size: 22,
+              )
+            : Text(
+                '${percentage?.round()}%',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+      ],
+    );
+  }
 
   Widget reportStats(String stat, String label) {
     return Column(
@@ -548,6 +641,7 @@ Widget _buildProgressCircle(double progress, Color color, IconData? icon, [doubl
     );
   }
 }
+
 class CountdownManager {
   static final CountdownManager _instance = CountdownManager._internal();
   factory CountdownManager() => _instance;
@@ -565,19 +659,19 @@ class CountdownManager {
 
   Stream<String> getCountdownStream(DocumentSnapshot goalDocument) {
     final String goalId = goalDocument.id;
-    
+
     if (!_controllers.containsKey(goalId)) {
       _controllers[goalId] = StreamController<String>.broadcast();
       _startCountdown(goalDocument);
     }
-    
+
     return _controllers[goalId]!.stream;
   }
 
   void _startCountdown(DocumentSnapshot goalDocument) {
     final String goalId = goalDocument.id;
     final goalData = goalDocument.data() as Map<String, dynamic>;
-    
+
     if (!goalData.containsKey('date')) {
       _controllers[goalId]?.add('');
       return;
@@ -618,7 +712,7 @@ class CountdownManager {
     String countdownText;
     if (difference.isNegative) {
       countdownText = 'Overdue';
-    } else if (difference.inDays ==1) {
+    } else if (difference.inDays == 1) {
       countdownText = '${difference.inDays} day left';
     } else if (difference.inDays > 0) {
       countdownText = '${difference.inDays} days left';
