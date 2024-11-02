@@ -90,64 +90,80 @@ class _HomePageState extends State<HomeScreen> {
       };
     });
   }
-   Stream<int> getCompletedTodayTasksCount() {
-    final userId = FirebaseAuth.instance.currentUser!.uid;
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final tomorrow = today.add(const Duration(days: 1));
+Stream<int> getCompletedTodayTasksCount() {
+  final userId = FirebaseAuth.instance.currentUser!.uid;
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final tomorrow = today.add(const Duration(days: 1));
 
-    return FirebaseFirestore.instance
-        .collection("Users")
-        .doc(userId)
-        .collection('goals')
-        .snapshots()
-        .asyncMap((goalSnapshots) async {
-      int completedTasks = 0;
-      
-      for (var goalDoc in goalSnapshots.docs) {
-        final taskSnapshot = await goalDoc.reference
-            .collection('tasks')
-            .where('completed', isEqualTo: true)
-            .where('completedDate', isGreaterThanOrEqualTo: Timestamp.fromDate(today))
-            .where('completedDate', isLessThan: Timestamp.fromDate(tomorrow))
-            .get();
+  return FirebaseFirestore.instance
+      .collection("Users")
+      .doc(userId)
+      .collection('goals')
+      .snapshots()
+      .asyncMap((goalSnapshots) async {
+    int completedTasks = 0;
+    
+    for (var goalDoc in goalSnapshots.docs) {
+      // Query tasks that were completed today
+      final taskQuery = await goalDoc.reference
+          .collection('tasks')
+          .where('completed', isEqualTo: true)
+          .get();
+          
+      // Filter tasks completed today in memory
+      final todayTasks = taskQuery.docs.where((task) {
+        final completedDate = (task.data()['completedDate'] as Timestamp?)?.toDate();
+        if (completedDate == null) return false;
         
-        completedTasks += taskSnapshot.docs.length;
-      }
+        return completedDate.isAfter(today) && 
+               completedDate.isBefore(tomorrow);
+      });
       
-      return completedTasks;
-    });
-  }
+      completedTasks += todayTasks.length;
+    }
+    
+    return completedTasks;
+  });
+}
 
-  Stream<int> getCompletedWeekTasksCount() {
-    final userId = FirebaseAuth.instance.currentUser!.uid;
-    final now = DateTime.now();
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    final startDate = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-    final endDate = startDate.add(const Duration(days: 7));
+Stream<int> getCompletedWeekTasksCount() {
+  final userId = FirebaseAuth.instance.currentUser!.uid;
+  final now = DateTime.now();
+  final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+  final startDate = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+  final endDate = startDate.add(const Duration(days: 7));
 
-    return FirebaseFirestore.instance
-        .collection("Users")
-        .doc(userId)
-        .collection('goals')
-        .snapshots()
-        .asyncMap((goalSnapshots) async {
-      int completedTasks = 0;
-      
-      for (var goalDoc in goalSnapshots.docs) {
-        final taskSnapshot = await goalDoc.reference
-            .collection('tasks')
-            .where('completed', isEqualTo: true)
-            .where('completedDate', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
-            .where('completedDate', isLessThan: Timestamp.fromDate(endDate))
-            .get();
+  return FirebaseFirestore.instance
+      .collection("Users")
+      .doc(userId)
+      .collection('goals')
+      .snapshots()
+      .asyncMap((goalSnapshots) async {
+    int completedTasks = 0;
+    
+    for (var goalDoc in goalSnapshots.docs) {
+      // Query completed tasks
+      final taskQuery = await goalDoc.reference
+          .collection('tasks')
+          .where('completed', isEqualTo: true)
+          .get();
+          
+      // Filter tasks completed this week in memory
+      final weekTasks = taskQuery.docs.where((task) {
+        final completedDate = (task.data()['completedDate'] as Timestamp?)?.toDate();
+        if (completedDate == null) return false;
         
-        completedTasks += taskSnapshot.docs.length;
-      }
+        return completedDate.isAfter(startDate) && 
+               completedDate.isBefore(endDate);
+      });
       
-      return completedTasks;
-    });
-  }
+      completedTasks += weekTasks.length;
+    }
+    
+    return completedTasks;
+  });
+}
 
   @override
   Widget build(BuildContext context) {
