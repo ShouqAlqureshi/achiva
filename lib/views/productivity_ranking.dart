@@ -510,13 +510,12 @@ class TopThreePodium extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-
       final availableWidth = constraints.maxWidth;
       final podiumWidth = math.min(100.0, (availableWidth - 32 - 16) / 3);
       final horizontalSpacing = math.min(8.0, (availableWidth - podiumWidth * 3 - 32) / 2);
       final leftPadding = 16.0;
       
-      // Calculate center points for each podium
+      // Calculate fixed center points regardless of number of podiums
       final firstPlaceCenter = (availableWidth - 32) / 2;
       final secondPlaceCenter = firstPlaceCenter - podiumWidth - horizontalSpacing;
       final thirdPlaceCenter = firstPlaceCenter + podiumWidth + horizontalSpacing;
@@ -531,180 +530,177 @@ class TopThreePodium extends StatelessWidget {
           fit: StackFit.loose,
           clipBehavior: Clip.none,
           children: [
-
-            // Background podium shapes (unchanged)
-
+            // Background podium shapes
             Positioned(
               left: leftPadding,
               right: leftPadding,
               bottom: 0,
               child: SizedBox(
                 height: 200,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                child: Stack(
+                  alignment: Alignment.center,
                   children: [
-                    if (topUsers.length > 1) ...[
+                    // Second place podium - Always shown if there's a second place
+                    if (topUsers.length > 1)
+                      Positioned(
+                        left: secondPlaceCenter - podiumWidth/2,
+                        bottom: 0,
+                        child: Container(
+                          width: podiumWidth,
+                          height: 160,
+                          decoration: BoxDecoration(
+                            color: Colors.pink.withOpacity(0.15),
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(12),
+                              topRight: Radius.circular(12),
+                            ),
+                            border: Border.all(
+                              color: Colors.pink.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 50),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  _formatName(topUsers[1]['fullName'] ?? ''),
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${topUsers[1]['productivityScore']}${topUsers[1]['productivityScore'] == 0 ? '😢' : '🦾'}',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Colors.pink,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
 
-
-                      Container(
+                    // First place podium - Always centered
+                    Positioned(
+                      left: firstPlaceCenter - podiumWidth/2,
+                      bottom: 0,
+                      child: Container(
                         width: podiumWidth,
-                        height: 160,
+                        height: 200,
                         decoration: BoxDecoration(
-                          color: Colors.pink.withOpacity(0.15),
+                          color: Colors.purple.withOpacity(0.15),
                           borderRadius: const BorderRadius.only(
                             topLeft: Radius.circular(12),
                             topRight: Radius.circular(12),
                           ),
                           border: Border.all(
-                            color: Colors.pink.withOpacity(0.3),
+                            color: Colors.purple.withOpacity(0.3),
                             width: 1,
                           ),
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.only(top: 50),
+                          padding: const EdgeInsets.only(top: 80),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Text(
-
-                                _formatName(topUsers[1]['fullName'] ?? ''),
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
+                              Container(
+                                width: podiumWidth,
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    firstPlaceName,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: firstPlaceFontSize,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
-
-                                '${topUsers[1]['productivityScore']}${topUsers[1]['productivityScore'] == 0 ? '😢' : '🦾'}',
-
+                                '${topUsers[0]['productivityScore']}${topUsers[0]['productivityScore'] == 0 ? '😢' : '🚀'}',
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
-                                  color: Colors.pink,
-                                  fontSize: 20,
+                                  color: Colors.purple,
+                                  fontSize: 24,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      ),
-                      SizedBox(width: horizontalSpacing),
-                    ],
-
-
-
-                    Container(
-                      width: podiumWidth,
-                      height: 200,
-                      decoration: BoxDecoration(
-                        color: Colors.purple.withOpacity(0.15),
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(12),
-                          topRight: Radius.circular(12),
-                        ),
-                        border: Border.all(
-                          color: Colors.purple.withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 80),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-
-                            Container(
-                              width: podiumWidth,
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  firstPlaceName,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: firstPlaceFontSize,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${topUsers[0]['productivityScore']}${topUsers[0]['productivityScore'] == 0 ? '😢' : '🚀'}',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.purple,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
                         ),
                       ),
                     ),
 
-                    if (topUsers.length > 2) ...[
-                      SizedBox(width: horizontalSpacing),
-                      Container(
-                        width: podiumWidth,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.15),
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(12),
-                            topRight: Radius.circular(12),
+                    // Third place podium - Only shown if there's a third place
+                    if (topUsers.length > 2)
+                      Positioned(
+                        left: thirdPlaceCenter - podiumWidth/2,
+                        bottom: 0,
+                        child: Container(
+                          width: podiumWidth,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.15),
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(12),
+                              topRight: Radius.circular(12),
+                            ),
+                            border: Border.all(
+                              color: Colors.orange.withOpacity(0.3),
+                              width: 1,
+                            ),
                           ),
-                          border: Border.all(
-                            color: Colors.orange.withOpacity(0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 50),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                _formatName(topUsers[2]['fullName'] ?? ''),
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 50),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  _formatName(topUsers[2]['fullName'] ?? ''),
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${topUsers[2]['productivityScore']}${topUsers[2]['productivityScore'] == 0 ? '😢' : '💨'}',
-
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: Colors.orange,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${topUsers[2]['productivityScore']}${topUsers[2]['productivityScore'] == 0 ? '😢' : '💨'}',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Colors.orange,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ],
                   ],
                 ),
               ),
             ),
 
-
-            // Player photos layer - Updated positioning
-
+            // Player photos layer
             Positioned(
               left: leftPadding,
               right: leftPadding,
@@ -713,18 +709,14 @@ class TopThreePodium extends StatelessWidget {
                 height: 260,
                 child: Stack(
                   clipBehavior: Clip.none,
-
                   alignment: Alignment.center,
                   children: [
                     if (topUsers.length > 1)
                       Positioned(
-                        // Updated second place positioning to use secondPlaceCenter
                         left: secondPlaceCenter - 35,
-
                         bottom: 140,
                         child: PlayerPhoto(user: topUsers[1], position: 2),
                       ),
-
 
                     Positioned(
                       left: firstPlaceCenter - 35,
@@ -753,7 +745,6 @@ class TopThreePodium extends StatelessWidget {
 
                     if (topUsers.length > 2)
                       Positioned(
-                        // Updated third place positioning to use thirdPlaceCenter
                         left: thirdPlaceCenter - 35,
                         bottom: 100,
                         child: PlayerPhoto(user: topUsers[2], position: 3),
