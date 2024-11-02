@@ -182,25 +182,64 @@ Stream<int> getCompletedWeekTasksCount() {
       backgroundColor: Colors.white,
       appBar: _currentIndex == 0
           ? AppBar(
-              automaticallyImplyLeading: false,
-              backgroundColor: Colors.white,
-              actions: [
-                IconButton(
-                  icon: const Icon(
-                    CupertinoIcons.person_add,
-                    size: 32,
-                    color: CoursesColors.darkGreen,
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => SearchFriendsScreen()),
-                    );
-                  },
-                ),
-              ],
-            )
+  automaticallyImplyLeading: false,
+  backgroundColor: Colors.white,
+  leadingWidth: 120, // Make space for wider button
+  leading: Container(
+    margin: const EdgeInsets.only(left: 16.0, top: 8.0, bottom: 8.0),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        colors: [
+          Color.fromARGB(255, 30, 12, 48),
+          Color.fromARGB(255, 77, 64, 98),
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ChatPage(),
+            ),
+          );
+        },
+        child: const Center(
+          child: Text(
+            'AI Assistant',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    ),
+  ),
+  actions: [
+    IconButton(
+      icon: const Icon(
+        CupertinoIcons.person_add,
+        size: 32,
+        color: CoursesColors.darkGreen,
+      ),
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => SearchFriendsScreen()),
+        );
+      },
+    ),
+  ],
+)
           : null,
       body: Stack(
         children: [
