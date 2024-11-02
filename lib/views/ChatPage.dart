@@ -130,6 +130,7 @@ import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:uuid/uuid.dart';
+
 import 'Const.dart';
 
 enum CustomMessageType { typing }
@@ -253,8 +254,7 @@ class _ChatPageState extends State<ChatPage> {
           author: _user,
           createdAt: DateTime.now().millisecondsSinceEpoch,
           id: const Uuid().v4(),
-          ext: trimmedMessage));
-
+          text: trimmedMessage));
       _sendCutOffMessage();
       return;
     }
@@ -348,7 +348,6 @@ class _ChatPageState extends State<ChatPage> {
    Gemini.init(
      apiKey: GEMINI_API_KEY,
  );
-
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(60.0), // Set the height of the AppBar

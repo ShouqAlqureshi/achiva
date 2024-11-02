@@ -1,24 +1,26 @@
+import 'dart:async';
+
 import 'package:achiva/enum/menu_action.dart';
 import 'package:achiva/exceptions/auth_exceptions.dart';
+import 'package:achiva/models/goal.dart';
+import 'package:achiva/utilities/colors.dart';
 import 'package:achiva/utilities/show_error_dialog.dart';
+import 'package:achiva/views/SearchFriendsScreen.dart';
 import 'package:achiva/views/activity/activity.dart';
 import 'package:achiva/views/activity/incoming_request_view.dart';
+import 'package:achiva/views/friends_feed_page.dart';
+import 'package:achiva/views/home_view.dart';
+import 'package:achiva/views/profile/profile_screen.dart';
+import 'package:achiva/widgets/bottom_navigation_bar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:rxdart/rxdart.dart';
+
 import '../utilities/filestore_services.dart';
 import '../utilities/show_log_out_dialog.dart';
-import 'package:achiva/widgets/bottom_navigation_bar.dart';
-import 'package:achiva/utilities/colors.dart';
-import 'package:achiva/models/goal.dart';
-import 'package:achiva/views/SearchFriendsScreen.dart';
-import 'package:achiva/views/friends_feed_page.dart';
-import 'package:achiva/views/profile/profile_screen.dart';
-import 'package:achiva/views/home_view.dart';
 import 'GoalTasks.dart';
-import 'dart:async';
-import 'package:rxdart/rxdart.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
