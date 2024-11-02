@@ -42,6 +42,17 @@ class _HomePageState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0);
+    Gemini.init(apiKey: 'AIzaSyBqMMBMeDZaq-ju7BKiPRcFOpzvIBrMEJs');
+
+  }
+
+   void _navigateToChat() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ChatPage(),
+      ),
+    );
   }
 
   @override
