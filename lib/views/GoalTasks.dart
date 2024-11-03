@@ -1,5 +1,6 @@
 import 'package:achiva/views/CreatePostPage.dart';
 import 'package:achiva/views/addition_views/add_task_%20independently_page%20.dart';
+import 'package:achiva/views/editTask.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -50,7 +51,7 @@ class _GoalTasksState extends State<GoalTasks> {
     });
   }
 
-  void _showTaskDetails(BuildContext context, Map<String, dynamic> task) {
+  void _showTaskDetails(BuildContext context, Map<String, dynamic> task,DocumentReference taskRef) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -96,26 +97,78 @@ class _GoalTasksState extends State<GoalTasks> {
             ),
           ),
           actions: <Widget>[
-            TextButton(
-              child: Text('Edit', style: TextStyle(color: Colors.black)),
-              onPressed: () {
-                // TODO: Implement edit functionality
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('Delete', style: TextStyle(color: Colors.black)),
-              onPressed: () {
-                // TODO: Implement delete functionality
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
+  TextButton(
+    child: Text('Edit', style: TextStyle(color: Colors.black)),
+    onPressed: () {
+      Navigator.of(context).pop(); // Close the details dialog
+      _editTask(context, taskRef, task);
+    },
+  ),
+  TextButton(
+    child: Text('Delete', style: TextStyle(color: Colors.black)),
+    onPressed: () {
+      Navigator.of(context).pop(); // Close the details dialog
+      _deleteTask(context, taskRef);
+    },
+  ),
+],
         );
       },
     );
   }
+void _editTask(BuildContext context, DocumentReference taskRef, Map<String, dynamic> taskData) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return EditTaskDialog(
+        taskRef: taskRef,
+        taskData: taskData,
+      );
+    },
+  );
+}
 
+void _deleteTask(BuildContext context, DocumentReference taskRef) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: Colors.white,
+        title: Text(
+          'Delete Task',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Are you sure you want to delete this task? This action cannot be undone.',
+          style: TextStyle(color: Colors.black),
+        ),
+        actions: [
+          TextButton(
+            child: Text('Cancel', style: TextStyle(color: Colors.black)),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          TextButton(
+            child: Text('Delete', style: TextStyle(color: Colors.red)),
+            onPressed: () async {
+              try {
+                await taskRef.delete();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Task deleted successfully')),
+                );
+                Navigator.of(context).pop();
+                Navigator.of(context).pop(); // Close both dialogs
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error deleting task: $e')),
+                );
+              }
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
   void _toggleTaskCompletion(BuildContext context, DocumentReference taskRef,
       bool currentStatus, String taskName) {
     if (currentStatus) {
@@ -815,7 +868,7 @@ class _GoalTasksState extends State<GoalTasks> {
                               final date = task['date'] ?? 'Not set';
                               final isCompleted = task['completed'] ?? false;
                               return GestureDetector(
-                                onTap: () => _showTaskDetails(context, task),
+                                onTap: () => _showTaskDetails(context, task,taskDoc.reference),
                                 child: Padding(
                                   padding: const EdgeInsets.only(
                                       left: 22.0, bottom: 40.0, right: 22.0),
