@@ -5,6 +5,7 @@ import 'package:achiva/views/auth/phone_num_authview.dart';
 import 'package:achiva/views/auth/profile_picture_picker.dart';
 import 'package:achiva/views/auth/sms_verification_authview.dart';
 import 'package:achiva/views/home_view.dart';
+import 'package:achiva/views/onbording/onbording.dart';
 import 'package:achiva/views/profile/layout_controller/layout_cubit.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -45,7 +46,7 @@ class MyApp extends StatelessWidget {
           splashColor: Colors.transparent,
           highlightColor: Colors.transparent,
         ),
-        home: const AuthWrapper(),
+        home: const Onbording(),
         routes: {
           '/otp': (context) => const VerfyCodeView(),
           '/home': (context) => const HomeScreen(),
