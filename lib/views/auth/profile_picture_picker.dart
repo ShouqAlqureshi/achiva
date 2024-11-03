@@ -1,6 +1,7 @@
 import 'dart:developer' show log;
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:achiva/views/onbording/onbording.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 import 'package:path_provider/path_provider.dart';
@@ -10,12 +11,14 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+
 class ProfilePicturePicker extends StatefulWidget {
   const ProfilePicturePicker({super.key});
 
   @override
   State<ProfilePicturePicker> createState() => _ProfilePicturePickerState();
 }
+
 class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
   XFile? _imageFile;
   String? imageLink;
@@ -29,63 +32,71 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
       });
     }
   }
- Future<void> _uploadImage() async {
-  setState(() {
-    isFormSubmitted = true;
-  });
 
-  final usercollection = FirebaseFirestore.instance
-      .collection("Users")
-      .doc(FirebaseAuth.instance.currentUser!.uid);
-  final datatosave =
-      ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-
-  _showLoadingDialog();
-
-  try {
-    String photoUrl;
-
-    if (_imageFile != null) {
-      // Upload selected image
-      final uploadTask = await FirebaseStorage.instance
-          .ref()
-          .child("Users/${Uri.file(_imageFile!.path).pathSegments.last}")
-          .putFile(File(_imageFile!.path));
-
-      photoUrl = await uploadTask.ref.getDownloadURL();
-    } else {
-      // Upload default image directly from asset bytes
-      final ByteData data = await rootBundle.load('lib/images/chicken.png');
-      final bytes = data.buffer.asUint8List();
-
-      // Upload bytes directly
-      final uploadTask = await FirebaseStorage.instance
-          .ref()
-          .child("Users/default_${FirebaseAuth.instance.currentUser!.uid}_chicken.png")
-          .putData(bytes, SettableMetadata(contentType: 'image/png'));
-
-      photoUrl = await uploadTask.ref.getDownloadURL();
-    }
-
-    // Add the photo URL to the data
-    datatosave.addAll({
-      "photo": photoUrl,
-      'id': FirebaseAuth.instance.currentUser!.uid,
+  Future<void> _uploadImage() async {
+    setState(() {
+      isFormSubmitted = true;
     });
 
-    log(datatosave.toString());
-    await usercollection.set(datatosave);
+    final usercollection = FirebaseFirestore.instance
+        .collection("Users")
+        .doc(FirebaseAuth.instance.currentUser!.uid);
+    final datatosave =
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
 
-    Navigator.of(context).pop(); // Dismiss loading dialog
-    Navigator.of(context).pushNamed('/home');
-  } catch (e) {
-    Navigator.of(context).pop(); // Dismiss loading dialog
-    log("Error uploading image: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error uploading image: $e')),
-    );
+    _showLoadingDialog();
+
+    try {
+      String photoUrl;
+
+      if (_imageFile != null) {
+        // Upload selected image
+        final uploadTask = await FirebaseStorage.instance
+            .ref()
+            .child("Users/${Uri.file(_imageFile!.path).pathSegments.last}")
+            .putFile(File(_imageFile!.path));
+
+        photoUrl = await uploadTask.ref.getDownloadURL();
+      } else {
+        // Upload default image directly from asset bytes
+        final ByteData data = await rootBundle.load('lib/images/chicken.png');
+        final bytes = data.buffer.asUint8List();
+
+        // Upload bytes directly
+        final uploadTask = await FirebaseStorage.instance
+            .ref()
+            .child(
+                "Users/default_${FirebaseAuth.instance.currentUser!.uid}_chicken.png")
+            .putData(bytes, SettableMetadata(contentType: 'image/png'));
+
+        photoUrl = await uploadTask.ref.getDownloadURL();
+      }
+
+      // Add the photo URL to the data
+      datatosave.addAll({
+        "photo": photoUrl,
+        'id': FirebaseAuth.instance.currentUser!.uid,
+      });
+
+      log(datatosave.toString());
+      await usercollection.set(datatosave);
+
+      Navigator.of(context).pop(); // Dismiss loading dialog
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => Onbording(),
+        ),
+        (route) => false,
+      );
+    } catch (e) {
+      Navigator.of(context).pop(); // Dismiss loading dialog
+      log("Error uploading image: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error uploading image: $e')),
+      );
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -168,7 +179,8 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
                           const SizedBox(height: 40),
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color.fromARGB(255, 30, 12, 48),
+                              backgroundColor:
+                                  const Color.fromARGB(255, 30, 12, 48),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(30),
                               ),
@@ -221,7 +233,6 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
         backgroundColor: Colors.white,
         title: const Text(
           'Select image source',
-
           style: TextStyle(color: Colors.black),
         ),
         actions: [
@@ -230,7 +241,6 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
               Navigator.of(context).pop();
               _pickImage(ImageSource.camera);
             },
-
             child: const Text('Camera', style: TextStyle(color: Colors.black)),
           ),
           TextButton(
@@ -242,7 +252,6 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
               'Gallery',
               style: TextStyle(color: Color.fromARGB(255, 30, 12, 48)),
             ),
-
           ),
         ],
       ),
