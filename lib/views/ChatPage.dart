@@ -355,7 +355,7 @@ class _ChatPageState extends State<ChatPage> {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Color.fromARGB(255, 66, 32, 101),
+                      Color.fromARGB(255, 30, 12, 48),
                 Color.fromARGB(255, 77, 64, 98),
               ], // Define your gradient colors
               begin: Alignment.centerLeft,
@@ -366,10 +366,85 @@ class _ChatPageState extends State<ChatPage> {
             backgroundColor: Colors.transparent, // Make background transparent
             elevation: 0, // Remove shadow
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back,
-                  color: Colors.white), // Change icon color to white
-              onPressed: () => Navigator.of(context).pop(),
+  icon: const Icon(
+    Icons.arrow_back,
+    color: Colors.white,
+  ),
+  onPressed: () {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          title: const Text(
+            'Leave Conversation?',
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
             ),
+          ),
+          content: const Text(
+            'If you leave now, this conversation will be lost.',
+            style: TextStyle(
+              color: Colors.black87,
+              fontSize: 16,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+              },
+              child: const Text(
+                'Stay',
+                style: TextStyle(
+                  color: Colors.black54,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [
+                    Color.fromARGB(255, 30, 12, 48),
+                    Color.fromARGB(255, 77, 64, 98),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close dialog
+                  Navigator.of(context).pop(); // Go back
+                },
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Text(
+                    'Leave',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        );
+      },
+    );
+  },
+),
             title: const Text(
               'Achiva Assistant Chat',
               style:
@@ -383,7 +458,7 @@ class _ChatPageState extends State<ChatPage> {
   decoration: const BoxDecoration(
     gradient: LinearGradient(
       colors: [
-        Color.fromARGB(255, 66, 32, 101), // Gradient color 1
+                      Color.fromARGB(255, 30, 12, 48),
         Color.fromARGB(255, 77, 64, 98),  // Gradient color 2
       ],
       begin: Alignment.centerLeft,
