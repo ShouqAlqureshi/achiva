@@ -62,7 +62,7 @@ class _RequestStatusState extends State<RequestStatus> {
         return StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection('sharedGoal')
-              .doc("63c7dc8d-8ee1-495e-8e81-a647bbd124c2")
+              .doc("63c7dc8d-8ee1-495e-8e81-a647bbd124c2")// we need the shared key from the goals after adding 
               .collection('goalInvitations')
               .where('fromUserID', isEqualTo: currentUserId)
               .orderBy('InviteAt', descending: false)
