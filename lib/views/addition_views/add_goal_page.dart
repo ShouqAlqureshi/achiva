@@ -3,7 +3,8 @@ import 'package:achiva/views/sharedgoal/sharedgoal.dart';
 import 'package:flutter/material.dart';
 import 'package:achiva/views/addition_views/add_task_page.dart'; // Import the task page
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart'; // Import the intl package for date formatting
+import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart'; // Import the intl package for date formatting
 
 class AddGoalPage extends StatefulWidget {
   const AddGoalPage({super.key});
@@ -101,6 +102,9 @@ class _AddGoalPageState extends State<AddGoalPage> {
 
   @override
   Widget build(BuildContext context) {
+    final Uuid uuid = Uuid();
+    final String sharedID = uuid.v4();
+    final String goalid = uuid.v4();
     return Scaffold(
       extendBodyBehindAppBar: true, // Extend the body behind the AppBar
       backgroundColor: Colors.transparent, // Transparent background
@@ -227,7 +231,8 @@ class _AddGoalPageState extends State<AddGoalPage> {
                                       ),
                                     ),
                                     onPressed: () {
-                                      sharedgoal.showFriendListDialog(context);
+                                      showFriendListDialog(
+                                          context, sharedID, goalid);
                                     },
                                     child: Padding(
                                       padding: const EdgeInsets.symmetric(
