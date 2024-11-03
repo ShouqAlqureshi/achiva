@@ -44,10 +44,9 @@ class _HomePageState extends State<HomeScreen> {
     super.initState();
     _pageController = PageController(initialPage: 0);
     Gemini.init(apiKey: 'AIzaSyBqMMBMeDZaq-ju7BKiPRcFOpzvIBrMEJs');
-
   }
 
-   void _navigateToChat() {
+  void _navigateToChat() {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -108,90 +107,94 @@ class _HomePageState extends State<HomeScreen> {
       };
     });
   }
-Stream<int> getCompletedTodayTasksCount() {
-  final userId = FirebaseAuth.instance.currentUser!.uid;
-  final now = DateTime.now();
-  final today = DateTime(now.year, now.month, now.day);
-  final tomorrow = today.add(const Duration(days: 1));
 
-  // Listen to all goals
-  return FirebaseFirestore.instance
-      .collection("Users")
-      .doc(userId)
-      .collection('goals')
-      .snapshots()
-      .switchMap((goalSnapshots) {
-    // Create a stream for each goal's tasks
-    final taskStreams = goalSnapshots.docs.map((goalDoc) {
-      return goalDoc.reference
-          .collection('tasks')
-          .where('completed', isEqualTo: true)
-          .snapshots()
-          .map((taskSnapshot) {
-        return taskSnapshot.docs.where((task) {
-          final completedDate = (task.data()['completedDate'] as Timestamp?)?.toDate();
-          if (completedDate == null) return false;
-          
-          return completedDate.isAfter(today) && 
-                 completedDate.isBefore(tomorrow);
-        }).length;
+  Stream<int> getCompletedTodayTasksCount() {
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+
+    // Listen to all goals
+    return FirebaseFirestore.instance
+        .collection("Users")
+        .doc(userId)
+        .collection('goals')
+        .snapshots()
+        .switchMap((goalSnapshots) {
+      // Create a stream for each goal's tasks
+      final taskStreams = goalSnapshots.docs.map((goalDoc) {
+        return goalDoc.reference
+            .collection('tasks')
+            .where('completed', isEqualTo: true)
+            .snapshots()
+            .map((taskSnapshot) {
+          return taskSnapshot.docs.where((task) {
+            final completedDate =
+                (task.data()['completedDate'] as Timestamp?)?.toDate();
+            if (completedDate == null) return false;
+
+            return completedDate.isAfter(today) &&
+                completedDate.isBefore(tomorrow);
+          }).length;
+        });
+      });
+
+      // If there are no goals, return a stream of 0
+      if (taskStreams.isEmpty) {
+        return Stream.value(0);
+      }
+
+      // Combine all task streams and sum their values
+      return Rx.combineLatest(taskStreams, (List<int> counts) {
+        return counts.reduce((sum, count) => sum + count);
       });
     });
+  }
 
-    // If there are no goals, return a stream of 0
-    if (taskStreams.isEmpty) {
-      return Stream.value(0);
-    }
+  Stream<int> getCompletedWeekTasksCount() {
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+    final now = DateTime.now();
+    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    final startDate =
+        DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+    final endDate = startDate.add(const Duration(days: 7));
 
-    // Combine all task streams and sum their values
-    return Rx.combineLatest(taskStreams, (List<int> counts) {
-      return counts.reduce((sum, count) => sum + count);
-    });
-  });
-}
+    // Listen to all goals
+    return FirebaseFirestore.instance
+        .collection("Users")
+        .doc(userId)
+        .collection('goals')
+        .snapshots()
+        .switchMap((goalSnapshots) {
+      // Create a stream for each goal's tasks
+      final taskStreams = goalSnapshots.docs.map((goalDoc) {
+        return goalDoc.reference
+            .collection('tasks')
+            .where('completed', isEqualTo: true)
+            .snapshots()
+            .map((taskSnapshot) {
+          return taskSnapshot.docs.where((task) {
+            final completedDate =
+                (task.data()['completedDate'] as Timestamp?)?.toDate();
+            if (completedDate == null) return false;
 
-Stream<int> getCompletedWeekTasksCount() {
-  final userId = FirebaseAuth.instance.currentUser!.uid;
-  final now = DateTime.now();
-  final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-  final startDate = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-  final endDate = startDate.add(const Duration(days: 7));
+            return completedDate.isAfter(startDate) &&
+                completedDate.isBefore(endDate);
+          }).length;
+        });
+      });
 
-  // Listen to all goals
-  return FirebaseFirestore.instance
-      .collection("Users")
-      .doc(userId)
-      .collection('goals')
-      .snapshots()
-      .switchMap((goalSnapshots) {
-    // Create a stream for each goal's tasks
-    final taskStreams = goalSnapshots.docs.map((goalDoc) {
-      return goalDoc.reference
-          .collection('tasks')
-          .where('completed', isEqualTo: true)
-          .snapshots()
-          .map((taskSnapshot) {
-        return taskSnapshot.docs.where((task) {
-          final completedDate = (task.data()['completedDate'] as Timestamp?)?.toDate();
-          if (completedDate == null) return false;
-          
-          return completedDate.isAfter(startDate) && 
-                 completedDate.isBefore(endDate);
-        }).length;
+      // If there are no goals, return a stream of 0
+      if (taskStreams.isEmpty) {
+        return Stream.value(0);
+      }
+
+      // Combine all task streams and sum their values
+      return Rx.combineLatest(taskStreams, (List<int> counts) {
+        return counts.reduce((sum, count) => sum + count);
       });
     });
-
-    // If there are no goals, return a stream of 0
-    if (taskStreams.isEmpty) {
-      return Stream.value(0);
-    }
-
-    // Combine all task streams and sum their values
-    return Rx.combineLatest(taskStreams, (List<int> counts) {
-      return counts.reduce((sum, count) => sum + count);
-    });
-  });
-}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -199,64 +202,65 @@ Stream<int> getCompletedWeekTasksCount() {
       backgroundColor: Colors.white,
       appBar: _currentIndex == 0
           ? AppBar(
-  automaticallyImplyLeading: false,
-  backgroundColor: Colors.white,
-  leadingWidth: 120, // Make space for wider button
-  leading: Container(
-    margin: const EdgeInsets.only(left: 16.0, top: 8.0, bottom: 8.0),
-    decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        colors: [
-          Color.fromARGB(255, 30, 12, 48),
-          Color.fromARGB(255, 77, 64, 98),
-        ],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const ChatPage(),
-            ),
-          );
-        },
-        child: const Center(
-          child: Text(
-            'AI Assistant',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ),
-    ),
-  ),
-  actions: [
-    IconButton(
-      icon: const Icon(
-        CupertinoIcons.person_add,
-        size: 32,
-        color: CoursesColors.darkGreen,
-      ),
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => SearchFriendsScreen()),
-        );
-      },
-    ),
-  ],
-)
+              automaticallyImplyLeading: false,
+              backgroundColor: Colors.white,
+              leadingWidth: 120, // Make space for wider button
+              leading: Container(
+                margin:
+                    const EdgeInsets.only(left: 16.0, top: 8.0, bottom: 8.0),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color.fromARGB(255, 30, 12, 48),
+                      Color.fromARGB(255, 77, 64, 98),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ChatPage(),
+                        ),
+                      );
+                    },
+                    child: const Center(
+                      child: Text(
+                        'AI Assistant',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(
+                    CupertinoIcons.person_add,
+                    size: 32,
+                    color: CoursesColors.darkGreen,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => SearchFriendsScreen()),
+                    );
+                  },
+                ),
+              ],
+            )
           : null,
       body: Stack(
         children: [
@@ -284,240 +288,239 @@ Stream<int> getCompletedWeekTasksCount() {
     );
   }
 
-Widget _buildHomePage(BuildContext context) {
-  return Stack(
-    children: [
-      Positioned.fill(
-        child: Column(
-          children: [
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                children: [
-                  StreamBuilder(
+  Widget _buildHomePage(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Column(
+            children: [
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  children: [
+                    StreamBuilder(
+                      stream: FirebaseFirestore.instance
+                          .collection("Users")
+                          .where("id",
+                              isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+                          .snapshots(),
+                      builder:
+                          (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                              child: CircularProgressIndicator());
+                        }
+
+                        if (snapshot.hasError) {
+                          return const Text("Error fetching goals");
+                        }
+
+                        if (snapshot.hasData && snapshot.data != null) {
+                          final goalDocuments = snapshot.data!.docs;
+                          final userData = snapshot.data!.docs.first;
+                          final String fname = userData['fname'];
+
+                          return Column(
+                            children: [
+                              Text(
+                                'Welcome back to Achiva, $fname!',
+                                style: const TextStyle(
+                                  color: WellBeingColors.darkBlueGrey,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 15),
+                              if (goalDocuments.isEmpty)
+                                Text(
+                                  "You have no goals yet. Start adding some!",
+                                  style: TextStyle(
+                                    color: WellBeingColors.mediumGrey,
+                                    fontSize: 16,
+                                  ),
+                                )
+                              else
+                                Container(
+                                  height: 105,
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 20),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: Colors.grey[400]!,
+                                      width: 1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      const SizedBox(height: 13),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            'Your productivity',
+                                            style: TextStyle(
+                                              color: WellBeingColors.mediumGrey,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w400,
+                                            ),
+                                          ),
+                                          const Spacer(),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 5),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 5),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            StreamBuilder<int>(
+                                              stream:
+                                                  getCompletedTodayTasksCount(),
+                                              builder: (context, snapshot) {
+                                                final count =
+                                                    snapshot.data ?? 0;
+                                                return reportStats(
+                                                    '$count Tasks', 'Today');
+                                              },
+                                            ),
+                                            Container(
+                                              decoration: BoxDecoration(
+                                                color: WellBeingColors
+                                                    .mediumGrey
+                                                    .withOpacity(0.3),
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                              ),
+                                              height: 40,
+                                              width: 1.2,
+                                            ),
+                                            StreamBuilder<int>(
+                                              stream:
+                                                  getCompletedWeekTasksCount(),
+                                              builder: (context, snapshot) {
+                                                final count =
+                                                    snapshot.data ?? 0;
+                                                return reportStats(
+                                                    '$count Tasks',
+                                                    'This Week');
+                                              },
+                                            ),
+                                            Container(
+                                              decoration: BoxDecoration(
+                                                color: WellBeingColors
+                                                    .mediumGrey
+                                                    .withOpacity(0.3),
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                              ),
+                                              height: 40,
+                                              width: 1.2,
+                                            ),
+                                            reportStats("${userData["streak"]}" + (userData["streak"] != 0 ? ' 🔥' : ''),
+           'Streak')
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          );
+                        } else {
+                          return const Text("No user data available");
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  color: Colors.white,
+                  child: StreamBuilder(
                     stream: FirebaseFirestore.instance
                         .collection("Users")
-                        .where("id",
-                            isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+                        .doc(FirebaseAuth.instance.currentUser!.uid)
+                        .collection('goals')
                         .snapshots(),
-                    builder:
-                        (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                      if (snapshot.connectionState ==
-                          ConnectionState.waiting) {
-                        return const Center(
-                            child: CircularProgressIndicator());
+                    builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
                       }
 
                       if (snapshot.hasError) {
                         return const Text("Error fetching goals");
                       }
 
-                      if (snapshot.hasData && snapshot.data != null) {
-                        final goalDocuments = snapshot.data!.docs;
-                        final userData = snapshot.data!.docs.first;
-                        final String fname = userData['fname'];
-
-                        return Column(
-                          children: [
-                            Text(
-                              'Welcome back to Achiva, $fname!',
-                              style: const TextStyle(
-                                color: WellBeingColors.darkBlueGrey,
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return Container(
+                          color: Colors.white,
+                          child: Center(
+                            child: Text(
+                              "No goals available. Please add some goals!",
+                              style: TextStyle(
+                                color: WellBeingColors.mediumGrey,
+                                fontSize: 16,
                               ),
-                            ),
-                            const SizedBox(height: 15),
-                            if (goalDocuments.isEmpty)
-                              Text(
-                                "You have no goals yet. Start adding some!",
-                                style: TextStyle(
-                                  color: WellBeingColors.mediumGrey,
-                                  fontSize: 16,
-                                ),
-                              )
-                            else
-                              Container(
-                                height: 105,
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 20),
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: Colors.grey[400]!,
-                                    width: 1,
-                                  ),
-                                  borderRadius: BorderRadius.circular(18),
-                                ),
-                                child: Column(
-                                  children: [
-                                    const SizedBox(height: 13),
-                                    Row(
-                                      children: [
-                                        Text(
-                                          'Your productivity',
-                                          style: TextStyle(
-                                            color: WellBeingColors.mediumGrey,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w400,
-                                          ),
-                                        ),
-                                        const Spacer(),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 5),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 5),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          StreamBuilder<int>(
-                                            stream: getCompletedTodayTasksCount(),
-                                            builder: (context, snapshot) {
-                                              final count = snapshot.data ?? 0;
-                                              return reportStats(
-                                                '$count Tasks',
-                                                'Today'
-                                              );
-                                            },
-                                          ),
-                                          Container(
-                                            decoration: BoxDecoration(
-                                              color: WellBeingColors
-                                                  .mediumGrey
-                                                  .withOpacity(0.3),
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                            ),
-                                            height: 40,
-                                            width: 1.2,
-                                          ),
-                                          StreamBuilder<int>(
-                                            stream: getCompletedWeekTasksCount(),
-                                            builder: (context, snapshot) {
-                                              final count = snapshot.data ?? 0;
-                                              return reportStats(
-                                                '$count Tasks',
-                                                'This Week'
-                                              );
-                                            },
-                                          ),
-                                          Container(
-                                            decoration: BoxDecoration(
-                                              color: WellBeingColors
-                                                  .mediumGrey
-                                                  .withOpacity(0.3),
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                            ),
-                                            height: 40,
-                                            width: 1.2,
-                                          ),
-                                          reportStats(
-                                            "${userData["streak"] ?? 0}",
-                                            'Streak'
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        );
-                      } else {
-                        return const Text("No user data available");
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Container(
-                color: Colors.white,
-                child: StreamBuilder(
-                  stream: FirebaseFirestore.instance
-                      .collection("Users")
-                      .doc(FirebaseAuth.instance.currentUser!.uid)
-                      .collection('goals')
-                      .snapshots(),
-                  builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    if (snapshot.hasError) {
-                      return const Text("Error fetching goals");
-                    }
-
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                      return Container(
-                        color: Colors.white,
-                        child: Center(
-                          child: Text(
-                            "No goals available. Please add some goals!",
-                            style: TextStyle(
-                              color: WellBeingColors.mediumGrey,
-                              fontSize: 16,
                             ),
                           ),
+                        );
+                      }
+
+                      return SizedBox(
+                        height: 250,
+                        child: PageView.builder(
+                          controller: PageController(viewportFraction: 0.87),
+                          itemCount: snapshot.data!.docs.length,
+                          itemBuilder: (context, index) {
+                            final goalDocument = snapshot.data!.docs[index];
+                            final goalData =
+                                goalDocument.data() as Map<String, dynamic>;
+                            final String goalName = goalData['name'];
+
+                            return StreamBuilder<Map<String, dynamic>>(
+                              stream: getGoalWithProgress(goalDocument),
+                              builder: (context, progressSnapshot) {
+                                if (progressSnapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return const Center(
+                                      child: CircularProgressIndicator());
+                                }
+                                if (!progressSnapshot.hasData) {
+                                  return const Center(
+                                      child: Text('Error loading progress'));
+                                }
+
+                                double progress =
+                                    progressSnapshot.data!['progress'];
+                                final isDone = progress >= 100;
+
+                                return _buildGoalCard(
+                                  goalName,
+                                  progress,
+                                  isDone,
+                                  goalDocument,
+                                );
+                              },
+                            );
+                          },
                         ),
                       );
-                    }
-
-                    return SizedBox(
-                      height: 250,
-                      child: PageView.builder(
-                        controller: PageController(viewportFraction: 0.87),
-                        itemCount: snapshot.data!.docs.length,
-                        itemBuilder: (context, index) {
-                          final goalDocument = snapshot.data!.docs[index];
-                          final goalData =
-                              goalDocument.data() as Map<String, dynamic>;
-                          final String goalName = goalData['name'];
-
-                          return StreamBuilder<Map<String, dynamic>>(
-                            stream: getGoalWithProgress(goalDocument),
-                            builder: (context, progressSnapshot) {
-                              if (progressSnapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const Center(
-                                    child: CircularProgressIndicator());
-                              }
-                              if (!progressSnapshot.hasData) {
-                                return const Center(
-                                    child: Text('Error loading progress'));
-                              }
-
-                              double progress =
-                                  progressSnapshot.data!['progress'];
-                              final isDone = progress >= 100;
-
-                              return _buildGoalCard(
-                                goalName,
-                                progress,
-                                isDone,
-                                goalDocument,
-                              );
-                            },
-                          );
-                        },
-                      ),
-                    );
-                  },
+                    },
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    ],
-  );
-}
+      ],
+    );
+  }
 
   Widget _buildGoalCard(String goalName, double progress, bool isDone,
       DocumentSnapshot goalDocument) {
