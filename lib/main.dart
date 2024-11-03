@@ -56,7 +56,7 @@ class MyApp extends StatelessWidget {
           splashColor: Colors.transparent,
           highlightColor: Colors.transparent,
         ),
-        home: const Onbording(),
+        home: const AuthWrapper(),
         routes: {
           '/otp': (context) => const VerfyCodeView(),
           '/home': (context) => const HomeScreen(),
