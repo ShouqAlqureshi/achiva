@@ -14,12 +14,13 @@ class AddTaskPage extends StatefulWidget {
   final String goalName;
   final DateTime goalDate;
   final bool goalVisibility;
-
+  final bool sharedGoal;
   const AddTaskPage({
     super.key,
     required this.goalName,
     required this.goalDate,
     required this.goalVisibility,
+    required this.sharedGoal,
   });
 
   @override

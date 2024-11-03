@@ -1,4 +1,5 @@
 import 'package:achiva/views/auth/validators.dart';
+import 'package:achiva/views/sharedgoal/sharedgoal.dart';
 import 'package:flutter/material.dart';
 import 'package:achiva/views/addition_views/add_task_page.dart'; // Import the task page
 import 'package:flutter/services.dart';
@@ -14,11 +15,13 @@ class AddGoalPage extends StatefulWidget {
 class _AddGoalPageState extends State<AddGoalPage> {
   final TextEditingController _nameController = TextEditingController();
   bool _visibility = true;
+  bool _sharedGoal = false;
   DateTime? _selectedDate;
   bool _isNameValid = true; // Tracks if the goal name is valid
   bool _isDateValid = true; // Tracks if the date is valid
   String? errorMessage = "";
   Validators validate = Validators();
+  Sharedgoal sharedgoal = Sharedgoal();
 
   Future<void> _goToAddTaskPage() async {
     setState(() {
@@ -57,6 +60,7 @@ class _AddGoalPageState extends State<AddGoalPage> {
               goalName: _nameController.text,
               goalDate: _selectedDate!,
               goalVisibility: _visibility,
+              sharedGoal: _sharedGoal,
             ),
           ),
         );
@@ -198,7 +202,54 @@ class _AddGoalPageState extends State<AddGoalPage> {
                               ),
                             ),
                           const SizedBox(height: 16),
-
+                          // shared goal Switch
+                          SwitchListTile(
+                            title: const Text('Shared goal'),
+                            value: _sharedGoal,
+                            onChanged: (bool value) {
+                              setState(() {
+                                _sharedGoal = value;
+                              });
+                            },
+                          ),
+                          if (_sharedGoal)
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          Color.fromARGB(255, 77, 64, 98),
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                            10), // Adjust the radius as needed
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      sharedgoal.showFriendListDialog(context);
+                                    },
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical:
+                                              16.0), // Adjust padding as needed
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            "Invite Collaborators",
+                                            style: TextStyle(fontSize: 16),
+                                          ),
+                                          const SizedBox(width: 16),
+                                          const Icon(Icons.send),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           // Visibility Switch
                           SwitchListTile(
                             title: const Text('Visibility'),
