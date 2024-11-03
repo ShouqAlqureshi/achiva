@@ -25,6 +25,9 @@ class _RequestStatusState extends State<RequestStatus> {
 
   @override
   Widget build(BuildContext context) {
+    // Get the bottom padding to account for system UI
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('Users')
@@ -47,14 +50,20 @@ class _RequestStatusState extends State<RequestStatus> {
         }
 
         return ListView.separated(
-          padding: const EdgeInsets.all(16),
+          // Add padding to all sides, with extra at the bottom
+          padding: EdgeInsets.fromLTRB(
+            16,  // left
+            16,  // top
+            16,  // right
+            16 + bottomPadding + 80, // bottom + system padding + extra space for bottom bar
+          ),
           itemCount: friendRequestsStatus.length,
           separatorBuilder: (context, index) => const Divider(
             color: Colors.grey,
-            height: 32, // Total height of the divider area
-            thickness: 0.5, // Actual line thickness
-            indent: 70, // Left padding to align with text
-            endIndent: 16, // Right padding
+            height: 32,
+            thickness: 0.5,
+            indent: 70,
+            endIndent: 16,
           ),
           itemBuilder: (context, index) {
             var doc = friendRequestsStatus[index];
@@ -96,7 +105,6 @@ class _RequestStatusState extends State<RequestStatus> {
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Row(
                     children: [
-                      // Avatar - fixed size
                       CircleAvatar(
                         radius: 30,
                         backgroundColor: Colors.white.withOpacity(0.9),
@@ -108,7 +116,6 @@ class _RequestStatusState extends State<RequestStatus> {
                             : null,
                       ),
                       const SizedBox(width: 15),
-                      // Text content - flexible and constrained
                       Expanded(
                         flex: 1,
                         child: Column(
@@ -135,7 +142,6 @@ class _RequestStatusState extends State<RequestStatus> {
                         ),
                       ),
                       const SizedBox(width: 15),
-                      // Status icon - fixed size
                       Icon(
                         reqstatus == "accepted"
                             ? Icons.check_circle
