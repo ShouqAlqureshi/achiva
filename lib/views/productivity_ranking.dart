@@ -28,6 +28,11 @@ class UserDataCache {
   static void clearCache() {
     _userCache.clear();
   }
+  
+  // Add method to remove specific user from cache
+  static void invalidateUser(String userId) {
+    _userCache.remove(userId);
+  }
 }
 
 class RankingsService {
@@ -42,41 +47,98 @@ class RankingsService {
         return;
       }
 
-      // Batch queries for better performance
+      // Get initial friends list
       final userDoc = _firestore.collection('Users').doc(currentUser.uid);
-      final friendsQuery = userDoc.collection('friends').get();
-      
-      final friendsSnapshot = await friendsQuery;
+      final friendsSnapshot = await userDoc.collection('friends').get();
       final List<String> userIds = [
         currentUser.uid,
         ...friendsSnapshot.docs.map((doc) => doc['userId'] as String)
       ];
 
-      final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
-      List<Map<String, dynamic>> userProductivity = [];
+      // Create a stream that combines updates from all relevant collections
+      final Stream<List<Map<String, dynamic>>> rankings = Stream.periodic(
+        const Duration(seconds: 1),
+        (_) => _fetchLatestRankings(userIds),
+      ).asyncMap((future) => future);
 
+      // Listen to task updates for all users
+      for (final userId in userIds) {
+        _listenToUserTasks(userId);
+      }
 
-
-      // Parallel processing for user data
-      final futures = userIds.map((userId) => _processUserData(userId, sevenDaysAgo));
-      final results = await Future.wait(futures);
-      
-      userProductivity = results.where((data) => data != null).cast<Map<String, dynamic>>().toList();
-      userProductivity.sort((a, b) => b['productivityScore'].compareTo(a['productivityScore']));
-
-      yield userProductivity;
+      await for (final rankingsList in rankings) {
+        yield rankingsList;
+      }
     } catch (e) {
       print('Error fetching productivity rankings: $e');
       yield [];
     }
   }
 
+  void _listenToUserTasks(String userId) {
+    // Listen to all goals collections for the user
+    _firestore
+        .collection('Users')
+        .doc(userId)
+        .collection('goals')
+        .snapshots()
+        .listen((goalsSnapshot) {
+      // When any goal changes, invalidate the cache for this user
+      UserDataCache.invalidateUser(userId);
+    });
+
+    // Listen to tasks in all goals
+    _firestore
+        .collection('Users')
+        .doc(userId)
+        .collection('goals')
+        .snapshots()
+        .listen((goalsSnapshot) {
+      for (final goalDoc in goalsSnapshot.docs) {
+        _firestore
+            .collection('Users')
+            .doc(userId)
+            .collection('goals')
+            .doc(goalDoc.id)
+            .collection('tasks')
+            .snapshots()
+            .listen((tasksSnapshot) {
+          // When any task changes, invalidate the cache for this user
+          UserDataCache.invalidateUser(userId);
+        });
+      }
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchLatestRankings(List<String> userIds) async {
+    final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
+    
+    // Process all users in parallel
+    final futures = userIds.map((userId) => _processUserData(userId, sevenDaysAgo));
+    final results = await Future.wait(futures);
+    
+    final rankings = results
+        .where((data) => data != null)
+        .cast<Map<String, dynamic>>()
+        .toList();
+    
+    rankings.sort((a, b) => b['productivityScore'].compareTo(a['productivityScore']));
+    return rankings;
+  }
+
   Future<Map<String, dynamic>?> _processUserData(String userId, DateTime sevenDaysAgo) async {
     try {
-      // Check cache first
+      // Check cache first, but don't return cached data if it's too old
       final cachedData = UserDataCache.getCachedUser(userId);
       if (cachedData != null) {
-        return cachedData;
+        final cacheAge = DateTime.now().difference(
+          DateTime.fromMillisecondsSinceEpoch(
+            cachedData['cacheTimestamp'] ?? 0
+          )
+        );
+        if (cacheAge < const Duration(seconds: 30)) {
+          return cachedData;
+        }
       }
 
       final userDoc = await _firestore.collection('Users').doc(userId).get();
@@ -94,7 +156,6 @@ class RankingsService {
       int totalCompletedTasks = 0;
       int totalTasks = 0;
 
-      // Process all tasks in parallel
       final taskFutures = goalsSnapshot.docs.map((goalDoc) =>
           _processGoalTasks(userId, goalDoc.id, sevenDaysAgo));
       final taskResults = await Future.wait(taskFutures);
@@ -112,6 +173,7 @@ class RankingsService {
         'totalGoals': goalsSnapshot.docs.length,
         'totalTasks': totalTasks,
         'productivityScore': _calculateProductivityScore(totalCompletedTasks, totalTasks),
+        'cacheTimestamp': DateTime.now().millisecondsSinceEpoch,
       };
 
       // Cache the result
