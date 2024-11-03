@@ -51,7 +51,7 @@ class _GoalTasksState extends State<GoalTasks> {
     });
   }
 
-  void _showTaskDetails(BuildContext context, Map<String, dynamic> task,DocumentReference taskRef) {
+  void _showTaskDetails(BuildContext context, Map<String, dynamic> task,DocumentReference taskRef,DateTime goalDate) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -101,7 +101,7 @@ class _GoalTasksState extends State<GoalTasks> {
     child: Text('Edit', style: TextStyle(color: Colors.black)),
     onPressed: () {
       Navigator.of(context).pop(); // Close the details dialog
-      _editTask(context, taskRef, task);
+      _editTask(context, taskRef, task,goalDate);
     },
   ),
   TextButton(
@@ -116,13 +116,13 @@ class _GoalTasksState extends State<GoalTasks> {
       },
     );
   }
-void _editTask(BuildContext context, DocumentReference taskRef, Map<String, dynamic> taskData) {
+void _editTask(BuildContext context, DocumentReference taskRef, Map<String, dynamic> taskData, DateTime goalDate) {
   showDialog(
     context: context,
     builder: (BuildContext context) {
       return EditTaskDialog(
         taskRef: taskRef,
-        taskData: taskData,
+        taskData: taskData, goalDate: goalDate,
       );
     },
   );
@@ -868,7 +868,7 @@ void _deleteTask(BuildContext context, DocumentReference taskRef) {
                               final date = task['date'] ?? 'Not set';
                               final isCompleted = task['completed'] ?? false;
                               return GestureDetector(
-                                onTap: () => _showTaskDetails(context, task,taskDoc.reference),
+                                onTap: () => _showTaskDetails(context, task,taskDoc.reference,goalDate),
                                 child: Padding(
                                   padding: const EdgeInsets.only(
                                       left: 22.0, bottom: 40.0, right: 22.0),
