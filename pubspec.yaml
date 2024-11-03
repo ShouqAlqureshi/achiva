@@ -35,7 +35,6 @@ dependencies:
   share_plus: ^10.1.1
   another_flushbar: ^1.12.30
   rxdart: ^0.27.0
-  chat_gpt_sdk: ^3.1.2
   flutter_chat_types: ^3.6.2
   flutter_chat_ui: ^1.6.15
   flutter_gemini: ^2.0.3
