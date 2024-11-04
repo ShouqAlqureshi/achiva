@@ -17,7 +17,6 @@ class IncomingRequestsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     String currentUserId = getCurrentUserId();
-    // String currentUserId = "ccvx5cv1SwZQWQrvX3QBjONPbe63";
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('Users')
@@ -87,7 +86,7 @@ class IncomingRequestsPage extends StatelessWidget {
 
                       photoUrl = userData['photo'];
                     }
-
+                    bool isGoalInvitation = true;
                     return FriendRequestCard(
                       name: fullName,
                       pictureUrl: photoUrl,
@@ -97,6 +96,7 @@ class IncomingRequestsPage extends StatelessWidget {
                       onReject: () {
                         _rejectFriendRequest(currentUserId, userId, requestId);
                       },
+                      isGoalInvitation: isGoalInvitation,
                     );
                   },
                 );
@@ -147,7 +147,7 @@ class IncomingRequestsPage extends StatelessWidget {
               SizedBox(height: 40),
               Text(
                 massage,
-                style: TextStyle(fontSize: 16, color: Colors.white70),
+                style: TextStyle(fontSize: 16, color: Colors.white60),
               ),
             ],
           ),
@@ -199,6 +199,18 @@ class IncomingRequestsPage extends StatelessWidget {
         .set({'userId': currentUserId});
   }
 
+  void _acceptcollab(
+      String currentUserId, String sharedId, String invitationId) {
+    FirebaseFirestore.instance
+        .collection('sharedGoal')
+        .doc(sharedId)
+        .collection('goalInvitations')
+        .doc(invitationId)
+        .update({
+      'status': "accepted",
+    });
+  }
+
   void _rejectFriendRequest(
       String currentUserId, String friendId, String requestId) {
     FirebaseFirestore.instance
@@ -227,21 +239,34 @@ class IncomingRequestsPage extends StatelessWidget {
       'timestamp': FieldValue.serverTimestamp(),
     });
   }
+
+  void _rejectcollab(
+      String currentUserId, String sharedId, String invitationId) {
+    FirebaseFirestore.instance
+        .collection('sharedGoal')
+        .doc(sharedId)
+        .collection('goalInvitations')
+        .doc(invitationId)
+        .update({
+      'status': "rejected",
+    });
+  }
 }
 
 class FriendRequestCard extends StatelessWidget {
   final String name;
   final String? pictureUrl;
+  final bool isGoalInvitation;
   final VoidCallback onAccept;
   final VoidCallback onReject;
 
-  const FriendRequestCard({
-    super.key,
-    required this.name,
-    required this.pictureUrl,
-    required this.onAccept,
-    required this.onReject,
-  });
+  const FriendRequestCard(
+      {super.key,
+      required this.name,
+      required this.pictureUrl,
+      required this.onAccept,
+      required this.onReject,
+      required this.isGoalInvitation});
 
   @override
   Widget build(BuildContext context) {
@@ -287,6 +312,26 @@ class FriendRequestCard extends StatelessWidget {
                   ),
                 ),
               ),
+              if (isGoalInvitation) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    "Goal Collab",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.orange,
+                    ),
+                  ),
+                ),
+              ],
               ElevatedButton(
                 onPressed: onAccept,
                 style: ElevatedButton.styleFrom(
