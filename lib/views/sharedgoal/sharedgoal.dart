@@ -202,6 +202,7 @@ Future<bool> _inviteCollaborator(
         .doc(invitationID)
         .set({
       'InvitationID': invitationID,
+      "sharedID":sharedID,
       'goalID': goalID,
       'fromUserID': userId,
       'toUserID': friendId,
