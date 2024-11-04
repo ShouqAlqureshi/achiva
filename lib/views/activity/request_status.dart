@@ -282,7 +282,7 @@ class _RequestStatusState extends State<RequestStatus> {
             var data = doc.data() as Map<String, dynamic>;
             bool isGoalInvitation = data.containsKey('InvitationID');
             String userId =
-                isGoalInvitation ? data['fromUserID'] : data['userId'];
+                isGoalInvitation ? data['toUserID'] : data['userId'];
             final status =
                 isGoalInvitation ? data['status'] : data['Status'] ?? "pending";
             final sharedID = isGoalInvitation ? data['sharedID'] : null;
