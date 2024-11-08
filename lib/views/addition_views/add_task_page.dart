@@ -15,12 +15,14 @@ class AddTaskPage extends StatefulWidget {
   final DateTime goalDate;
   final bool goalVisibility;
   final bool sharedGoal;
+  final bool isSharedGoal;
   const AddTaskPage({
     super.key,
     required this.goalName,
     required this.goalDate,
     required this.goalVisibility,
     required this.sharedGoal,
+    this.isSharedGoal = false,
   });
 
   @override
@@ -147,20 +149,37 @@ class _AddTaskPageState extends State<AddTaskPage> {
           taskName: _taskNameController.text,
           usergoallistrefrence: goalsCollectionRef,
           goalDate: widget.goalDate,
+          isSharedGoal: widget.isSharedGoal,
         );
 
         if (createdTasks.isNotEmpty) {
           log("Recurring tasks created successfully");
+          widget.isSharedGoal
+              ?await FirebaseFirestore.instance
+                  .collection('sharedGoal')
+                  .doc(widget.goalName)
+                  .update(
+                      {'notasks': FieldValue.increment(createdTasks
+                .length)}):
           await goalsCollectionRef.doc(widget.goalName).update({
             'notasks': FieldValue.increment(createdTasks
                 .length) // -1 because we already set it to 1 initially
           });
         }
       } else {
-        await goalsCollectionRef
-            .doc(widget.goalName)
-            .collection('tasks')
-            .add(taskData);
+        if (widget.isSharedGoal) {
+          // widget.goalName is the sharedid
+          await FirebaseFirestore.instance
+              .collection('sharedGoal')
+              .doc(widget.goalName)
+              .collection('tasks')
+              .add(taskData);
+        } else {
+          await goalsCollectionRef
+              .doc(widget.goalName)
+              .collection('tasks')
+              .add(taskData);
+        }
       }
       if (mounted) {
         Navigator.of(context).pop();

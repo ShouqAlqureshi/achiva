@@ -12,12 +12,14 @@ class AddTaskIndependentlyPage extends StatefulWidget {
   final String goalName;
   final DateTime goalDate;
   final bool goalVisibility;
+  final bool isSharedGoal;
 
   const AddTaskIndependentlyPage({
     super.key,
-    required this.goalName,
+    required this.goalName, //incase of sharedgoal it will be the sharedID
     required this.goalDate,
     required this.goalVisibility,
+    this.isSharedGoal = false,
   });
 
   @override
@@ -133,22 +135,41 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
           taskName: _taskNameController.text,
           usergoallistrefrence: goalsCollectionRef,
           goalDate: widget.goalDate,
+          isSharedGoal: widget.isSharedGoal,
         );
 
         if (createdTasks.isNotEmpty) {
           log("Recurring tasks created successfully");
-          await goalsCollectionRef
-              .doc(widget.goalName)
-              .update({'notasks': FieldValue.increment(createdTasks.length)});
+          widget.isSharedGoal
+              ? await FirebaseFirestore.instance
+                  .collection('sharedGoal')
+                  .doc(widget.goalName)
+                  .update(
+                      {'notasks': FieldValue.increment(createdTasks.length)})
+              : await goalsCollectionRef.doc(widget.goalName).update(
+                  {'notasks': FieldValue.increment(createdTasks.length)});
         }
       } else {
-        await goalsCollectionRef
-            .doc(widget.goalName)
-            .collection('tasks')
-            .add(taskData);
-        await goalsCollectionRef
-            .doc(widget.goalName)
-            .update({'notasks': FieldValue.increment(1)});
+        if (widget.isSharedGoal) {
+          // widget.goalName is the sharedid
+          await FirebaseFirestore.instance
+              .collection('sharedGoal')
+              .doc(widget.goalName)
+              .collection('tasks')
+              .add(taskData);
+          await FirebaseFirestore.instance
+              .collection('sharedGoal')
+              .doc(widget.goalName)
+              .update({'notasks': FieldValue.increment(1)});
+        } else {
+          await goalsCollectionRef
+              .doc(widget.goalName)
+              .collection('tasks')
+              .add(taskData);
+          await goalsCollectionRef
+              .doc(widget.goalName)
+              .update({'notasks': FieldValue.increment(1)});
+        }
       }
       if (mounted) {
         Navigator.of(context).pop();

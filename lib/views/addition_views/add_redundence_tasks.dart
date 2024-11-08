@@ -1,4 +1,3 @@
-
 import 'dart:developer';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -9,9 +8,8 @@ import 'package:uuid/uuid.dart';
 
 class RecurringTaskManager {
   final Uuid _uuid = Uuid();
-
   Future<List<Map<String, dynamic>>> addRecurringTask({
-    required String goalName,
+    required String goalName, //will be a sharedid incase of sharedgoal
     required DateTime startDate,
     required TimeOfDay startTime,
     required TimeOfDay endTime,
@@ -21,6 +19,7 @@ class RecurringTaskManager {
     required String taskName,
     required CollectionReference usergoallistrefrence,
     required DateTime goalDate,
+    bool isSharedGoal = false,
   }) async {
     // Fetch the goal end date from Firestore
     DateTime endDate = goalDate;
@@ -57,13 +56,13 @@ class RecurringTaskManager {
           redundancyId,
           taskStart,
           taskEnd,
-          location ??
-              'Unknown location', // Provide a default value or handle null
+          location ?? 'Unknown location', // Provide a default value
           recurrenceType ?? 'None', // Provide a default value for recurrence
           description ?? '', // Provide an empty string if description is null
-          goalName,
+          goalName, //will be a sharedid incase of sharedgoal
           calcDuration(startTime, endTime),
           usergoallistrefrence,
+          isSharedGoal,
         );
 
         tasks.add(task);
@@ -100,9 +99,10 @@ class RecurringTaskManager {
     String? location,
     String recurrenceType,
     String? description,
-    String goalName,
+    String goalName, //will be a sharedid incase of sharedgoal
     String duration,
     usergoallistrefrence,
+    bool isSharedGoal,
   ) async {
     final String taskId = _uuid.v4();
     final Map<String, dynamic> task = {
@@ -117,12 +117,21 @@ class RecurringTaskManager {
       'redundancyId': redundancyId,
       'duration': duration,
     };
+    if (isSharedGoal) {
+      await FirebaseFirestore.instance
+          .collection('sharedGoal')
+          .doc(goalName)
+          .collection('tasks')
+          .doc(taskId)
+          .set(task);
+    } else {
+      await usergoallistrefrence
+          .doc(goalName)
+          .collection('tasks')
+          .doc(taskId)
+          .set(task);
+    }
 
-    await usergoallistrefrence
-        .doc(goalName)
-        .collection('tasks')
-        .doc(taskId)
-        .set(task);
     return task;
   }
 }
