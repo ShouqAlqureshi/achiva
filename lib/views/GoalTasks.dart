@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:achiva/utilities/colors.dart';
 import 'package:timelines/timelines.dart';
-
+import 'package:achiva/views/deleteTask.dart';
 class GoalTasks extends StatefulWidget {
   final DocumentSnapshot goalDocument;
   final String userId = FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -105,12 +105,15 @@ class _GoalTasksState extends State<GoalTasks> {
     },
   ),
   TextButton(
-    child: Text('Delete', style: TextStyle(color: Colors.black)),
-    onPressed: () {
-      Navigator.of(context).pop(); // Close the details dialog
-      _deleteTask(context, taskRef);
-    },
-  ),
+  child: Text('Delete', style: TextStyle(color: Colors.black)),
+  onPressed: () async {
+    Navigator.of(context).pop(); // Close the details dialog
+    bool wasDeleted = await TaskOperations.deleteTask(context, taskRef);
+    if (wasDeleted) {
+      Navigator.of(context).pop(); // Close the parent dialog if deletion was successful
+    }
+  },
+),
 ],
         );
       },
@@ -128,47 +131,7 @@ void _editTask(BuildContext context, DocumentReference taskRef, Map<String, dyna
   );
 }
 
-void _deleteTask(BuildContext context, DocumentReference taskRef) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        backgroundColor: Colors.white,
-        title: Text(
-          'Delete Task',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-        ),
-        content: Text(
-          'Are you sure you want to delete this task? This action cannot be undone.',
-          style: TextStyle(color: Colors.black),
-        ),
-        actions: [
-          TextButton(
-            child: Text('Cancel', style: TextStyle(color: Colors.black)),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          TextButton(
-            child: Text('Delete', style: TextStyle(color: Colors.red)),
-            onPressed: () async {
-              try {
-                await taskRef.delete();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Task deleted successfully')),
-                );
-                Navigator.of(context).pop();
-                Navigator.of(context).pop(); // Close both dialogs
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error deleting task: $e')),
-                );
-              }
-            },
-          ),
-        ],
-      );
-    },
-  );
-}
+
   void _toggleTaskCompletion(BuildContext context, DocumentReference taskRef,
       bool currentStatus, String taskName) {
     if (currentStatus) {
