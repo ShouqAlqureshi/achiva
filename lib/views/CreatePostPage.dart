@@ -106,6 +106,8 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
 
         // Close the dialog and return true to indicate success
         Navigator.of(context).pop(true);
+       
+
 
         // Show confirmation message
         ScaffoldMessenger.of(context).showSnackBar(
@@ -115,7 +117,7 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
           ),
         );
         await StreakCalculator.updateStreak();
-
+        await StreakCalculator.handlePostCreated();
         if (kDebugMode) {
           print('Dialog closed with success status.');
         }

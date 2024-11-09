@@ -1,3 +1,4 @@
+import 'package:achiva/views/streakCalculator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -96,6 +97,8 @@ void _fetchReactions() async {
           .doc(widget.postId)
           .delete();
           widget.onPostDeleted();
+          await StreakCalculator.handlePostDeleted();
+
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
