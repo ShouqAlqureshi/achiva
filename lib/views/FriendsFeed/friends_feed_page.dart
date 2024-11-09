@@ -1,7 +1,6 @@
 import 'dart:async';
-
-import 'package:achiva/views/PostCard.dart';
-import 'package:achiva/views/productivity_ranking.dart';
+import 'package:achiva/views/FriendsFeed/PostCard.dart';
+import 'package:achiva/views/FriendsFeed/productivity_ranking.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';

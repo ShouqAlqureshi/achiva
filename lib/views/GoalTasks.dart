@@ -1,6 +1,6 @@
 import 'package:achiva/views/CreatePostPage.dart';
 import 'package:achiva/views/addition_views/add_task_%20independently_page%20.dart';
-import 'package:achiva/views/editTask.dart';
+import 'package:achiva/views/addition_views/editTask.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:achiva/utilities/colors.dart';
 import 'package:timelines/timelines.dart';
-import 'package:achiva/views/deleteTask.dart';
+import 'package:achiva/views/addition_views/deleteTask.dart';
 class GoalTasks extends StatefulWidget {
   final DocumentSnapshot goalDocument;
   final String userId = FirebaseAuth.instance.currentUser?.uid ?? '';

@@ -8,7 +8,7 @@ import 'package:achiva/utilities/show_error_dialog.dart';
 import 'package:achiva/views/SearchFriendsScreen.dart';
 import 'package:achiva/views/activity/activity.dart';
 import 'package:achiva/views/activity/incoming_request_view.dart';
-import 'package:achiva/views/friends_feed_page.dart';
+import 'package:achiva/views/FriendsFeed/friends_feed_page.dart';
 import 'package:achiva/views/home_view.dart';
 import 'package:achiva/views/profile/profile_screen.dart';
 import 'package:achiva/widgets/bottom_navigation_bar.dart';
