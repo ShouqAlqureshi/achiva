@@ -138,6 +138,7 @@ class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
           'photo': postData['photo']?.toString() ?? '',
           'timestamp': formattedDate,
           'dateTime': dateTime,
+          'userId': userId, 
         };
       }))
       .then((posts) => posts.whereType<Map<String, dynamic>>().toList());
@@ -265,6 +266,7 @@ Widget _buildPostsView() {
               timestamp: post['timestamp'],
               profilePicUrl: post['profilePic'],
               postId: post['id'],
+              userId: post['userId'],  
             );
           },
         );
