@@ -15,32 +15,68 @@ class FriendsFeedScreen extends StatefulWidget {
 }
 
 class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
-  late StreamController<List<Map<String, dynamic>>> _postsStreamController;
-  Stream<List<Map<String, dynamic>>>? _postsStream; // Make nullable
-  Stream<List<Map<String, dynamic>>>? _rankingsStream; // Make nullable
+late StreamController<List<Map<String, dynamic>>> _postsStreamController;
+  Stream<List<Map<String, dynamic>>>? _postsStream;
+  Stream<List<Map<String, dynamic>>>? _rankingsStream;
   bool _showPosts = true;
   final PageController _pageController = PageController();
   
-  // Cache for user information
   final Map<String, Map<String, String>> _userCache = {};
-  
-  // Cache for posts
   List<Map<String, dynamic>>? _cachedPosts;
   List<Map<String, dynamic>>? _cachedRankings;
   bool _isLoadingPosts = false;
- @override
+
+  @override
   void initState() {
     super.initState();
     _postsStreamController = StreamController<List<Map<String, dynamic>>>.broadcast();
-    _postsStream = _postsStreamController.stream; // Initialize stream immediately
+    _postsStream = _postsStreamController.stream;
     _initializeStreams();
   }
+
   @override
   void dispose() {
     _postsStreamController.close();
     _pageController.dispose();
     super.dispose();
   }
+
+  void _toggleView(bool showPosts) {
+    if (_showPosts != showPosts) {
+      setState(() {
+        _showPosts = showPosts;
+        _pageController.animateToPage(
+          showPosts ? 0 : 1,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      });
+    }
+  }
+ Future<void> _refreshPosts() async {
+    setState(() {
+      _isLoadingPosts = true;
+    });
+
+    try {
+      final freshPosts = await _createPostsStream();
+      if (!_postsStreamController.isClosed) {
+        _postsStreamController.add(freshPosts);
+        _cachedPosts = freshPosts;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error refreshing posts: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingPosts = false;
+        });
+      }
+    }
+  }
+
   Future<void> _initializeStreams() async {
     setState(() {
       _isLoadingPosts = true;
@@ -73,6 +109,13 @@ class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
     }
   }
 
+  void _onPageChanged(int page) {
+    if (_showPosts != (page == 0)) {
+      setState(() {
+        _showPosts = page == 0;
+      });
+    }
+  }
 
  Future<void> handlePostDeletion(String postId, String userId) async {
     try {
@@ -152,54 +195,6 @@ class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
         print('Stack trace: $stackTrace');
       }
       return [];
-    }
-  }
- void _toggleView(bool showPosts) {
-    if (_showPosts != showPosts) {
-      setState(() {
-        _showPosts = showPosts;
-        _pageController.animateToPage(
-          showPosts ? 0 : 1,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-      });
-
-      // Refresh posts when switching back to posts view
-      if (showPosts) {
-        _refreshPosts();
-      }
-    }
-  }
- Future<void> _refreshPosts() async {
-    setState(() {
-      _isLoadingPosts = true;
-    });
-
-    try {
-      final freshPosts = await _createPostsStream();
-      if (!_postsStreamController.isClosed) {
-        _postsStreamController.add(freshPosts);
-        _cachedPosts = freshPosts;
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error refreshing posts: $e');
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingPosts = false;
-        });
-      }
-    }
-  }
-
-  void _onPageChanged(int page) {
-    if (_showPosts != (page == 0)) {
-      setState(() {
-        _showPosts = page == 0;
-      });
     }
   }
 
@@ -314,14 +309,15 @@ class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
     );
   }
 
- Widget _buildPostsView() {
+Widget _buildPostsView() {
     return RefreshIndicator(
       onRefresh: _refreshPosts,
       child: StreamBuilder<List<Map<String, dynamic>>>(
         stream: _postsStream,
         initialData: _cachedPosts,
         builder: (context, snapshot) {
-          if (_isLoadingPosts) {
+          // Show loading indicator only on initial load (no cached data)
+          if (_isLoadingPosts && _cachedPosts == null) {
             return const Center(
               child: CircularProgressIndicator(),
             );
@@ -355,28 +351,43 @@ class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
             );
           }
 
-          return ListView.separated(
-            padding: const EdgeInsets.all(16.0),
-            physics: const AlwaysScrollableScrollPhysics(),
-            itemCount: posts.length + 1,
-            separatorBuilder: (_, __) => const SizedBox(height: 16.0),
-            itemBuilder: (context, index) {
-              if (index == posts.length) {
-                return const SizedBox(height: kBottomNavigationBarHeight);
-              }
+          return Stack(
+            children: [
+              ListView.separated(
+                padding: const EdgeInsets.all(16.0),
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemCount: posts.length + 1,
+                separatorBuilder: (_, __) => const SizedBox(height: 16.0),
+                itemBuilder: (context, index) {
+                  if (index == posts.length) {
+                    return const SizedBox(height: kBottomNavigationBarHeight);
+                  }
 
-              final post = posts[index];
-              return PostCard(
-                userName: post['userName'],
-                content: post['content'],
-                photoUrl: post['photo'],
-                timestamp: post['timestamp'],
-                profilePicUrl: post['profilePic'],
-                postId: post['id'],
-                userId: post['userId'],
-                onPostDeleted: () => handlePostDeletion(post['id'], post['userId']),
-              );
-            },
+                  final post = posts[index];
+                  return PostCard(
+                    userName: post['userName'],
+                    content: post['content'],
+                    photoUrl: post['photo'],
+                    timestamp: post['timestamp'],
+                    profilePicUrl: post['profilePic'],
+                    postId: post['id'],
+                    userId: post['userId'],
+                    onPostDeleted: () => handlePostDeletion(post['id'], post['userId']),
+                  );
+                },
+              ),
+              // Show a subtle loading indicator at the top when refreshing
+              // if (_isLoadingPosts)
+              //   const Positioned(
+              //     top: 0,
+              //     left: 0,
+              //     right: 0,
+              //     child: LinearProgressIndicator(
+              //       backgroundColor: Colors.transparent,
+              //       valueColor: AlwaysStoppedAnimation<Color>(Colors.white24),
+              //     ),
+              //   ),
+            ],
           );
         },
       ),
