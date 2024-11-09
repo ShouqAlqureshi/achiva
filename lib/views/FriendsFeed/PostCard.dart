@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import 'package:achiva/views/FriendsFeed/friends_feed_page.dart';
 
 // Widget for each post card (display post content)
 class PostCard extends StatefulWidget {
@@ -14,6 +15,7 @@ class PostCard extends StatefulWidget {
   final String? profilePicUrl;
   final String? postId;
   final String userId; 
+  final VoidCallback onPostDeleted; 
 
   const PostCard({
     required this.userName,
@@ -23,7 +25,10 @@ class PostCard extends StatefulWidget {
     this.profilePicUrl,
     this.postId,
     required this.userId,
-  });
+    required this.onPostDeleted,
+     Key? key,
+
+  }): super(key: key);
 
   @override
   _PostCardState createState() => _PostCardState();
@@ -90,6 +95,7 @@ void _fetchReactions() async {
           .collection('allPosts')
           .doc(widget.postId)
           .delete();
+          widget.onPostDeleted();
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(

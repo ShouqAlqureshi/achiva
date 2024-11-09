@@ -15,8 +15,9 @@ class FriendsFeedScreen extends StatefulWidget {
 }
 
 class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
-  late Stream<List<Map<String, dynamic>>> _postsStream;
-  late Stream<List<Map<String, dynamic>>> _rankingsStream;
+  late StreamController<List<Map<String, dynamic>>> _postsStreamController;
+  Stream<List<Map<String, dynamic>>>? _postsStream; // Make nullable
+  Stream<List<Map<String, dynamic>>>? _rankingsStream; // Make nullable
   bool _showPosts = true;
   final PageController _pageController = PageController();
   
@@ -26,53 +27,101 @@ class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
   // Cache for posts
   List<Map<String, dynamic>>? _cachedPosts;
   List<Map<String, dynamic>>? _cachedRankings;
-
-  @override
+  bool _isLoadingPosts = false;
+ @override
   void initState() {
     super.initState();
+    _postsStreamController = StreamController<List<Map<String, dynamic>>>.broadcast();
+    _postsStream = _postsStreamController.stream; // Initialize stream immediately
     _initializeStreams();
   }
-
-  void _initializeStreams() {
-    _postsStream = _createPostsStream().asBroadcastStream();
-    _rankingsStream = RankingsService().fetchProductivityRankings().asBroadcastStream();
-
-    // Listen to streams and cache data
-    _postsStream.listen((data) {
-      _cachedPosts = data;
-    });
-    _rankingsStream.listen((data) {
-      _cachedRankings = data;
-    });
+  @override
+  void dispose() {
+    _postsStreamController.close();
+    _pageController.dispose();
+    super.dispose();
   }
+  Future<void> _initializeStreams() async {
+    setState(() {
+      _isLoadingPosts = true;
+    });
 
-  void _toggleView(bool showPosts) {
-    if (_showPosts != showPosts) {
-      setState(() {
-        _showPosts = showPosts;
-        _pageController.animateToPage(
-          showPosts ? 0 : 1,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
+    try {
+      // Initialize posts
+      final posts = await _createPostsStream();
+      if (!_postsStreamController.isClosed) {
+        _postsStreamController.add(posts);
+        _cachedPosts = posts;
+      }
+
+      // Initialize rankings stream
+      _rankingsStream = RankingsService().fetchProductivityRankings().asBroadcastStream();
+      _rankingsStream?.listen((data) {
+        _cachedRankings = data;
       });
+
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error initializing streams: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingPosts = false;
+        });
+      }
     }
   }
 
-  void _onPageChanged(int page) {
-    if (_showPosts != (page == 0)) {
-      setState(() {
-        _showPosts = page == 0;
-      });
+
+ Future<void> handlePostDeletion(String postId, String userId) async {
+    try {
+      // Update the local state immediately
+      final currentPosts = _cachedPosts ?? [];
+      final updatedPosts = currentPosts.where((post) => post['id'] != postId).toList();
+      
+      if (!_postsStreamController.isClosed) {
+        _postsStreamController.add(updatedPosts);
+      }
+      
+      // Update cache
+      _cachedPosts = updatedPosts;
+      
+      // Verify the deletion in Firestore
+      final postDoc = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(userId)
+          .collection('allPosts')
+          .doc(postId)
+          .get();
+      
+      if (!postDoc.exists) {
+        // Post was successfully deleted, we've already updated the UI
+        return;
+      } else {
+        // If the post still exists, refresh the entire feed
+        final freshPosts = await _createPostsStream();
+        if (!_postsStreamController.isClosed) {
+          _postsStreamController.add(freshPosts);
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error handling post deletion: $e');
+      }
+      // Refresh the feed to ensure consistency
+      final freshPosts = await _createPostsStream();
+      if (!_postsStreamController.isClosed) {
+        _postsStreamController.add(freshPosts);
+      }
     }
   }
 
-  Stream<List<Map<String, dynamic>>> _createPostsStream() async* {
+  Future<List<Map<String, dynamic>>> _createPostsStream() async {
     try {
       final User? currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        yield [];
-        return;
+        return [];
       }
 
       // Get friends list
@@ -96,13 +145,61 @@ class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
         ..sort((a, b) => (b['dateTime'] as DateTime)
             .compareTo(a['dateTime'] as DateTime));
 
-      yield allPosts.take(20).toList();
+      return allPosts.take(20).toList();
     } catch (e, stackTrace) {
       if (kDebugMode) {
         print('Error in _createPostsStream: $e');
         print('Stack trace: $stackTrace');
       }
-      yield [];
+      return [];
+    }
+  }
+ void _toggleView(bool showPosts) {
+    if (_showPosts != showPosts) {
+      setState(() {
+        _showPosts = showPosts;
+        _pageController.animateToPage(
+          showPosts ? 0 : 1,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      });
+
+      // Refresh posts when switching back to posts view
+      if (showPosts) {
+        _refreshPosts();
+      }
+    }
+  }
+ Future<void> _refreshPosts() async {
+    setState(() {
+      _isLoadingPosts = true;
+    });
+
+    try {
+      final freshPosts = await _createPostsStream();
+      if (!_postsStreamController.isClosed) {
+        _postsStreamController.add(freshPosts);
+        _cachedPosts = freshPosts;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error refreshing posts: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingPosts = false;
+        });
+      }
+    }
+  }
+
+  void _onPageChanged(int page) {
+    if (_showPosts != (page == 0)) {
+      setState(() {
+        _showPosts = page == 0;
+      });
     }
   }
 
@@ -217,108 +314,129 @@ class _FriendsFeedScreenState extends State<FriendsFeedScreen> {
     );
   }
 
-Widget _buildPostsView() {
-  return RefreshIndicator(
-    onRefresh: () async => _initializeStreams(),
-    child: StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _postsStream,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          // Show loading spinner while waiting for data
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        }
-
-        final posts = snapshot.data ?? _cachedPosts ?? [];
-
-        if (posts.isEmpty) {
-          return ListView(
-            children: const [
-              Center(
-                child: Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Text(
-                    'No posts available.',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
-          );
-        }
-
-        return ListView.separated(
-          padding: const EdgeInsets.all(16.0),
-          physics: const AlwaysScrollableScrollPhysics(),
-          itemCount: posts.length + 1,
-          separatorBuilder: (_, __) => const SizedBox(height: 16.0),
-          itemBuilder: (context, index) {
-            if (index == posts.length) {
-              return const SizedBox(height: kBottomNavigationBarHeight);
-            }
-
-            final post = posts[index];
-            return PostCard(
-              userName: post['userName'],
-              content: post['content'],
-              photoUrl: post['photo'],
-              timestamp: post['timestamp'],
-              profilePicUrl: post['profilePic'],
-              postId: post['id'],
-              userId: post['userId'],  
+ Widget _buildPostsView() {
+    return RefreshIndicator(
+      onRefresh: _refreshPosts,
+      child: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: _postsStream,
+        initialData: _cachedPosts,
+        builder: (context, snapshot) {
+          if (_isLoadingPosts) {
+            return const Center(
+              child: CircularProgressIndicator(),
             );
-          },
-        );
-      },
-    ),
-  );
-}
+          }
 
-Widget _buildRankingsView() {
-  return RefreshIndicator(
-    onRefresh: () async => _initializeStreams(),
-    child: StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _rankingsStream,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          // Show loading spinner while waiting for data
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        }
+          if (snapshot.hasError) {
+            return Center(
+              child: Text(
+                'Error loading posts: ${snapshot.error}',
+                style: const TextStyle(color: Colors.white),
+              ),
+            );
+          }
 
-        final rankings = snapshot.data ?? _cachedRankings ?? [];
+          final posts = snapshot.data ?? _cachedPosts ?? [];
 
-        if (rankings.isEmpty) {
-          return ListView(
-            children: const [
-              Center(
-                child: Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Text(
-                    'No ranking data available',
-                    style: TextStyle(color: Colors.white),
+          if (posts.isEmpty) {
+            return ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: const [
+                Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text(
+                      'No posts available.',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
                 ),
-              ),
-            ],
-          );
-        }
+              ],
+            );
+          }
 
-        return SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            children: [
-              ProductivityRankingDashboard(rankings: rankings),
-              const SizedBox(height: kBottomNavigationBarHeight),
-            ],
-          ),
-        );
-      },
-    ),
-  );
-}
+          return ListView.separated(
+            padding: const EdgeInsets.all(16.0),
+            physics: const AlwaysScrollableScrollPhysics(),
+            itemCount: posts.length + 1,
+            separatorBuilder: (_, __) => const SizedBox(height: 16.0),
+            itemBuilder: (context, index) {
+              if (index == posts.length) {
+                return const SizedBox(height: kBottomNavigationBarHeight);
+              }
+
+              final post = posts[index];
+              return PostCard(
+                userName: post['userName'],
+                content: post['content'],
+                photoUrl: post['photo'],
+                timestamp: post['timestamp'],
+                profilePicUrl: post['profilePic'],
+                postId: post['id'],
+                userId: post['userId'],
+                onPostDeleted: () => handlePostDeletion(post['id'], post['userId']),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildRankingsView() {
+    return RefreshIndicator(
+      onRefresh: () async => _initializeStreams(),
+      child: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: _rankingsStream,
+        initialData: _cachedRankings,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting && _cachedRankings == null) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Text(
+                'Error loading rankings: ${snapshot.error}',
+                style: const TextStyle(color: Colors.white),
+              ),
+            );
+          }
+
+          final rankings = snapshot.data ?? _cachedRankings ?? [];
+
+          if (rankings.isEmpty) {
+            return ListView(
+              children: const [
+                Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text(
+                      'No ranking data available',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                ProductivityRankingDashboard(rankings: rankings),
+                const SizedBox(height: kBottomNavigationBarHeight),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
 
 
   Widget _buildAppBar() {
