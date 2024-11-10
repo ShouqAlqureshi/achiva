@@ -1,3 +1,4 @@
+import 'package:achiva/views/addition_views/add_redundence_tasks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,12 +8,14 @@ class EditTaskDialog extends StatefulWidget {
   final DocumentReference taskRef;
   final Map<String, dynamic> taskData;
   final DateTime goalDate;
+  final CollectionReference usergoallistrefrence; 
 
   const EditTaskDialog({
     Key? key,
     required this.taskRef,
     required this.taskData,
     required this.goalDate,
+     required this.usergoallistrefrence,
   }) : super(key: key);
 
   @override
@@ -86,38 +89,74 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
            _endTime.minute != _originalEndTime.minute;
   }
 
-  TimeOfDay _parseTimeString(String timeStr) {
-    if (timeStr.isEmpty) {
-      return TimeOfDay.now();
-    }
-
-    try {
-      // First try parsing the standard "hh:mm a" format (e.g., "02:30 PM")
-      DateTime dateTime = DateFormat('hh:mm a').parse(timeStr);
-      return TimeOfDay(hour: dateTime.hour, minute: dateTime.minute);
-    } catch (e) {
-      try {
-        // If that fails, try parsing 24-hour format (e.g., "14:30")
-        List<String> parts = timeStr.split(':');
-        if (parts.length == 2) {
-          int hour = int.parse(parts[0]);
-          int minute = int.parse(parts[1]);
-          return TimeOfDay(hour: hour, minute: minute);
-        }
-      } catch (e) {
-        debugPrint('Error parsing time string: $e');
-      }
-    }
-
-    // Return current time if all parsing fails
+TimeOfDay _parseTimeString(String timeStr) {
+  if (timeStr.isEmpty) {
     return TimeOfDay.now();
   }
 
-  String _formatTimeOfDay(TimeOfDay time) {
-    final now = DateTime.now();
-    final dt = DateTime(now.year, now.month, now.day, time.hour, time.minute);
-    return DateFormat('hh:mm a').format(dt).toUpperCase(); // Ensure consistent format
+  try {
+    // Remove any extra spaces and convert to uppercase for consistency
+    timeStr = timeStr.trim().toUpperCase();
+    
+    // Try parsing various formats
+    
+    // Format 1: "HH:MM AM/PM" or "H:MM AM/PM"
+    RegExp amPmFormat = RegExp(r'^(\d{1,2}):(\d{2})\s*(AM|PM)$');
+    var amPmMatch = amPmFormat.firstMatch(timeStr);
+    if (amPmMatch != null) {
+      int hour = int.parse(amPmMatch.group(1)!);
+      int minute = int.parse(amPmMatch.group(2)!);
+      String period = amPmMatch.group(3)!;
+      
+      // Convert to 24-hour format if PM
+      if (period == 'PM' && hour != 12) {
+        hour += 12;
+      } else if (period == 'AM' && hour == 12) {
+        hour = 0;
+      }
+      
+      return TimeOfDay(hour: hour, minute: minute);
+    }
+    
+    // Format 2: "HH:MM" (24-hour format)
+    RegExp militaryFormat = RegExp(r'^(\d{1,2}):(\d{2})$');
+    var militaryMatch = militaryFormat.firstMatch(timeStr);
+    if (militaryMatch != null) {
+      int hour = int.parse(militaryMatch.group(1)!);
+      int minute = int.parse(militaryMatch.group(2)!);
+      
+      // Validate hours and minutes
+      if (hour >= 0 && hour < 24 && minute >= 0 && minute < 60) {
+        return TimeOfDay(hour: hour, minute: minute);
+      }
+    }
+    
+    // Format 3: Try parsing with DateFormat
+    try {
+      DateTime dateTime = DateFormat('hh:mm a').parse(timeStr);
+      return TimeOfDay(hour: dateTime.hour, minute: dateTime.minute);
+    } catch (e) {
+      debugPrint('DateFormat parsing failed: $e');
+    }
+
+    // If all parsing attempts fail, throw an exception
+    throw FormatException('Invalid time format: $timeStr');
+    
+  } catch (e) {
+    debugPrint('Error parsing time string: $e');
+    // Return current time as fallback
+    return TimeOfDay.now();
   }
+}
+
+String _formatTimeOfDay(TimeOfDay time) {
+  // Consistently format time as "hh:mm AM/PM"
+  final now = DateTime.now();
+  final dt = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+  final formattedTime = DateFormat('hh:mm a').format(dt).toUpperCase();
+  debugPrint('Formatted time: $formattedTime');
+  return formattedTime;
+}
 
   DateTime _parseDate(String date) {
     try {
@@ -150,10 +189,6 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
       String startTimeStr = _formatTimeOfDay(_startTime);
       String endTimeStr = _formatTimeOfDay(_endTime);
 
-      // Debug print to see what we're saving
-      debugPrint('Saving start time: $startTimeStr');
-      debugPrint('Saving end time: $endTimeStr');
-
       final Map<String, dynamic> updatedTaskData = {
         'taskName': _taskNameController.text.trim(),
         'description': _descriptionController.text.trim(),
@@ -164,7 +199,44 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
         'recurrence': _selectedRecurrence,
       };
 
-      await widget.taskRef.update(updatedTaskData);
+      // If this is a weekly recurring task, update all related tasks
+      if (_selectedRecurrence == 'Weekly' && widget.taskData['redundancyId'] != null) {
+        // Get all tasks with the same redundancyId
+        final QuerySnapshot relatedTasks = await widget.usergoallistrefrence
+            .doc(widget.taskData['goalName'])
+            .collection('tasks')
+            .where('redundancyId', isEqualTo: widget.taskData['redundancyId'])
+            .get();
+
+        // Prepare batch update
+        final batch = FirebaseFirestore.instance.batch();
+        
+        for (var doc in relatedTasks.docs) {
+          // Get the existing task data
+          final existingData = doc.data() as Map<String, dynamic>;
+          final existingDate = DateFormat('yyyy-MM-dd').parse(existingData['date']);
+          
+          // Calculate the day difference between the original and new date
+          final originalDate = DateFormat('yyyy-MM-dd').parse(widget.taskData['date']);
+          final daysDifference = _selectedDate.difference(originalDate).inDays;
+          
+          // Apply the same day difference to each task's date
+          final newTaskDate = existingDate.add(Duration(days: daysDifference));
+          
+          // Create updated data for this specific task
+          final specificTaskUpdate = Map<String, dynamic>.from(updatedTaskData);
+          specificTaskUpdate['date'] = DateFormat('yyyy-MM-dd').format(newTaskDate);
+          
+          // Add to batch
+          batch.update(doc.reference, specificTaskUpdate);
+        }
+
+        // Commit all updates
+        await batch.commit();
+      } else {
+        // If not weekly or no redundancyId, just update the current task
+        await widget.taskRef.update(updatedTaskData);
+      }
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -290,6 +362,150 @@ void _onFieldsChanged() {
         );
       }
     }
+  }
+
+  Future<bool> _showDeleteConfirmationDialog() async {
+    return await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Changes'),
+          content: const Text(
+            'Changing to no recurrence will delete all related weekly tasks. Are you sure you want to continue?'
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Continue'),
+            ),
+          ],
+        );
+      },
+    ) ?? false;
+  }
+
+  Future<void> _handleRecurrenceChange(String? newValue) async {
+    if (newValue == null) return;
+
+    if (_selectedRecurrence == 'Weekly' && newValue == 'No recurrence') {
+      final bool confirmed = await _showDeleteConfirmationDialog();
+      if (confirmed) {
+        final String redundancyId = widget.taskData['redundancyId'] ?? '';
+        if (redundancyId.isNotEmpty) {
+          final QuerySnapshot tasksToDelete = await widget.usergoallistrefrence
+              .doc(widget.taskData['goalName'])
+              .collection('tasks')
+              .where('redundancyId', isEqualTo: redundancyId)
+              .get();
+
+          for (var doc in tasksToDelete.docs) {
+            if (doc.id != widget.taskRef.id) {
+              await doc.reference.delete();
+            }
+          }
+        }
+        setState(() {
+          _selectedRecurrence = newValue;
+        });
+      }
+    } else if (_selectedRecurrence == 'No recurrence' && newValue == 'Weekly') {
+      final taskManager = RecurringTaskManager();
+      try {
+        // Get the document path segments to extract the goal name
+        final List<String> pathSegments = widget.taskRef.path.split('/');
+        // The goal name should be in the path before 'tasks'
+        final String goalName = pathSegments
+            .asMap()
+            .entries
+            .where((entry) => entry.value == 'tasks')
+            .map((entry) => entry.key > 0 ? pathSegments[entry.key - 1] : '')
+            .firstWhere((name) => name.isNotEmpty, orElse: () => '');
+
+        if (goalName.isEmpty) {
+          throw Exception('Could not determine goal name from task reference');
+        }
+
+        final List<Map<String, dynamic>> tasks = await taskManager.addRecurringTask(
+          goalName: goalName,
+          startDate: _selectedDate,
+          startTime: _startTime,
+          endTime: _endTime,
+          location: _locationController.text.trim().isEmpty 
+              ? 'Unknown location' 
+              : _locationController.text.trim(),
+          recurrenceType: 'Weekly',
+          description: _descriptionController.text.trim(),
+          taskName: _taskNameController.text.trim(),
+          usergoallistrefrence: widget.usergoallistrefrence,
+          goalDate: widget.goalDate,
+        );
+
+        if (tasks.isNotEmpty && tasks[0].containsKey('redundancyId')) {
+          await widget.taskRef.update({
+            'redundancyId': tasks[0]['redundancyId'],
+            'recurrence': newValue,
+          });
+          
+          setState(() {
+            _selectedRecurrence = newValue;
+          });
+        } else {
+          throw Exception('Failed to create recurring tasks');
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error creating recurring tasks: $e')),
+          );
+        }
+        return;
+      }
+    } else {
+      setState(() {
+        _selectedRecurrence = newValue;
+      });
+    }
+  }
+
+  // Modify the existing DropdownButton in the build method to use the new handler
+  Widget _buildRecurrenceDropdown() {
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.grey[300]!),
+        color: Colors.white,
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          dropdownColor: Colors.white,
+          value: _selectedRecurrence,
+          isExpanded: true,
+          items: const [
+            DropdownMenuItem(
+              value: 'No recurrence',
+              child: Text(
+                'No recurrence',
+                style: TextStyle(fontSize: 13),
+              ),
+            ),
+            DropdownMenuItem(
+              value: 'Weekly',
+              child: Text(
+                'Weekly recurrence',
+                style: TextStyle(fontSize: 13),
+              ),
+            ),
+          ],
+          onChanged: _handleRecurrenceChange,
+        ),
+      ),
+    );
   }
 
  
@@ -427,7 +643,7 @@ void _onFieldsChanged() {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Container(
+                         Container(
                           height: 40,
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           decoration: BoxDecoration(
@@ -440,7 +656,7 @@ void _onFieldsChanged() {
                               dropdownColor: Colors.white,
                               value: _selectedRecurrence,
                               isExpanded: true,
-                              items: [
+                              items: const [
                                 DropdownMenuItem(
                                   value: 'No recurrence',
                                   child: Text(
@@ -456,13 +672,7 @@ void _onFieldsChanged() {
                                   ),
                                 ),
                               ],
-                              onChanged: (String? newValue) {
-                                if (newValue != null) {
-                                  setState(() {
-                                    _selectedRecurrence = newValue;
-                                  });
-                                }
-                              },
+                              onChanged: _handleRecurrenceChange,
                             ),
                           ),
                         ),

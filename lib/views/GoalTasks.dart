@@ -21,11 +21,19 @@ class GoalTasks extends StatefulWidget {
 class _GoalTasksState extends State<GoalTasks> {
   double _progress = 0.0;
   late Stream<double> _progressStream;
+   late CollectionReference usergoallistrefrence;
 
   @override
   void initState() {
     super.initState();
     _progressStream = _createProgressStream();
+     // Initialize the goal document reference
+    usergoallistrefrence = FirebaseFirestore.instance
+        .collection("Users")
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .collection('goals')
+        .doc(widget.goalDocument.id)
+        .collection('tasks');
   }
 
   Stream<double> _createProgressStream() {
@@ -125,7 +133,9 @@ void _editTask(BuildContext context, DocumentReference taskRef, Map<String, dyna
     builder: (BuildContext context) {
       return EditTaskDialog(
         taskRef: taskRef,
-        taskData: taskData, goalDate: goalDate,
+        taskData: taskData, 
+        goalDate: goalDate,
+         usergoallistrefrence: usergoallistrefrence,
       );
     },
   );
