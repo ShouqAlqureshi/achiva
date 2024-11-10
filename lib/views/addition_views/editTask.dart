@@ -45,6 +45,8 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
   bool _isGoalDateValid = true;
   bool _isStartTimeValid = true;
   bool _isEndTimeValid = true;
+  bool _changingToWeekly = false;
+
 
   @override
   void initState() {
@@ -166,93 +168,6 @@ String _formatTimeOfDay(TimeOfDay time) {
     }
   }
 
-
-  Future<void> _saveTask() async {
-    setState(() {
-      _isTaskNameValid = _taskNameController.text.trim().isNotEmpty;
-      _isDateValid = true;
-      _isStartTimeValid = true;
-      _validateTimes();
-    });
-
-    if (!_isTaskNameValid || !_isDateValid || !_isStartTimeValid || !_isEndTimeValid) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please fill in all required fields correctly')),
-        );
-      }
-      return;
-    }
-
-    try {
-      // Format times as strings
-      String startTimeStr = _formatTimeOfDay(_startTime);
-      String endTimeStr = _formatTimeOfDay(_endTime);
-
-      final Map<String, dynamic> updatedTaskData = {
-        'taskName': _taskNameController.text.trim(),
-        'description': _descriptionController.text.trim(),
-        'location': _locationController.text.trim().isEmpty ? 'Unknown location' : _locationController.text.trim(),
-        'date': DateFormat('yyyy-MM-dd').format(_selectedDate),
-        'startTime': startTimeStr,
-        'endTime': endTimeStr,
-        'recurrence': _selectedRecurrence,
-      };
-
-      // If this is a weekly recurring task, update all related tasks
-      if (_selectedRecurrence == 'Weekly' && widget.taskData['redundancyId'] != null) {
-        // Get all tasks with the same redundancyId
-        final QuerySnapshot relatedTasks = await widget.usergoallistrefrence
-            .doc(widget.taskData['goalName'])
-            .collection('tasks')
-            .where('redundancyId', isEqualTo: widget.taskData['redundancyId'])
-            .get();
-
-        // Prepare batch update
-        final batch = FirebaseFirestore.instance.batch();
-        
-        for (var doc in relatedTasks.docs) {
-          // Get the existing task data
-          final existingData = doc.data() as Map<String, dynamic>;
-          final existingDate = DateFormat('yyyy-MM-dd').parse(existingData['date']);
-          
-          // Calculate the day difference between the original and new date
-          final originalDate = DateFormat('yyyy-MM-dd').parse(widget.taskData['date']);
-          final daysDifference = _selectedDate.difference(originalDate).inDays;
-          
-          // Apply the same day difference to each task's date
-          final newTaskDate = existingDate.add(Duration(days: daysDifference));
-          
-          // Create updated data for this specific task
-          final specificTaskUpdate = Map<String, dynamic>.from(updatedTaskData);
-          specificTaskUpdate['date'] = DateFormat('yyyy-MM-dd').format(newTaskDate);
-          
-          // Add to batch
-          batch.update(doc.reference, specificTaskUpdate);
-        }
-
-        // Commit all updates
-        await batch.commit();
-      } else {
-        // If not weekly or no redundancyId, just update the current task
-        await widget.taskRef.update(updatedTaskData);
-      }
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Task updated successfully')),
-        );
-        Navigator.of(context).pop();
-        Navigator.of(context).pop(); // Close both dialogs
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating task: $e')),
-        );
-      }
-    }
-  }
 
 void _onFieldsChanged() {
     setState(() {
@@ -388,82 +303,24 @@ void _onFieldsChanged() {
     ) ?? false;
   }
 
-  Future<void> _handleRecurrenceChange(String? newValue) async {
+ Future<void> _handleRecurrenceChange(String? newValue) async {
     if (newValue == null) return;
 
+    // Handle changing from Weekly to No recurrence
     if (_selectedRecurrence == 'Weekly' && newValue == 'No recurrence') {
       final bool confirmed = await _showDeleteConfirmationDialog();
       if (confirmed) {
-        final String redundancyId = widget.taskData['redundancyId'] ?? '';
-        if (redundancyId.isNotEmpty) {
-          final QuerySnapshot tasksToDelete = await widget.usergoallistrefrence
-              .doc(widget.taskData['goalName'])
-              .collection('tasks')
-              .where('redundancyId', isEqualTo: redundancyId)
-              .get();
-
-          for (var doc in tasksToDelete.docs) {
-            if (doc.id != widget.taskRef.id) {
-              await doc.reference.delete();
-            }
-          }
-        }
         setState(() {
           _selectedRecurrence = newValue;
         });
       }
-    } else if (_selectedRecurrence == 'No recurrence' && newValue == 'Weekly') {
-      final taskManager = RecurringTaskManager();
-      try {
-        // Get the document path segments to extract the goal name
-        final List<String> pathSegments = widget.taskRef.path.split('/');
-        // The goal name should be in the path before 'tasks'
-        final String goalName = pathSegments
-            .asMap()
-            .entries
-            .where((entry) => entry.value == 'tasks')
-            .map((entry) => entry.key > 0 ? pathSegments[entry.key - 1] : '')
-            .firstWhere((name) => name.isNotEmpty, orElse: () => '');
-
-        if (goalName.isEmpty) {
-          throw Exception('Could not determine goal name from task reference');
-        }
-
-        final List<Map<String, dynamic>> tasks = await taskManager.addRecurringTask(
-          goalName: goalName,
-          startDate: _selectedDate,
-          startTime: _startTime,
-          endTime: _endTime,
-          location: _locationController.text.trim().isEmpty 
-              ? 'Unknown location' 
-              : _locationController.text.trim(),
-          recurrenceType: 'Weekly',
-          description: _descriptionController.text.trim(),
-          taskName: _taskNameController.text.trim(),
-          usergoallistrefrence: widget.usergoallistrefrence,
-          goalDate: widget.goalDate,
-        );
-
-        if (tasks.isNotEmpty && tasks[0].containsKey('redundancyId')) {
-          await widget.taskRef.update({
-            'redundancyId': tasks[0]['redundancyId'],
-            'recurrence': newValue,
-          });
-          
-          setState(() {
-            _selectedRecurrence = newValue;
-          });
-        } else {
-          throw Exception('Failed to create recurring tasks');
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error creating recurring tasks: $e')),
-          );
-        }
-        return;
-      }
+    } 
+    // Handle changing from No recurrence to Weekly
+    else if (_selectedRecurrence == 'No recurrence' && newValue == 'Weekly') {
+      setState(() {
+        _selectedRecurrence = newValue;
+        _changingToWeekly = true;  // Set flag for save operation
+      });
     } else {
       setState(() {
         _selectedRecurrence = newValue;
@@ -471,41 +328,147 @@ void _onFieldsChanged() {
     }
   }
 
-  // Modify the existing DropdownButton in the build method to use the new handler
-  Widget _buildRecurrenceDropdown() {
-    return Container(
-      height: 40,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.grey[300]!),
-        color: Colors.white,
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          dropdownColor: Colors.white,
-          value: _selectedRecurrence,
-          isExpanded: true,
-          items: const [
-            DropdownMenuItem(
-              value: 'No recurrence',
-              child: Text(
-                'No recurrence',
-                style: TextStyle(fontSize: 13),
-              ),
-            ),
-            DropdownMenuItem(
-              value: 'Weekly',
-              child: Text(
-                'Weekly recurrence',
-                style: TextStyle(fontSize: 13),
-              ),
-            ),
-          ],
-          onChanged: _handleRecurrenceChange,
-        ),
-      ),
-    );
+  Future<void> _saveTask() async {
+    setState(() {
+      _isTaskNameValid = _taskNameController.text.trim().isNotEmpty;
+      _isDateValid = true;
+      _isStartTimeValid = true;
+      _validateTimes();
+    });
+
+    if (!_isTaskNameValid || !_isDateValid || !_isStartTimeValid || !_isEndTimeValid) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please fill in all required fields correctly')),
+        );
+      }
+      return;
+    }
+
+    try {
+      // Format times as strings
+      String startTimeStr = _formatTimeOfDay(_startTime);
+      String endTimeStr = _formatTimeOfDay(_endTime);
+
+      final Map<String, dynamic> updatedTaskData = {
+        'taskName': _taskNameController.text.trim(),
+        'description': _descriptionController.text.trim(),
+        'location': _locationController.text.trim().isEmpty ? 'Unknown location' : _locationController.text.trim(),
+        'date': DateFormat('yyyy-MM-dd').format(_selectedDate),
+        'startTime': startTimeStr,
+        'endTime': endTimeStr,
+        'recurrence': _selectedRecurrence,
+      };
+
+      // Handle deletion of weekly tasks if changing from Weekly to No recurrence
+      if (_selectedRecurrence == 'No recurrence' && widget.taskData['recurrence'] == 'Weekly') {
+        final String redundancyId = widget.taskData['redundancyId']?.toString() ?? '';
+        
+        if (redundancyId.isNotEmpty) {
+          final QuerySnapshot tasksToDelete = await widget.usergoallistrefrence
+              .doc(widget.taskData['goalName'])
+              .collection('tasks')
+              .where('redundancyId', isEqualTo: redundancyId)
+              .get();
+
+          final batch = FirebaseFirestore.instance.batch();
+          
+          // Update current task and remove redundancyId
+          batch.update(widget.taskRef, {
+            ...updatedTaskData,
+            'redundancyId': FieldValue.delete(),
+          });
+
+          // Delete all other tasks with the same redundancyId
+          for (var doc in tasksToDelete.docs) {
+            if (doc.id != widget.taskRef.id) {
+              batch.delete(doc.reference);
+            }
+          }
+
+          await batch.commit();
+        } else {
+          await widget.taskRef.update(updatedTaskData);
+        }
+      }
+      // Handle creation of weekly tasks if changing to Weekly
+      else if (_changingToWeekly) {
+        final parentCollection = widget.taskRef.parent;
+        final String redundancyId = DateTime.now().millisecondsSinceEpoch.toString();
+        
+        final Map<String, dynamic> baseTaskData = {
+          ...updatedTaskData,
+          'redundancyId': redundancyId,
+          'goalName': widget.taskData['goalName'],
+        };
+
+        // Calculate dates from start date to goal date
+        DateTime currentDate = _selectedDate;
+        final List<DateTime> dates = [];
+        
+        while (currentDate.isBefore(widget.goalDate) || currentDate.isAtSameMomentAs(widget.goalDate)) {
+          dates.add(currentDate);
+          currentDate = currentDate.add(const Duration(days: 7));
+        }
+
+        final batch = FirebaseFirestore.instance.batch();
+        
+        // Update the original task
+        batch.update(widget.taskRef, baseTaskData);
+
+        // Create additional weekly tasks
+        for (int i = 1; i < dates.length; i++) {
+          final newTaskRef = parentCollection.doc();
+          batch.set(newTaskRef, {
+            ...baseTaskData,
+            'date': DateFormat('yyyy-MM-dd').format(dates[i]),
+          });
+        }
+
+        await batch.commit();
+      }
+      // Handle regular weekly task updates
+      else if (_selectedRecurrence == 'Weekly' && widget.taskData['redundancyId'] != null) {
+        final QuerySnapshot relatedTasks = await widget.usergoallistrefrence
+            .doc(widget.taskData['goalName'])
+            .collection('tasks')
+            .where('redundancyId', isEqualTo: widget.taskData['redundancyId'])
+            .get();
+
+        final batch = FirebaseFirestore.instance.batch();
+        
+        for (var doc in relatedTasks.docs) {
+          final existingData = doc.data() as Map<String, dynamic>;
+          final existingDate = DateFormat('yyyy-MM-dd').parse(existingData['date']);
+          final originalDate = DateFormat('yyyy-MM-dd').parse(widget.taskData['date']);
+          final daysDifference = _selectedDate.difference(originalDate).inDays;
+          final newTaskDate = existingDate.add(Duration(days: daysDifference));
+          
+          final specificTaskUpdate = Map<String, dynamic>.from(updatedTaskData);
+          specificTaskUpdate['date'] = DateFormat('yyyy-MM-dd').format(newTaskDate);
+          
+          batch.update(doc.reference, specificTaskUpdate);
+        }
+
+        await batch.commit();
+      }
+      // Handle regular single task update
+      else {
+        await widget.taskRef.update(updatedTaskData);
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Task updated successfully')),
+        );
+Navigator.of(context).pop();      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating task: $e')),
+        );
+      }
+    }
   }
 
  

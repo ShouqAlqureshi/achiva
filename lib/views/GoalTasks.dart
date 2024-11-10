@@ -96,7 +96,6 @@ class _GoalTasksState extends State<GoalTasks> {
               children: <Widget>[
                 _buildDetailRow('Date', task['date']),
                 _buildDetailRow('Description', task['description']),
-                _buildDetailRow('Duration', task['duration']),
                 _buildDetailRow('Start Time', task['startTime']),
                 _buildDetailRow('End Time', task['endTime']),
                 _buildDetailRow('Location', task['location']),
