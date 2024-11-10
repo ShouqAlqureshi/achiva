@@ -20,7 +20,7 @@ class EditTaskDialog extends StatefulWidget {
 }
 
 class _EditTaskDialogState extends State<EditTaskDialog> {
-  final TextEditingController _taskNameController = TextEditingController();
+   final TextEditingController _taskNameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   late String _selectedRecurrence;
@@ -34,17 +34,56 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
   bool _isStartTimeValid = true;
   bool _isEndTimeValid = true;
 
-  @override
+    @override
   void initState() {
     super.initState();
     _taskNameController.text = widget.taskData['taskName'];
     _descriptionController.text = widget.taskData['description'] ?? '';
-String location = widget.taskData['location'] ?? '';
+    String location = widget.taskData['location'] ?? '';
     _locationController.text = location == 'Unknown location' ? '' : location;
-        _selectedRecurrence = widget.taskData['recurrence'] ?? 'No recurrence';
+    _selectedRecurrence = widget.taskData['recurrence'] ?? 'No recurrence';
     _selectedDate = _parseDate(widget.taskData['date']);
-    _startTime = _parseTimeOfDay(widget.taskData['startTime']);
-    _endTime = _parseTimeOfDay(widget.taskData['endTime']);
+    
+    // Get the time strings from taskData
+    String startTimeStr = widget.taskData['startTime'] ?? '';
+    String endTimeStr = widget.taskData['endTime'] ?? '';
+    
+    // Parse times with proper error handling
+    _startTime = _parseTimeString(startTimeStr);
+    _endTime = _parseTimeString(endTimeStr);
+  }
+
+  TimeOfDay _parseTimeString(String timeStr) {
+    if (timeStr.isEmpty) {
+      return TimeOfDay.now();
+    }
+
+    try {
+      // First try parsing the standard "hh:mm a" format (e.g., "02:30 PM")
+      DateTime dateTime = DateFormat('hh:mm a').parse(timeStr);
+      return TimeOfDay(hour: dateTime.hour, minute: dateTime.minute);
+    } catch (e) {
+      try {
+        // If that fails, try parsing 24-hour format (e.g., "14:30")
+        List<String> parts = timeStr.split(':');
+        if (parts.length == 2) {
+          int hour = int.parse(parts[0]);
+          int minute = int.parse(parts[1]);
+          return TimeOfDay(hour: hour, minute: minute);
+        }
+      } catch (e) {
+        debugPrint('Error parsing time string: $e');
+      }
+    }
+
+    // Return current time if all parsing fails
+    return TimeOfDay.now();
+  }
+
+  String _formatTimeOfDay(TimeOfDay time) {
+    final now = DateTime.now();
+    final dt = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+    return DateFormat('hh:mm a').format(dt).toUpperCase(); // Ensure consistent format
   }
 
   DateTime _parseDate(String date) {
@@ -55,15 +94,61 @@ String location = widget.taskData['location'] ?? '';
     }
   }
 
-  TimeOfDay _parseTimeOfDay(String time) {
+
+  Future<void> _saveTask() async {
+    setState(() {
+      _isTaskNameValid = _taskNameController.text.trim().isNotEmpty;
+      _isDateValid = true;
+      _isStartTimeValid = true;
+      _validateTimes();
+    });
+
+    if (!_isTaskNameValid || !_isDateValid || !_isStartTimeValid || !_isEndTimeValid) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please fill in all required fields correctly')),
+        );
+      }
+      return;
+    }
+
     try {
-      final DateTime dateTime = DateFormat('hh:mm a').parse(time);
-      return TimeOfDay.fromDateTime(dateTime);
+      // Format times as strings
+      String startTimeStr = _formatTimeOfDay(_startTime);
+      String endTimeStr = _formatTimeOfDay(_endTime);
+
+      // Debug print to see what we're saving
+      debugPrint('Saving start time: $startTimeStr');
+      debugPrint('Saving end time: $endTimeStr');
+
+      final Map<String, dynamic> updatedTaskData = {
+        'taskName': _taskNameController.text.trim(),
+        'description': _descriptionController.text.trim(),
+        'location': _locationController.text.trim().isEmpty ? 'Unknown location' : _locationController.text.trim(),
+        'date': DateFormat('yyyy-MM-dd').format(_selectedDate),
+        'startTime': startTimeStr,
+        'endTime': endTimeStr,
+        'recurrence': _selectedRecurrence,
+      };
+
+      await widget.taskRef.update(updatedTaskData);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Task updated successfully')),
+        );
+        Navigator.of(context).pop();
+        Navigator.of(context).pop(); // Close both dialogs
+      }
     } catch (e) {
-      // Return current time if parsing fails
-      return TimeOfDay.now();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating task: $e')),
+        );
+      }
     }
   }
+
 
   @override
   void dispose() {
@@ -166,60 +251,7 @@ String location = widget.taskData['location'] ?? '';
     }
   }
 
-  Future<void> _saveTask() async {
-    setState(() {
-      _isTaskNameValid = _taskNameController.text.trim().isNotEmpty;
-      _isDateValid = true; // Date is always valid as we control the picker
-      _isStartTimeValid = true; // Time is always valid as we control the picker
-      _validateTimes(); // Revalidate times before saving
-    });
-
-    if (!_isTaskNameValid || !_isDateValid || !_isStartTimeValid || !_isEndTimeValid) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please fill in all required fields correctly')),
-        );
-      }
-      return;
-    }
-
-    try {
-      final Map<String, dynamic> updatedTaskData = {
-        'taskName': _taskNameController.text.trim(),
-        'description': _descriptionController.text.trim(),
-        'location': _locationController.text.trim().isEmpty ? 'Unknown location' : _locationController.text.trim(),
-        'date': DateFormat('yyyy-MM-dd').format(_selectedDate),
-        'startTime': DateFormat('hh:mm a').format(DateTime(
-          2022, 1, 1,
-          _startTime.hour,
-          _startTime.minute,
-        )),
-        'endTime': DateFormat('hh:mm a').format(DateTime(
-          2022, 1, 1,
-          _endTime.hour,
-          _endTime.minute,
-        )),
-        'recurrence': _selectedRecurrence,
-      };
-
-      await widget.taskRef.update(updatedTaskData);
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Task updated successfully')),
-        );
-        Navigator.of(context).pop();
-        Navigator.of(context).pop(); // Close both dialogs
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating task: $e')),
-        );
-      }
-    }
-  }
-
+ 
     @override
   Widget build(BuildContext context) {
     return Dialog(
