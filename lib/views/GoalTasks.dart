@@ -654,7 +654,12 @@ void _editTask(BuildContext context, DocumentReference taskRef, Map<String, dyna
     }
   }
 
-  Widget _buildDetailRow(String title, String? value) {
+Widget _buildDetailRow(String title, String? value) {
+    // Consider null, empty string, and "Unknown location" as 'Not set'
+    final displayValue = (value == null || 
+                         value.trim().isEmpty || 
+                         value.trim() == 'Unknown location') ? 'Not set' : value;
+    
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -670,7 +675,7 @@ void _editTask(BuildContext context, DocumentReference taskRef, Map<String, dyna
           ),
           Expanded(
             child: Text(
-              value ?? 'Not set',
+              displayValue,
               style: TextStyle(
                 color: Colors.black87,
                 fontSize: 16,

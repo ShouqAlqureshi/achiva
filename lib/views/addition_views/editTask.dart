@@ -39,8 +39,9 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     super.initState();
     _taskNameController.text = widget.taskData['taskName'];
     _descriptionController.text = widget.taskData['description'] ?? '';
-    _locationController.text = widget.taskData['location'] ?? '';
-    _selectedRecurrence = widget.taskData['recurrence'] ?? 'No recurrence';
+String location = widget.taskData['location'] ?? '';
+    _locationController.text = location == 'Unknown location' ? '' : location;
+        _selectedRecurrence = widget.taskData['recurrence'] ?? 'No recurrence';
     _selectedDate = _parseDate(widget.taskData['date']);
     _startTime = _parseTimeOfDay(widget.taskData['startTime']);
     _endTime = _parseTimeOfDay(widget.taskData['endTime']);
@@ -186,7 +187,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
       final Map<String, dynamic> updatedTaskData = {
         'taskName': _taskNameController.text.trim(),
         'description': _descriptionController.text.trim(),
-        'location': _locationController.text.trim(),
+        'location': _locationController.text.trim().isEmpty ? 'Unknown location' : _locationController.text.trim(),
         'date': DateFormat('yyyy-MM-dd').format(_selectedDate),
         'startTime': DateFormat('hh:mm a').format(DateTime(
           2022, 1, 1,
