@@ -20,7 +20,7 @@ class EditTaskDialog extends StatefulWidget {
 }
 
 class _EditTaskDialogState extends State<EditTaskDialog> {
-   final TextEditingController _taskNameController = TextEditingController();
+  final TextEditingController _taskNameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   late String _selectedRecurrence;
@@ -28,15 +28,25 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
   late TimeOfDay _startTime;
   late TimeOfDay _endTime;
   
+  // Original values for change detection
+  late String _originalTaskName;
+  late String _originalDescription;
+  late String _originalLocation;
+  late String _originalRecurrence;
+  late DateTime _originalDate;
+  late TimeOfDay _originalStartTime;
+  late TimeOfDay _originalEndTime;
+  
   bool _isTaskNameValid = true;
   bool _isDateValid = true;
   bool _isGoalDateValid = true;
   bool _isStartTimeValid = true;
   bool _isEndTimeValid = true;
 
-    @override
+  @override
   void initState() {
     super.initState();
+    // Initialize current values
     _taskNameController.text = widget.taskData['taskName'];
     _descriptionController.text = widget.taskData['description'] ?? '';
     String location = widget.taskData['location'] ?? '';
@@ -44,13 +54,36 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     _selectedRecurrence = widget.taskData['recurrence'] ?? 'No recurrence';
     _selectedDate = _parseDate(widget.taskData['date']);
     
-    // Get the time strings from taskData
     String startTimeStr = widget.taskData['startTime'] ?? '';
     String endTimeStr = widget.taskData['endTime'] ?? '';
-    
-    // Parse times with proper error handling
     _startTime = _parseTimeString(startTimeStr);
     _endTime = _parseTimeString(endTimeStr);
+
+    // Store original values
+    _originalTaskName = _taskNameController.text;
+    _originalDescription = _descriptionController.text;
+    _originalLocation = _locationController.text;
+    _originalRecurrence = _selectedRecurrence;
+    _originalDate = _selectedDate;
+    _originalStartTime = _startTime;
+    _originalEndTime = _endTime;
+
+    // Add listeners to controllers to detect changes
+    _taskNameController.addListener(_onFieldsChanged);
+    _descriptionController.addListener(_onFieldsChanged);
+    _locationController.addListener(_onFieldsChanged);
+  }
+
+  bool _hasChanges() {
+    return _taskNameController.text != _originalTaskName ||
+           _descriptionController.text != _originalDescription ||
+           _locationController.text != _originalLocation ||
+           _selectedRecurrence != _originalRecurrence ||
+           !_selectedDate.isAtSameMomentAs(_originalDate) ||
+           _startTime.hour != _originalStartTime.hour ||
+           _startTime.minute != _originalStartTime.minute ||
+           _endTime.hour != _originalEndTime.hour ||
+           _endTime.minute != _originalEndTime.minute;
   }
 
   TimeOfDay _parseTimeString(String timeStr) {
@@ -149,9 +182,17 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     }
   }
 
+void _onFieldsChanged() {
+    setState(() {
+      // This will trigger a rebuild to update the save button state
+    });
+  }
 
   @override
   void dispose() {
+    _taskNameController.removeListener(_onFieldsChanged);
+    _descriptionController.removeListener(_onFieldsChanged);
+    _locationController.removeListener(_onFieldsChanged);
     _taskNameController.dispose();
     _descriptionController.dispose();
     _locationController.dispose();
@@ -658,37 +699,39 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
 
               // Action Buttons
               Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text(
-                      'Cancel',
-                      style: TextStyle(
-                        color: Colors.grey[700],
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: _saveTask,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).primaryColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                    child: const Text(
-                      'Save',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(
+            'Cancel',
+            style: TextStyle(
+              color: Colors.grey[700],
+              fontSize: 14,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        ElevatedButton(
+          onPressed: _hasChanges() ? _saveTask : null, // Disable if no changes
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Theme.of(context).primaryColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+            ),
+            // Add disabledBackgroundColor for better visual feedback
+            disabledBackgroundColor: Colors.grey[300],
+          ),
+          child: const Text(
+            'Save',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ],
+    ),
             ],
           ),
         ),
