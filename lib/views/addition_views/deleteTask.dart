@@ -21,9 +21,7 @@ class TaskOperations {
               future: taskRef.get(),
               builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return AlertDialog(
-                    content: Center(child: CircularProgressIndicator()),
-                  );
+                  return const SizedBox.shrink(); // Return empty widget while loading
                 }
 
                 if (snapshot.hasError) {
