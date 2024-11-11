@@ -373,8 +373,7 @@ Future<void> _saveTask() async {
     };
 
     // Use the correct path to the task document
-      final taskDocRef = widget.taskRef;
-
+     final taskDocRef = widget.taskRef;
 
     // Check if the document still exists before attempting the update
     if (await taskDocRef.get().then((doc) => doc.exists)) {
@@ -395,7 +394,14 @@ Future<void> _saveTask() async {
               );
             }
 
-            final QuerySnapshot tasksToDelete = await widget.usergoallistrefrence
+            // Get the goal document reference
+            final goalDocRef = widget.usergoallistrefrence.doc(widget.goalName);
+
+            // Get the tasks subcollection reference
+            final tasksCollectionRef = goalDocRef.collection('tasks');
+
+            // Query for tasks with the same redundancyId
+            final QuerySnapshot tasksToDelete = await tasksCollectionRef
                 .where('redundancyId', isEqualTo: redundancyId)
                 .get();
 
