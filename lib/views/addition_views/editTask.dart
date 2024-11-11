@@ -48,9 +48,10 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
   bool _isStartTimeValid = true;
   bool _isEndTimeValid = true;
   bool _changingToWeekly = false;
+  bool _hasRedundancyId = false;
 
 
-  @override
+ @override
   void initState() {
     super.initState();
     // Initialize current values
@@ -74,6 +75,9 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     _originalDate = _selectedDate;
     _originalStartTime = _startTime;
     _originalEndTime = _endTime;
+
+    // Check if the task has a redundancyId
+    _hasRedundancyId = widget.taskData['redundancyId'] != null;
 
     // Add listeners to controllers to detect changes
     _taskNameController.addListener(_onFieldsChanged);
@@ -507,6 +511,56 @@ Future<void> _saveTask() async {
             );
           }
         }
+      } else if (_hasRedundancyId && _selectedRecurrence == 'Weekly') {
+        // New: Handle updating all related weekly tasks
+        try {
+          if (mounted) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (BuildContext context) {
+                return const Center(child: CircularProgressIndicator());
+              },
+            );
+          }
+
+          final bool updateAllWeeklyTasks = await _showUpdateAllWeeklyTasksDialog();
+          if (updateAllWeeklyTasks) {
+            // Update all related weekly tasks
+            await _updateAllWeeklyTasks(
+              updatedTaskData,
+              widget.taskData['redundancyId']?.toString() ?? '',
+            );
+          } else {
+            // Update only the current task
+            await taskDocRef.update(updatedTaskData);
+          }
+
+          if (mounted) {
+            Navigator.of(context).pop(); // Close loading indicator
+            Navigator.of(context).pop(); // Close the dialog
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  updateAllWeeklyTasks
+                      ? 'All related weekly tasks updated'
+                      : 'Task updated successfully',
+                ),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            Navigator.of(context).pop(); // Close loading indicator
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error updating tasks: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
       } else {
         // Handle regular single task update
         await taskDocRef.update(updatedTaskData);
@@ -533,6 +587,55 @@ Future<void> _saveTask() async {
       );
     }
   }
+}
+
+Future<bool> _showUpdateAllWeeklyTasksDialog() async {
+  return await showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Update All Related Weekly Tasks'),
+        content: const Text(
+          'Do you want to update all related weekly tasks or only this task?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Update Only This Task'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Update All Weekly Tasks'),
+          ),
+        ],
+      );
+    },
+  ) ?? false;
+}
+
+Future<void> _updateAllWeeklyTasks(
+  Map<String, dynamic> updatedTaskData,
+  String redundancyId,
+) async {
+  // Get the goal document reference
+  final goalDocRef = widget.usergoallistrefrence.doc(widget.goalName);
+
+  // Get the tasks subcollection reference
+  final tasksCollectionRef = goalDocRef.collection('tasks');
+
+  // Query for tasks with the same redundancyId
+  final QuerySnapshot tasksToUpdate = await tasksCollectionRef
+    .where('redundancyId', isEqualTo: redundancyId)
+    .get();
+
+  final batch = FirebaseFirestore.instance.batch();
+
+  // Update all tasks with the same redundancyId
+  for (var doc in tasksToUpdate.docs) {
+    batch.update(doc.reference, updatedTaskData);
+  }
+
+  await batch.commit();
 }
  
     @override
