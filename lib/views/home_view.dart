@@ -421,8 +421,12 @@ class _HomePageState extends State<HomeScreen> {
                                               height: 40,
                                               width: 1.2,
                                             ),
-                                            reportStats("${userData["streak"]}" + (userData["streak"] != 0 ? ' 🔥' : ''),
-           'Streak')
+                                            reportStats(
+                                                "${userData["streak"]}" +
+                                                    (userData["streak"] != 0
+                                                        ? ' 🔥'
+                                                        : ''),
+                                                'Streak')
                                           ],
                                         ),
                                       ),
@@ -478,33 +482,58 @@ class _HomePageState extends State<HomeScreen> {
                           controller: PageController(viewportFraction: 0.87),
                           itemCount: snapshot.data!.docs.length,
                           itemBuilder: (context, index) {
-                            final goalDocument = snapshot.data!.docs[index];
-                            final goalData =
-                                goalDocument.data() as Map<String, dynamic>;
-                            final String goalName = goalData['name'];
-
-                            return StreamBuilder<Map<String, dynamic>>(
-                              stream: getGoalWithProgress(goalDocument),
-                              builder: (context, progressSnapshot) {
-                                if (progressSnapshot.connectionState ==
+                            return FutureBuilder<DocumentSnapshot>(
+                              future:
+                                  getGoalDocument(snapshot.data!.docs[index]),
+                              builder: (context,
+                                  AsyncSnapshot<DocumentSnapshot>
+                                      goalSnapshot) {
+                                if (goalSnapshot.connectionState ==
                                     ConnectionState.waiting) {
                                   return const Center(
                                       child: CircularProgressIndicator());
                                 }
-                                if (!progressSnapshot.hasData) {
-                                  return const Center(
-                                      child: Text('Error loading progress'));
+
+                                if (goalSnapshot.hasError) {
+                                  return const Text(
+                                      "Error fetching goal details");
                                 }
 
-                                double progress =
-                                    progressSnapshot.data!['progress'];
-                                final isDone = progress >= 100;
+                                if (!goalSnapshot.hasData) {
+                                  return const Text("No goal data available");
+                                }
 
-                                return _buildGoalCard(
-                                  goalName,
-                                  progress,
-                                  isDone,
-                                  goalDocument,
+                                // Assign the final document based on the function result
+                                final goalDocument = goalSnapshot.data!;
+                                final goalData =
+                                    goalDocument.data() as Map<String, dynamic>;
+                                final String goalName = goalData['name'];
+
+                                return StreamBuilder<Map<String, dynamic>>(
+                                  stream: getGoalWithProgress(goalDocument),
+                                  builder: (context, progressSnapshot) {
+                                    if (progressSnapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return const Center(
+                                          child: CircularProgressIndicator());
+                                    }
+                                    if (!progressSnapshot.hasData) {
+                                      return const Center(
+                                          child:
+                                              Text('Error loading progress'));
+                                    }
+
+                                    double progress =
+                                        progressSnapshot.data!['progress'];
+                                    final isDone = progress >= 100;
+
+                                    return _buildGoalCard(
+                                      goalName,
+                                      progress,
+                                      isDone,
+                                      goalDocument,
+                                    );
+                                  },
                                 );
                               },
                             );
@@ -520,6 +549,27 @@ class _HomePageState extends State<HomeScreen> {
         ),
       ],
     );
+  }
+
+  Future<QueryDocumentSnapshot<Object?>> getGoalDocument(
+      QueryDocumentSnapshot originalDocument) async {
+    final goalData = originalDocument.data() as Map<String, dynamic>;
+
+    // If the goal has a sharedId, fetch from sharedGoal collection
+    if (goalData.containsKey('sharedId') && goalData['sharedId'] != null) {
+      final sharedDocSnapshot = await FirebaseFirestore.instance
+          .collection('sharedGoal')
+          .where(FieldPath.documentId, isEqualTo: goalData['sharedId'])
+          .limit(1)
+          .get();
+
+      if (sharedDocSnapshot.docs.isNotEmpty) {
+        return sharedDocSnapshot.docs.first;
+      }
+    }
+
+    // Otherwise return the original document
+    return originalDocument;
   }
 
   Widget _buildGoalCard(String goalName, double progress, bool isDone,

@@ -29,11 +29,7 @@ class _GoalTasksState extends State<GoalTasks> {
   }
 
   Stream<double> _createProgressStream() {
-    return FirebaseFirestore.instance
-        .collection("Users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection('goals')
-        .doc(widget.goalDocument.id)
+    return widget.goalDocument.reference
         .collection('tasks')
         .snapshots()
         .map((snapshot) {
@@ -51,7 +47,8 @@ class _GoalTasksState extends State<GoalTasks> {
     });
   }
 
-  void _showTaskDetails(BuildContext context, Map<String, dynamic> task,DocumentReference taskRef) {
+  void _showTaskDetails(BuildContext context, Map<String, dynamic> task,
+      DocumentReference taskRef, bool isCompleted) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -73,102 +70,180 @@ class _GoalTasksState extends State<GoalTasks> {
                   constraints: BoxConstraints(),
                 ),
               ),
-              Text(
-                task['taskName'] ?? 'Task Details',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    task['taskName'] ?? 'Task Details',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (isCompleted && widget.goalDocument['visibility'] == true)
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          Navigator.of(context)
+                              .pop(); // Close the current dialog
+                          String goalId = widget.goalDocument.id;
+                          String taskId = taskRef.id;
+                          // Show the CreatePostDialog
+                          bool? result = await showDialog<bool>(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return CreatePostDialog(
+                                userId: widget.userId,
+                                goalId: goalId,
+                                taskId: taskId,
+                              );
+                            },
+                          ).then((value) async {
+                            if (value == true) {
+                              var tasks = await widget.goalDocument.reference
+                                  .collection('tasks')
+                                  .orderBy('startTime')
+                                  .get();
+                            }
+                            return null;
+                          });
+                        },
+                        style: ButtonStyle(
+                          backgroundColor:
+                              WidgetStateProperty.all(Colors.transparent),
+                          elevation: WidgetStateProperty.all(
+                              0), // Remove button shadow
+                          padding: WidgetStateProperty.all(
+                              EdgeInsets.zero), // Remove padding
+                        ),
+                        child: Image.asset("lib/images/post.png",
+                            fit: BoxFit.contain,
+                            height: 30,
+                            color: Colors.grey[800]),
+                      ),
+                    ),
+                ],
               ),
+              SizedBox(
+                height: 15,
+              )
             ],
           ),
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
-                _buildDetailRow('Date', task['date']),
-                _buildDetailRow('Description', task['description']),
-                _buildDetailRow('Duration', task['duration']),
-                _buildDetailRow('Start Time', task['startTime']),
-                _buildDetailRow('End Time', task['endTime']),
-                _buildDetailRow('Location', task['location']),
-                _buildDetailRow('Recurrence', task['recurrence']),
+                _buildDetailRow('Date', task['date'], "lib/images/date.png"),
+                const Divider(
+                  indent: 20,
+                  endIndent: 20,
+                ),
+                _buildDetailRow('Description', task['description'],
+                    "lib/images/description.png"),
+                const Divider(
+                  indent: 20,
+                  endIndent: 20,
+                ),
+                _buildDetailRow(
+                    'Duration', task['duration'], "lib/images/duration.png"),
+                const Divider(
+                  indent: 20,
+                  endIndent: 20,
+                ),
+                _buildDetailRow('Start Time', task['startTime'],
+                    "lib/images/startTime.png"),
+                const Divider(
+                  indent: 20,
+                  endIndent: 20,
+                ),
+                _buildDetailRow(
+                    'End Time', task['endTime'], "lib/images/endTime.png"),
+                const Divider(
+                  indent: 20,
+                  endIndent: 20,
+                ),
+                _buildDetailRow(
+                    'Location', task['location'], "lib/images/location.png"),
               ],
             ),
           ),
           actions: <Widget>[
-  TextButton(
-    child: Text('Edit', style: TextStyle(color: Colors.black)),
-    onPressed: () {
-      Navigator.of(context).pop(); // Close the details dialog
-      _editTask(context, taskRef, task);
-    },
-  ),
-  TextButton(
-    child: Text('Delete', style: TextStyle(color: Colors.black)),
-    onPressed: () {
-      Navigator.of(context).pop(); // Close the details dialog
-      _deleteTask(context, taskRef);
-    },
-  ),
-],
+            TextButton(
+              child: Text('Edit', style: TextStyle(color: Colors.black)),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the details dialog
+                _editTask(context, taskRef, task);
+              },
+            ),
+            TextButton(
+              child: Text('Delete', style: TextStyle(color: Colors.black)),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the details dialog
+                _deleteTask(context, taskRef);
+              },
+            ),
+          ],
         );
       },
     );
   }
-void _editTask(BuildContext context, DocumentReference taskRef, Map<String, dynamic> taskData) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return EditTaskDialog(
-        taskRef: taskRef,
-        taskData: taskData,
-      );
-    },
-  );
-}
 
-void _deleteTask(BuildContext context, DocumentReference taskRef) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        backgroundColor: Colors.white,
-        title: Text(
-          'Delete Task',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-        ),
-        content: Text(
-          'Are you sure you want to delete this task? This action cannot be undone.',
-          style: TextStyle(color: Colors.black),
-        ),
-        actions: [
-          TextButton(
-            child: Text('Cancel', style: TextStyle(color: Colors.black)),
-            onPressed: () => Navigator.of(context).pop(),
+  void _editTask(BuildContext context, DocumentReference taskRef,
+      Map<String, dynamic> taskData) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return EditTaskDialog(
+          taskRef: taskRef,
+          taskData: taskData,
+        );
+      },
+    );
+  }
+
+  void _deleteTask(BuildContext context, DocumentReference taskRef) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          title: Text(
+            'Delete Task',
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
           ),
-          TextButton(
-            child: Text('Delete', style: TextStyle(color: Colors.red)),
-            onPressed: () async {
-              try {
-                await taskRef.delete();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Task deleted successfully')),
-                );
-                Navigator.of(context).pop();
-                Navigator.of(context).pop(); // Close both dialogs
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error deleting task: $e')),
-                );
-              }
-            },
+          content: Text(
+            'Are you sure you want to delete this task? This action cannot be undone.',
+            style: TextStyle(color: Colors.black),
           ),
-        ],
-      );
-    },
-  );
-}
+          actions: [
+            TextButton(
+              child: Text('Cancel', style: TextStyle(color: Colors.black)),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: Text('Delete', style: TextStyle(color: Colors.red)),
+              onPressed: () async {
+                try {
+                  await taskRef.delete();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Task deleted successfully')),
+                  );
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop(); // Close both dialogs
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error deleting task: $e')),
+                  );
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _toggleTaskCompletion(BuildContext context, DocumentReference taskRef,
       bool currentStatus, String taskName) {
     if (currentStatus) {
@@ -178,9 +253,21 @@ void _deleteTask(BuildContext context, DocumentReference taskRef) {
         builder: (BuildContext context) {
           return AlertDialog(
             backgroundColor: Colors.white,
-            title: Text('Uncheck Task',
-                style: TextStyle(
-                    color: Colors.black, fontWeight: FontWeight.bold)),
+            title: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Image.asset(
+                  'lib/images/uncheck.png',
+                  fit: BoxFit.contain,
+                  height: 60,
+                ),
+                Text('Uncheck Task',
+                    style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20)),
+              ],
+            ),
             content: Text(
                 'Are you sure you want to mark this task as incomplete?',
                 style: TextStyle(color: Colors.black)),
@@ -214,9 +301,21 @@ void _deleteTask(BuildContext context, DocumentReference taskRef) {
           builder: (BuildContext context) {
             return AlertDialog(
               backgroundColor: Colors.white,
-              title: Text('Task Completed!',
-                  style: TextStyle(
-                      color: Colors.black, fontWeight: FontWeight.bold)),
+              title: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Image.asset(
+                    'lib/images/check.png',
+                    fit: BoxFit.contain,
+                    height: 60,
+                  ),
+                  Text('Task Completed!',
+                      style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20)),
+                ],
+              ),
               content: Text('Congratulations on completing your task!',
                   style: TextStyle(color: Colors.black)),
               actions: <Widget>[
@@ -237,9 +336,21 @@ void _deleteTask(BuildContext context, DocumentReference taskRef) {
           builder: (BuildContext context) {
             return AlertDialog(
               backgroundColor: Colors.white,
-              title: Text('Task Completed!',
-                  style: TextStyle(
-                      color: Colors.black, fontWeight: FontWeight.bold)),
+              title: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Image.asset(
+                    'lib/images/post.png',
+                    fit: BoxFit.contain,
+                    height: 60,
+                  ),
+                  Text('Task Completed!',
+                      style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20)),
+                ],
+              ),
               content: Text(
                   'Congratulations on completing your task!\nDo you want to make a post about it?',
                   style: TextStyle(color: Colors.black)),
@@ -691,18 +802,26 @@ void _deleteTask(BuildContext context, DocumentReference taskRef) {
     }
   }
 
-  Widget _buildDetailRow(String title, String? value) {
+  Widget _buildDetailRow(String title, String? value, String image) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Image.asset(
+            image,
+            fit: BoxFit.contain,
+            height: 20,
+          ),
+          SizedBox(
+            width: 10,
+          ),
           Text(
             '$title: ',
             style: TextStyle(
               color: Colors.black,
               fontWeight: FontWeight.bold,
-              fontSize: 16,
+              fontSize: 18,
             ),
           ),
           Expanded(
@@ -868,54 +987,73 @@ void _deleteTask(BuildContext context, DocumentReference taskRef) {
                               final date = task['date'] ?? 'Not set';
                               final isCompleted = task['completed'] ?? false;
                               return GestureDetector(
-                                onTap: () => _showTaskDetails(context, task,taskDoc.reference),
+                                onTap: () => _showTaskDetails(context, task,
+                                    taskDoc.reference, isCompleted),
                                 child: Padding(
                                   padding: const EdgeInsets.only(
                                       left: 22.0, bottom: 40.0, right: 22.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
-                                      SizedBox(
-                                          height:
-                                              16), // Increased space above task details
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              taskName,
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            SizedBox(
+                                                height:
+                                                    16), // Increased space above task details
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.center,
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    taskName,
+                                                    style: TextStyle(
+                                                      fontSize: 20,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: isCompleted
+                                                          ? Colors.grey
+                                                          : Colors.black,
+                                                      decoration: isCompleted
+                                                          ? TextDecoration
+                                                              .lineThrough
+                                                          : TextDecoration.none,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Text(
+                                                  startTime,
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    color: Colors.grey[600],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            SizedBox(height: 4),
+                                            Text(
+                                              date,
                                               style: TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.w500,
-                                                color: isCompleted
-                                                    ? Colors.grey
-                                                    : Colors.black,
-                                                decoration: isCompleted
-                                                    ? TextDecoration.lineThrough
-                                                    : TextDecoration.none,
+                                                fontSize: 14,
+                                                color: Colors.grey[600],
                                               ),
                                             ),
-                                          ),
-                                          Text(
-                                            startTime,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.grey[600],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(height: 4),
-                                      Text(
-                                        date,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey[600],
+                                          ],
                                         ),
+                                      ),
+                                      Icon(
+                                        Icons.arrow_forward_ios,
+                                        color: Colors.grey[700],
+                                        size: 15, // Adjust the size as needed
+                                      ),
+                                      SizedBox(
+                                        width: 10,
                                       ),
                                     ],
                                   ),

@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:achiva/utilities/loading.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -89,12 +90,8 @@ class _IncomingRequestsPageState extends State<IncomingRequestsPage> {
         final requests = snapshot.data ?? [];
 
         if (requests.isEmpty) {
-          return Center(
-            child: Text(
-              'You have no pending requests/invitations.',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-          );
+          return noResults(
+              'You have no pending requests/invitations.');
         }
 
         return ListView.builder(
@@ -183,31 +180,7 @@ class _IncomingRequestsPageState extends State<IncomingRequestsPage> {
     yield validFriendRequests;
   }
 
-  Widget noPendingFriendRequestsWidget(String massage) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(30),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Image.asset(
-                'lib/images/no-results.png',
-                fit: BoxFit.contain,
-                height: 100,
-              ),
-              SizedBox(height: 40),
-              Text(
-                massage,
-                style: TextStyle(fontSize: 16, color: Colors.white60),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+
 
   void _acceptFriendRequest(
       String currentUserId, String friendId, String requestId) {

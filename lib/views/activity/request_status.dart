@@ -1,3 +1,4 @@
+import 'package:achiva/utilities/loading.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -259,12 +260,7 @@ class _RequestStatusState extends State<RequestStatus> {
         final combinedDocs = snapshot.data ?? [];
 
         if (combinedDocs.isEmpty) {
-          return Center(
-            child: Text(
-              'You have no updates on your friend requests.',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-          );
+          return noResults('You have no updates on your friend requests.');
         }
 
         return ListView.separated(
