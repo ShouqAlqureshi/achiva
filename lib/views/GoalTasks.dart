@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:achiva/utilities/colors.dart';
 import 'package:timelines/timelines.dart';
 import 'package:achiva/views/addition_views/deleteTask.dart';
+
 class GoalTasks extends StatefulWidget {
   final DocumentSnapshot goalDocument;
   final String userId = FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -21,19 +22,17 @@ class GoalTasks extends StatefulWidget {
 class _GoalTasksState extends State<GoalTasks> {
   double _progress = 0.0;
   late Stream<double> _progressStream;
-   late CollectionReference usergoallistrefrence;
+  late CollectionReference usergoallistrefrence;
 
   @override
   void initState() {
     super.initState();
     _progressStream = _createProgressStream();
-     // Initialize the goal document reference
+    // Initialize the goal document reference
     usergoallistrefrence = FirebaseFirestore.instance
         .collection("Users")
         .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection('goals')
-        .doc(widget.goalDocument.id)
-        .collection('tasks');
+        .collection('goals');
   }
 
   Stream<double> _createProgressStream() {
@@ -59,7 +58,8 @@ class _GoalTasksState extends State<GoalTasks> {
     });
   }
 
-  void _showTaskDetails(BuildContext context, Map<String, dynamic> task,DocumentReference taskRef,DateTime goalDate) {
+  void _showTaskDetails(BuildContext context, Map<String, dynamic> task,
+      DocumentReference taskRef, DateTime goalDate) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -104,42 +104,45 @@ class _GoalTasksState extends State<GoalTasks> {
             ),
           ),
           actions: <Widget>[
-  TextButton(
-    child: Text('Edit', style: TextStyle(color: Colors.black)),
-    onPressed: () {
-      Navigator.of(context).pop(); // Close the details dialog
-      _editTask(context, taskRef, task,goalDate);
-    },
-  ),
-  TextButton(
-  child: Text('Delete', style: TextStyle(color: Colors.black)),
-  onPressed: () async {
-    Navigator.of(context).pop(); // Close the details dialog
-    bool wasDeleted = await TaskOperations.deleteTask(context, taskRef);
-    if (wasDeleted) {
-      Navigator.of(context).pop(); // Close the parent dialog if deletion was successful
-    }
-  },
-),
-],
+            TextButton(
+              child: Text('Edit', style: TextStyle(color: Colors.black)),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the details dialog
+                _editTask(context, taskRef, task, goalDate);
+              },
+            ),
+            TextButton(
+              child: Text('Delete', style: TextStyle(color: Colors.black)),
+              onPressed: () async {
+                Navigator.of(context).pop(); // Close the details dialog
+                bool wasDeleted =
+                    await TaskOperations.deleteTask(context, taskRef);
+                if (wasDeleted) {
+                  Navigator.of(context)
+                      .pop(); // Close the parent dialog if deletion was successful
+                }
+              },
+            ),
+          ],
         );
       },
     );
   }
-void _editTask(BuildContext context, DocumentReference taskRef, Map<String, dynamic> taskData, DateTime goalDate) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return EditTaskDialog(
-        taskRef: taskRef,
-        taskData: taskData, 
-        goalDate: goalDate,
-         usergoallistrefrence: usergoallistrefrence,
-      );
-    },
-  );
-}
 
+  void _editTask(BuildContext context, DocumentReference taskRef,
+      Map<String, dynamic> taskData, DateTime goalDate) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return EditTaskDialog(
+          taskRef: taskRef,
+          taskData: taskData,
+          goalDate: goalDate,
+          usergoallistrefrence: usergoallistrefrence,
+        );
+      },
+    );
+  }
 
   void _toggleTaskCompletion(BuildContext context, DocumentReference taskRef,
       bool currentStatus, String taskName) {
@@ -663,12 +666,14 @@ void _editTask(BuildContext context, DocumentReference taskRef, Map<String, dyna
     }
   }
 
-Widget _buildDetailRow(String title, String? value) {
+  Widget _buildDetailRow(String title, String? value) {
     // Consider null, empty string, and "Unknown location" as 'Not set'
-    final displayValue = (value == null || 
-                         value.trim().isEmpty || 
-                         value.trim() == 'Unknown location') ? 'Not set' : value;
-    
+    final displayValue = (value == null ||
+            value.trim().isEmpty ||
+            value.trim() == 'Unknown location')
+        ? 'Not set'
+        : value;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -845,7 +850,8 @@ Widget _buildDetailRow(String title, String? value) {
                               final date = task['date'] ?? 'Not set';
                               final isCompleted = task['completed'] ?? false;
                               return GestureDetector(
-                                onTap: () => _showTaskDetails(context, task,taskDoc.reference,goalDate),
+                                onTap: () => _showTaskDetails(
+                                    context, task, taskDoc.reference, goalDate),
                                 child: Padding(
                                   padding: const EdgeInsets.only(
                                       left: 22.0, bottom: 40.0, right: 22.0),

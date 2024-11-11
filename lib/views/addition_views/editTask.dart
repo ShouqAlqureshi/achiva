@@ -303,174 +303,230 @@ void _onFieldsChanged() {
     ) ?? false;
   }
 
- Future<void> _handleRecurrenceChange(String? newValue) async {
-    if (newValue == null) return;
 
-    // Handle changing from Weekly to No recurrence
-    if (_selectedRecurrence == 'Weekly' && newValue == 'No recurrence') {
-      final bool confirmed = await _showDeleteConfirmationDialog();
-      if (confirmed) {
-        setState(() {
-          _selectedRecurrence = newValue;
-        });
-      }
-    } 
-    // Handle changing from No recurrence to Weekly
-    else if (_selectedRecurrence == 'No recurrence' && newValue == 'Weekly') {
-      setState(() {
-        _selectedRecurrence = newValue;
-        _changingToWeekly = true;  // Set flag for save operation
-      });
-    } else {
+final RecurringTaskManager _taskManager = RecurringTaskManager();
+
+Future<void> _handleRecurrenceChange(String? newValue) async {
+  if (newValue == null) return;
+
+  // Handle changing from Weekly to No recurrence
+  if (_selectedRecurrence == 'Weekly' && newValue == 'No recurrence') {
+    final bool confirmed = await _showDeleteConfirmationDialog();
+    if (confirmed) {
       setState(() {
         _selectedRecurrence = newValue;
       });
     }
+  } 
+  // Handle changing from No recurrence to Weekly
+  else if (_selectedRecurrence == 'No recurrence' && newValue == 'Weekly') {
+    setState(() {
+      _selectedRecurrence = newValue;
+      _changingToWeekly = true;
+    });
+  } else {
+    setState(() {
+      _selectedRecurrence = newValue;
+    });
+  }
+  
+}
+
+Future<void> _saveTask() async {
+  setState(() {
+    _isTaskNameValid = _taskNameController.text.trim().isNotEmpty;
+    _isDateValid = true;
+    _isStartTimeValid = true;
+    _validateTimes();
+  });
+
+  if (!_isTaskNameValid || !_isDateValid || !_isStartTimeValid || !_isEndTimeValid) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all required fields correctly')),
+      );
+    }
+    return;
   }
 
-  Future<void> _saveTask() async {
-    setState(() {
-      _isTaskNameValid = _taskNameController.text.trim().isNotEmpty;
-      _isDateValid = true;
-      _isStartTimeValid = true;
-      _validateTimes();
-    });
+  try {
+    // Format times as strings
+    String startTimeStr = _formatTimeOfDay(_startTime);
+    String endTimeStr = _formatTimeOfDay(_endTime);
 
-    if (!_isTaskNameValid || !_isDateValid || !_isStartTimeValid || !_isEndTimeValid) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please fill in all required fields correctly')),
-        );
-      }
-      return;
-    }
+    // Ensure all fields have non-null values
+    String taskName = _taskNameController.text.trim();
+    String description = _descriptionController.text.trim();
+    String location = _locationController.text.trim().isEmpty ? 'Unknown location' : _locationController.text.trim();
+    String formattedDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
-    try {
-      // Format times as strings
-      String startTimeStr = _formatTimeOfDay(_startTime);
-      String endTimeStr = _formatTimeOfDay(_endTime);
+    final Map<String, dynamic> updatedTaskData = {
+      'taskName': taskName,
+      'description': description,
+      'location': location,
+      'date': formattedDate,
+      'startTime': startTimeStr,
+      'endTime': endTimeStr,
+      'recurrence': _selectedRecurrence,
+    };
 
-      final Map<String, dynamic> updatedTaskData = {
-        'taskName': _taskNameController.text.trim(),
-        'description': _descriptionController.text.trim(),
-        'location': _locationController.text.trim().isEmpty ? 'Unknown location' : _locationController.text.trim(),
-        'date': DateFormat('yyyy-MM-dd').format(_selectedDate),
-        'startTime': startTimeStr,
-        'endTime': endTimeStr,
-        'recurrence': _selectedRecurrence,
-      };
+    // Use the correct path to the task document
+      final taskDocRef = widget.taskRef;
 
-      // Handle deletion of weekly tasks if changing from Weekly to No recurrence
+
+    // Check if the document still exists before attempting the update
+    if (await taskDocRef.get().then((doc) => doc.exists)) {
       if (_selectedRecurrence == 'No recurrence' && widget.taskData['recurrence'] == 'Weekly') {
+        // Handle deletion of weekly tasks if changing from Weekly to No recurrence
         final String redundancyId = widget.taskData['redundancyId']?.toString() ?? '';
-        
+
         if (redundancyId.isNotEmpty) {
-          final QuerySnapshot tasksToDelete = await widget.usergoallistrefrence
-              .doc(widget.taskData['goalName'])
-              .collection('tasks')
-              .where('redundancyId', isEqualTo: redundancyId)
-              .get();
-
-          final batch = FirebaseFirestore.instance.batch();
-          
-          // Update current task and remove redundancyId
-          batch.update(widget.taskRef, {
-            ...updatedTaskData,
-            'redundancyId': FieldValue.delete(),
-          });
-
-          // Delete all other tasks with the same redundancyId
-          for (var doc in tasksToDelete.docs) {
-            if (doc.id != widget.taskRef.id) {
-              batch.delete(doc.reference);
+          try {
+            // Show loading indicator
+            if (mounted) {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (BuildContext context) {
+                  return const Center(child: CircularProgressIndicator());
+                },
+              );
             }
+
+            final QuerySnapshot tasksToDelete = await widget.usergoallistrefrence
+                .where('redundancyId', isEqualTo: redundancyId)
+                .get();
+
+            final batch = FirebaseFirestore.instance.batch();
+
+            // Update current task and remove redundancyId
+            batch.update(taskDocRef, {
+              ...updatedTaskData,
+              'redundancyId': FieldValue.delete(),
+            });
+
+            int deletedCount = 0;
+            // Delete all other tasks with the same redundancyId
+            for (var doc in tasksToDelete.docs) {
+              if (doc.id != taskDocRef.id) {
+                batch.delete(doc.reference);
+                deletedCount++;
+              }
+            }
+
+            await batch.commit();
+
+            // Close loading indicator
+            if (mounted) {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Task updated and $deletedCount related weekly tasks removed'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          } catch (e) {
+            // Close loading indicator if error occurs
+            if (mounted) {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error removing weekly tasks: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+            return; // Exit without closing dialog
+          }
+        }
+      } else if (_changingToWeekly) {
+        // Handle creation of weekly tasks if changing to Weekly
+        try {
+          if (mounted) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (BuildContext context) {
+                return const Center(child: CircularProgressIndicator());
+              },
+            );
           }
 
-          await batch.commit();
-        } else {
-          await widget.taskRef.update(updatedTaskData);
+          List<Map<String, dynamic>> createdTasks = await _taskManager.addRecurringTask(
+            goalName: widget.taskData['goalName'],
+            startDate: _selectedDate,
+            startTime: _startTime,
+            endTime: _endTime,
+            location: location,
+            recurrenceType: 'Weekly',
+            description: description,
+            taskName: taskName,
+            usergoallistrefrence: widget.usergoallistrefrence,
+            goalDate: widget.goalDate,
+          );
+
+          // Delete the original non-recurring task
+          await taskDocRef.delete();
+
+          if (mounted) {
+            Navigator.of(context).pop(); // Close loading indicator
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Created ${createdTasks.length} weekly tasks successfully'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            Navigator.of(context).pop(); // Close dialog
+          }
+        } catch (e) {
+          if (mounted) {
+            Navigator.of(context).pop(); // Close loading indicator
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error creating weekly tasks: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+      } else if (_selectedRecurrence == 'Weekly' && widget.taskData['redundancyId'] != null) {
+        // Handle regular weekly task updates
+        await taskDocRef.update(updatedTaskData);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Task updated successfully')),
+          );
+          Navigator.of(context).pop();
+        }
+      } else {
+        // Handle regular single task update
+        await taskDocRef.update(updatedTaskData);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Task updated successfully')),
+          );
+          Navigator.of(context).pop();
         }
       }
-      // Handle creation of weekly tasks if changing to Weekly
-      else if (_changingToWeekly) {
-        final parentCollection = widget.taskRef.parent;
-        final String redundancyId = DateTime.now().millisecondsSinceEpoch.toString();
-        
-        final Map<String, dynamic> baseTaskData = {
-          ...updatedTaskData,
-          'redundancyId': redundancyId,
-          'goalName': widget.taskData['goalName'],
-        };
-
-        // Calculate dates from start date to goal date
-        DateTime currentDate = _selectedDate;
-        final List<DateTime> dates = [];
-        
-        while (currentDate.isBefore(widget.goalDate) || currentDate.isAtSameMomentAs(widget.goalDate)) {
-          dates.add(currentDate);
-          currentDate = currentDate.add(const Duration(days: 7));
-        }
-
-        final batch = FirebaseFirestore.instance.batch();
-        
-        // Update the original task
-        batch.update(widget.taskRef, baseTaskData);
-
-        // Create additional weekly tasks
-        for (int i = 1; i < dates.length; i++) {
-          final newTaskRef = parentCollection.doc();
-          batch.set(newTaskRef, {
-            ...baseTaskData,
-            'date': DateFormat('yyyy-MM-dd').format(dates[i]),
-          });
-        }
-
-        await batch.commit();
-      }
-      // Handle regular weekly task updates
-      else if (_selectedRecurrence == 'Weekly' && widget.taskData['redundancyId'] != null) {
-        final QuerySnapshot relatedTasks = await widget.usergoallistrefrence
-            .doc(widget.taskData['goalName'])
-            .collection('tasks')
-            .where('redundancyId', isEqualTo: widget.taskData['redundancyId'])
-            .get();
-
-        final batch = FirebaseFirestore.instance.batch();
-        
-        for (var doc in relatedTasks.docs) {
-          final existingData = doc.data() as Map<String, dynamic>;
-          final existingDate = DateFormat('yyyy-MM-dd').parse(existingData['date']);
-          final originalDate = DateFormat('yyyy-MM-dd').parse(widget.taskData['date']);
-          final daysDifference = _selectedDate.difference(originalDate).inDays;
-          final newTaskDate = existingDate.add(Duration(days: daysDifference));
-          
-          final specificTaskUpdate = Map<String, dynamic>.from(updatedTaskData);
-          specificTaskUpdate['date'] = DateFormat('yyyy-MM-dd').format(newTaskDate);
-          
-          batch.update(doc.reference, specificTaskUpdate);
-        }
-
-        await batch.commit();
-      }
-      // Handle regular single task update
-      else {
-        await widget.taskRef.update(updatedTaskData);
-      }
-      
+    } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Task updated successfully')),
-        );
-Navigator.of(context).pop();      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating task: $e')),
+          const SnackBar(content: Text('The task you were trying to update has been deleted.')),
         );
       }
     }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error updating task: $e')),
+      );
+    }
   }
-
+}
  
     @override
   Widget build(BuildContext context) {
