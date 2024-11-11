@@ -312,11 +312,16 @@ Future<void> _handleRecurrenceChange(String? newValue) async {
   if (newValue == null) return;
 
   // Handle changing from Weekly to No recurrence
-  if (_selectedRecurrence == 'Weekly' && newValue == 'No recurrence') {
+  if (_selectedRecurrence == 'Weekly' && newValue == 'No recurrence' && widget.taskData['recurrence'] == 'Weekly') {
     final bool confirmed = await _showDeleteConfirmationDialog();
     if (confirmed) {
       setState(() {
         _selectedRecurrence = newValue;
+      });
+    } else {
+      // Revert the recurrence back to Weekly if the user canceled the confirmation
+      setState(() {
+        _selectedRecurrence = 'Weekly';
       });
     }
   } 
@@ -326,14 +331,18 @@ Future<void> _handleRecurrenceChange(String? newValue) async {
       _selectedRecurrence = newValue;
       _changingToWeekly = true;
     });
+  } 
+  // Handle changing back from Weekly to No recurrence without saving
+  else if (_selectedRecurrence == 'Weekly' && newValue == 'No recurrence' && !_hasChanges()) {
+    setState(() {
+      _selectedRecurrence = newValue;
+    });
   } else {
     setState(() {
       _selectedRecurrence = newValue;
     });
   }
-  
 }
-
 Future<void> _saveTask() async {
   setState(() {
     _isTaskNameValid = _taskNameController.text.trim().isNotEmpty;
@@ -373,7 +382,7 @@ Future<void> _saveTask() async {
     };
 
     // Use the correct path to the task document
-     final taskDocRef = widget.taskRef;
+    final taskDocRef = widget.taskRef;
 
     // Check if the document still exists before attempting the update
     if (await taskDocRef.get().then((doc) => doc.exists)) {
@@ -424,12 +433,13 @@ Future<void> _saveTask() async {
 
             await batch.commit();
 
-            // Close loading indicator
+            // Close loading indicator and navigate back
             if (mounted) {
               Navigator.of(context).pop();
+              Navigator.of(context).pop(); // Close the dialog
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Task updated and $deletedCount related weekly tasks removed'),
+                  content: Text('Task updated and related weekly tasks removed'),
                   backgroundColor: Colors.green,
                 ),
               );
@@ -445,7 +455,6 @@ Future<void> _saveTask() async {
                 ),
               );
             }
-            return; // Exit without closing dialog
           }
         }
       } else if (_changingToWeekly) {
@@ -479,13 +488,13 @@ Future<void> _saveTask() async {
 
           if (mounted) {
             Navigator.of(context).pop(); // Close loading indicator
+            Navigator.of(context).pop(); // Close the dialog
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Created ${createdTasks.length} weekly tasks successfully'),
+                content: Text('Created weekly tasks successfully'),
                 backgroundColor: Colors.green,
               ),
             );
-            Navigator.of(context).pop(); // Close dialog
           }
         } catch (e) {
           if (mounted) {
@@ -497,27 +506,16 @@ Future<void> _saveTask() async {
               ),
             );
           }
-          return;
-        }
-      } else if (_selectedRecurrence == 'Weekly' && widget.taskData['redundancyId'] != null) {
-        // Handle regular weekly task updates
-        await taskDocRef.update(updatedTaskData);
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Task updated successfully')),
-          );
-          Navigator.of(context).pop();
         }
       } else {
         // Handle regular single task update
         await taskDocRef.update(updatedTaskData);
 
         if (mounted) {
+          Navigator.of(context).pop(); // Close the dialog
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Task updated successfully')),
           );
-          Navigator.of(context).pop();
         }
       }
     } else {
@@ -525,6 +523,7 @@ Future<void> _saveTask() async {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('The task you were trying to update has been deleted.')),
         );
+        Navigator.of(context).pop(); // Close the dialog
       }
     }
   } catch (e) {
