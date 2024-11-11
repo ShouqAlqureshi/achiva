@@ -9,13 +9,15 @@ class EditTaskDialog extends StatefulWidget {
   final Map<String, dynamic> taskData;
   final DateTime goalDate;
   final CollectionReference usergoallistrefrence; 
+  final String goalName;
 
   const EditTaskDialog({
     Key? key,
     required this.taskRef,
     required this.taskData,
     required this.goalDate,
-     required this.usergoallistrefrence,
+    required this.usergoallistrefrence,
+    required this.goalName,
   }) : super(key: key);
 
   @override
@@ -454,7 +456,7 @@ Future<void> _saveTask() async {
           }
 
           List<Map<String, dynamic>> createdTasks = await _taskManager.addRecurringTask(
-            goalName: widget.taskData['goalName'],
+            goalName: widget.goalName,
             startDate: _selectedDate,
             startTime: _startTime,
             endTime: _endTime,
