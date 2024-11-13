@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter/services.dart'; // Needed for input formatters
+import 'package:flutter/services.dart';
+
+import '../../utilities/local_notification.dart'; // Needed for input formatters
 
 class AddTaskIndependentlyPage extends StatefulWidget {
   final String goalName;
@@ -153,6 +155,11 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
       if (mounted) {
         Navigator.of(context).pop();
       }
+      LocalNotification.scheduleTaskDueNotification(
+        taskName: _taskNameController.text,
+        dueDate: _selectedDate!.add(Duration(hours: _startTime!.hour, minutes: _startTime!.minute)),
+        goalName: widget.goalName,
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('task added successfully')),
       );

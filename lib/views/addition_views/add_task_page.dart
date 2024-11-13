@@ -8,7 +8,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter/services.dart'; // Needed for input formatters
+import 'package:flutter/services.dart';
+
+import '../../utilities/local_notification.dart'; // Needed for input formatters
 
 class AddTaskPage extends StatefulWidget {
   final String goalName;
@@ -162,9 +164,19 @@ class _AddTaskPageState extends State<AddTaskPage> {
             .collection('tasks')
             .add(taskData);
       }
+      LocalNotification.scheduleTaskDueNotification(
+        taskName: _taskNameController.text,
+        dueDate: _selectedDate!.add(Duration(hours: _startTime!.hour, minutes: _startTime!.minute)),
+        goalName: widget.goalName,
+      );
       if (mounted) {
+
         Navigator.of(context).pop();
       }
+
+
+
+
       // Show success message only when the goal and task are successfully created
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
