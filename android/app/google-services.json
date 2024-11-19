@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "206634315030",
+    "firebase_url": "https://achiva444-default-rtdb.firebaseio.com",
+    "project_id": "achiva444",
+    "storage_bucket": "achiva444.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:206634315030:android:ab13365cb977b1d48f3437",
+        "android_client_info": {
+          "package_name": "com.example.achiva"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "206634315030-3co5ih4r1p577bkogjnp2ofmtfnda2na.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.achiva",
+            "certificate_hash": "817d93ab1a298fb59aef626e7ff53ccb8dc5aac5"
+          }
+        },
+        {
+          "client_id": "206634315030-qpauula742g6cobv5d77ga352craru6v.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBuxX4hXh2g2LPebGdGPJAo_QIIwTUnUNk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "206634315030-qpauula742g6cobv5d77ga352craru6v.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
