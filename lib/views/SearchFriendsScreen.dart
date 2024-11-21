@@ -6,8 +6,9 @@ import 'package:flutter/services.dart';
 
 import 'package:uuid/uuid.dart';
 
-
 class SearchFriendsScreen extends StatefulWidget {
+  const SearchFriendsScreen({super.key});
+
   @override
   _SearchFriendsScreenState createState() => _SearchFriendsScreenState();
 }
@@ -16,7 +17,8 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
   final TextEditingController _searchController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   List<DocumentSnapshot> _searchResults = [];
-  Map<String, bool> _requestStatuses = {}; // Track request statuses
+  var _accept=false;
+  final Map<String, bool> _requestStatuses = {}; // Track request statuses
   String? _currentUserPhoneNumber;
 
   @override
@@ -39,13 +41,13 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
   }
 
   String? _validatePhoneNumber(String value) {
-    String pattern = r'^\+966\d{9}$'; // Exact 9 digits after +966
+    String pattern = r'^\d{9}$'; // Exact 9 digits after +966
     RegExp regExp = RegExp(pattern);
 
     if (value.isEmpty || value.trim().isEmpty) {
       return 'Phone number cannot be empty';
     } else if (!regExp.hasMatch(value)) {
-      return 'you must start with +966, 9 digits';
+      return 'Phone number must be 9 digits';
     }
     return null;
   }
@@ -53,7 +55,7 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
   // Modify this to check request status when loading search results
   Future<void> _searchFriendsByPhoneNumber() async {
     if (_formKey.currentState!.validate()) {
-      String query = _searchController.text.trim();
+      String query = "+966" + _searchController.text.trim();
       try {
         QuerySnapshot results = await FirebaseFirestore.instance
             .collection('Users')
@@ -64,6 +66,7 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
           _showDialog('Phone number does not exist');
         } else {
           setState(() {
+            _searchResults.clear();
             _searchResults = results.docs;
             _requestStatuses.clear(); // Clear previous statuses
           });
@@ -86,7 +89,6 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
   // Check if a friend request is already sent
   Future<void> _checkFriendRequestStatus(String friendId) async {
     String userId = FirebaseAuth.instance.currentUser!.uid;
-
     DocumentSnapshot requestDoc = await FirebaseFirestore.instance
         .collection('Users')
         .doc(friendId)
@@ -94,10 +96,36 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
         .doc(userId)
         .get();
 
-    setState(() {
-      _requestStatuses[friendId] =
-          requestDoc.exists; // Set status based on existence
+    await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(userId)
+        .collection('RequestsStatus')
+        .get()
+        .then((value) {
+      var exist = false;
+      var stat = "pendding";
+      for (var i in value.docs) {
+        if (i.data()["userId"] == friendId) {
+          exist = true;
+          stat = i.data()["Status"];
+        }
+      }
+      if (exist == true && stat == "accepted") {
+       
+         setState(() {
+            _accept =
+              true;
+          });
+         print("ok");
+      } else {
+      
+          setState(() {
+            _requestStatuses[friendId] =
+              requestDoc.exists;
+          }); // Set status based on existence
+      }
     });
+    print(_accept);
   }
 
   Future<String> _fetchUserProfilePic(String userId) async {
@@ -245,64 +273,94 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
           children: [
             // Message above the phone number field
             Text(
-              'Please enter a phone number in this format:+966[5xxxxxxxx]"',
+              'Please enter a phone number in this format:[5xxxxxxxx]"',
               style: TextStyle(fontSize: 14, color: Colors.grey[700]),
             ),
             SizedBox(height: 8),
+
             Form(
               key: _formKey,
-              child: TextFormField(
-                keyboardType: TextInputType.phone,
-                style: TextStyle(fontSize: 18),
-                controller: _searchController,
-                inputFormatters: [
-                  LengthLimitingTextInputFormatter(13),
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
-                  FilteringTextInputFormatter.deny(RegExp(r'\s')),
-                ],
-                decoration: InputDecoration(
-                  labelText: 'Enter Phone Number',
-                  labelStyle: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[700],
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                    borderSide: BorderSide(
-                        color: const Color.fromARGB(255, 51, 25, 57)),
-                  ),
-                  contentPadding: EdgeInsets.symmetric(
-                    vertical: 12.0,
-                    horizontal: 16.0,
-                  ),
-                  suffixIcon: Container(
-                    margin: EdgeInsets.all(8),
+              child: Row(
+                children: [
+                  // Static Country Code
+                  Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 12.0, vertical: 18.0),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Color.fromARGB(255, 66, 32, 101),
-                          Color.fromARGB(255, 77, 64, 98),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+                      border: Border.all(
+                          color: const Color.fromARGB(255, 51, 25, 57),
+                          width: 1),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(12.0),
+                        bottomLeft: Radius.circular(12.0),
                       ),
-                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: IconButton(
-                      icon: Icon(Icons.search, color: Colors.white),
-                      onPressed: () {
-                        _removeWhitespace(); // Remove whitespaces before search
-                        _searchFriendsByPhoneNumber();
-                      },
+                    child: Text(
+                      '+966', // Static country code
+                      style: TextStyle(fontSize: 18.0),
                     ),
                   ),
-                ),
-                validator: (value) => _validatePhoneNumber(value!),
-                onChanged: (value) =>
-                    _removeWhitespace(), // Remove spaces on change
+                  Expanded(
+                    child: TextFormField(
+                      keyboardType: TextInputType.phone,
+                      style: TextStyle(fontSize: 18),
+                      controller: _searchController,
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(9),
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
+                        FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                      ],
+
+                      decoration: InputDecoration(
+                        labelText: 'Enter Phone Number',
+                        labelStyle: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[700],
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.only(
+                              topRight: Radius.circular(12),
+                              bottomRight: Radius.circular(12)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.only(
+                              topRight: Radius.circular(12),
+                              bottomRight: Radius.circular(12)),
+                          borderSide: BorderSide(
+                              color: const Color.fromARGB(255, 51, 25, 57)),
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          vertical: 12.0,
+                          horizontal: 16.0,
+                        ),
+                        suffixIcon: Container(
+                          margin: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Color.fromARGB(255, 66, 32, 101),
+                                Color.fromARGB(255, 77, 64, 98),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: IconButton(
+                            icon: Icon(Icons.search, color: Colors.white),
+                            onPressed: () {
+                              _removeWhitespace(); // Remove whitespaces before search
+                              _searchFriendsByPhoneNumber();
+                            },
+                          ),
+                        ),
+                      ),
+                      validator: (value) => _validatePhoneNumber(value!),
+                      onChanged: (value) =>
+                          _removeWhitespace(), // Remove spaces on change
+                    ),
+                  ),
+                ],
               ),
             ),
             SizedBox(height: 16),
@@ -357,8 +415,8 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
                                     radius: 30.0,
                                   )
                                 : const CircleAvatar(
-                                    child: Icon(Icons.person),
                                     radius: 30.0,
+                                    child: Icon(Icons.person),
                                   ),
                             title: Text(
                               friend['fname'] + ' ' + friend['lname'],
@@ -382,7 +440,7 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
                                               'Friend request already sent');
                                         },
                                       )
-                                    : IconButton(
+                                    : _accept?null: IconButton(
                                         icon: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
