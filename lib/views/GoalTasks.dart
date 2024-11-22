@@ -1,6 +1,6 @@
 import 'package:achiva/views/CreatePostPage.dart';
 import 'package:achiva/views/addition_views/add_task_%20independently_page%20.dart';
-import 'package:achiva/views/editTask.dart';
+import 'package:achiva/views/addition_views/editTask.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:achiva/utilities/colors.dart';
 import 'package:timelines/timelines.dart';
+import 'package:achiva/views/addition_views/deleteTask.dart';
 
 class GoalTasks extends StatefulWidget {
   final DocumentSnapshot goalDocument;
@@ -21,11 +22,17 @@ class GoalTasks extends StatefulWidget {
 class _GoalTasksState extends State<GoalTasks> {
   double _progress = 0.0;
   late Stream<double> _progressStream;
+  late CollectionReference usergoallistrefrence;
 
   @override
   void initState() {
     super.initState();
     _progressStream = _createProgressStream();
+    // Initialize the goal document reference
+    usergoallistrefrence = FirebaseFirestore.instance
+        .collection("Users")
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .collection('goals');
   }
 
   Stream<double> _createProgressStream() {
@@ -48,7 +55,7 @@ class _GoalTasksState extends State<GoalTasks> {
   }
 
   void _showTaskDetails(BuildContext context, Map<String, dynamic> task,
-      DocumentReference taskRef, bool isCompleted) {
+      DocumentReference taskRef, DateTime goalDate, String goalName, bool isCompleted) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -134,37 +141,12 @@ class _GoalTasksState extends State<GoalTasks> {
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
-                _buildDetailRow('Date', task['date'], "lib/images/date.png"),
-                const Divider(
-                  indent: 20,
-                  endIndent: 20,
-                ),
-                _buildDetailRow('Description', task['description'],
-                    "lib/images/description.png"),
-                const Divider(
-                  indent: 20,
-                  endIndent: 20,
-                ),
-                _buildDetailRow(
-                    'Duration', task['duration'], "lib/images/duration.png"),
-                const Divider(
-                  indent: 20,
-                  endIndent: 20,
-                ),
-                _buildDetailRow('Start Time', task['startTime'],
-                    "lib/images/startTime.png"),
-                const Divider(
-                  indent: 20,
-                  endIndent: 20,
-                ),
-                _buildDetailRow(
-                    'End Time', task['endTime'], "lib/images/endTime.png"),
-                const Divider(
-                  indent: 20,
-                  endIndent: 20,
-                ),
-                _buildDetailRow(
-                    'Location', task['location'], "lib/images/location.png"),
+                _buildDetailRow('Date', task['date']),
+                _buildDetailRow('Description', task['description']),
+                _buildDetailRow('Start Time', task['startTime']),
+                _buildDetailRow('End Time', task['endTime']),
+                _buildDetailRow('Location', task['location']),
+                _buildDetailRow('Recurrence', task['recurrence']),
               ],
             ),
           ),
@@ -173,14 +155,19 @@ class _GoalTasksState extends State<GoalTasks> {
               child: Text('Edit', style: TextStyle(color: Colors.black)),
               onPressed: () {
                 Navigator.of(context).pop(); // Close the details dialog
-                _editTask(context, taskRef, task);
+                _editTask(context, taskRef, task, goalDate, goalName);
               },
             ),
             TextButton(
               child: Text('Delete', style: TextStyle(color: Colors.black)),
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(context).pop(); // Close the details dialog
-                _deleteTask(context, taskRef);
+                bool wasDeleted =
+                    await TaskOperations.deleteTask(context, taskRef);
+                if (wasDeleted) {
+                  Navigator.of(context)
+                      .pop(); // Close the parent dialog if deletion was successful
+                }
               },
             ),
           ],
@@ -190,55 +177,16 @@ class _GoalTasksState extends State<GoalTasks> {
   }
 
   void _editTask(BuildContext context, DocumentReference taskRef,
-      Map<String, dynamic> taskData) {
+      Map<String, dynamic> taskData, DateTime goalDate, String goalName) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return EditTaskDialog(
           taskRef: taskRef,
           taskData: taskData,
-        );
-      },
-    );
-  }
-
-  void _deleteTask(BuildContext context, DocumentReference taskRef) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          title: Text(
-            'Delete Task',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-          ),
-          content: Text(
-            'Are you sure you want to delete this task? This action cannot be undone.',
-            style: TextStyle(color: Colors.black),
-          ),
-          actions: [
-            TextButton(
-              child: Text('Cancel', style: TextStyle(color: Colors.black)),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            TextButton(
-              child: Text('Delete', style: TextStyle(color: Colors.red)),
-              onPressed: () async {
-                try {
-                  await taskRef.delete();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Task deleted successfully')),
-                  );
-                  Navigator.of(context).pop();
-                  Navigator.of(context).pop(); // Close both dialogs
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error deleting task: $e')),
-                  );
-                }
-              },
-            ),
-          ],
+          goalDate: goalDate,
+          usergoallistrefrence: usergoallistrefrence,
+          goalName: goalName,
         );
       },
     );
@@ -802,7 +750,14 @@ class _GoalTasksState extends State<GoalTasks> {
     }
   }
 
-  Widget _buildDetailRow(String title, String? value, String image) {
+  Widget _buildDetailRow(String title, String? value) {
+    // Consider null, empty string, and "Unknown location" as 'Not set'
+    final displayValue = (value == null ||
+            value.trim().isEmpty ||
+            value.trim() == 'Unknown location')
+        ? 'Not set'
+        : value;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -826,7 +781,7 @@ class _GoalTasksState extends State<GoalTasks> {
           ),
           Expanded(
             child: Text(
-              value ?? 'Not set',
+              displayValue,
               style: TextStyle(
                 color: Colors.black87,
                 fontSize: 16,
@@ -987,8 +942,9 @@ class _GoalTasksState extends State<GoalTasks> {
                               final date = task['date'] ?? 'Not set';
                               final isCompleted = task['completed'] ?? false;
                               return GestureDetector(
-                                onTap: () => _showTaskDetails(context, task,
-                                    taskDoc.reference, isCompleted),
+                                onTap: () => _showTaskDetails(
+                                    context, task, taskDoc.reference, goalDate, goalName, isCompleted),
+                                  
                                 child: Padding(
                                   padding: const EdgeInsets.only(
                                       left: 22.0, bottom: 40.0, right: 22.0),

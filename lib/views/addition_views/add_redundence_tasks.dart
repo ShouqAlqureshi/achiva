@@ -6,6 +6,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../utilities/local_notification.dart';
+
 class RecurringTaskManager {
   final Uuid _uuid = Uuid();
   Future<List<Map<String, dynamic>>> addRecurringTask({
@@ -67,6 +69,11 @@ class RecurringTaskManager {
 
         tasks.add(task);
       }
+      LocalNotification.scheduleTaskDueNotification(
+        taskName: taskName,
+        dueDate: currentDate.add(Duration(hours:  startTime.hour, minutes: startTime.minute)),
+        goalName: goalName,
+      );
       currentDate = currentDate.add(Duration(days: 1));
     }
 
@@ -187,3 +194,4 @@ void main() async {
     log("Error creating recurring tasks: $e");
   }
 }
+

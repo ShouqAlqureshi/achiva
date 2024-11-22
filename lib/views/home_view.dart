@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:achiva/enum/menu_action.dart';
 import 'package:achiva/exceptions/auth_exceptions.dart';
 import 'package:achiva/models/goal.dart';
@@ -8,7 +7,8 @@ import 'package:achiva/utilities/show_error_dialog.dart';
 import 'package:achiva/views/SearchFriendsScreen.dart';
 import 'package:achiva/views/activity/activity.dart';
 import 'package:achiva/views/activity/incoming_request_view.dart';
-import 'package:achiva/views/friends_feed_page.dart';
+import 'package:achiva/views/edit_goal_page.dart';
+import 'package:achiva/views/FriendsFeed/friends_feed_page.dart';
 import 'package:achiva/views/home_view.dart';
 import 'package:achiva/views/profile/profile_screen.dart';
 import 'package:achiva/widgets/bottom_navigation_bar.dart';
@@ -508,6 +508,8 @@ class _HomePageState extends State<HomeScreen> {
                                 final goalData =
                                     goalDocument.data() as Map<String, dynamic>;
                                 final String goalName = goalData['name'];
+                                final visible = goalData['visibility'];
+                                DateTime date = DateTime.parse(goalData['date']);
 
                                 return StreamBuilder<Map<String, dynamic>>(
                                   stream: getGoalWithProgress(goalDocument),
@@ -532,6 +534,8 @@ class _HomePageState extends State<HomeScreen> {
                                       progress,
                                       isDone,
                                       goalDocument,
+                                       date, 
+                                       visible
                                     );
                                   },
                                 );
@@ -573,7 +577,7 @@ class _HomePageState extends State<HomeScreen> {
   }
 
   Widget _buildGoalCard(String goalName, double progress, bool isDone,
-      DocumentSnapshot goalDocument) {
+      DocumentSnapshot goalDocument, DateTime goalDate, bool visibl) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -614,11 +618,171 @@ class _HomePageState extends State<HomeScreen> {
             ] else ...[
               _buildInProgressGoalContent(goalName, progress, goalDocument)
             ],
+            //Colling method return widget for edit and delete goal
+            _buildEditDeleteButtons(
+                goalDocument.reference, goalDate, goalName, visibl),
           ],
         ),
       ),
     );
   }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //Method return widget for edit and delete goal
+  Widget _buildEditDeleteButtons(DocumentReference goalRef, DateTime goalDate,
+      String goalName, bool visible) {
+    return SizedBox(
+      width: double.infinity,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          //_myId == _fromUserID?
+          //Edit goal button
+          ElevatedButton(
+            onPressed: () async {
+              //Navigate edit goal page
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EditGoalPage(
+                      goalRef: goalRef,
+                      goalDate: goalDate,
+                      goalName: goalName,
+                      visibility: visible),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              padding: EdgeInsets.zero, // Remove default padding for the button
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20), // Rounded corners
+              ),
+            ),
+            child: Ink(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color.fromARGB(255, 22, 158, 67),
+                    Color.fromARGB(255, 31, 204, 74),
+                  ], // Define the gradient colors
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Container(
+                padding: EdgeInsets.all(10),
+                constraints: BoxConstraints(
+                  maxWidth: double.infinity,
+                  minHeight: 30.0,
+                ),
+                alignment: Alignment.center,
+                child: const Text(
+                  'Edit Goal',
+                  style: TextStyle(
+                    color: Colors.white, // Set text color to white
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          //: Text(""),
+          // _myId == "123"?
+          //Delete goal button
+          ElevatedButton(
+            //Call delete goal method
+            onPressed: () async {
+              _deleteGoal(context, goalRef);
+            },
+            style: ElevatedButton.styleFrom(
+              padding: EdgeInsets.zero, // Remove default padding for the button
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20), // Rounded corners
+              ),
+            ),
+            child: Ink(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color.fromARGB(255, 221, 67, 67),
+                    Color.fromARGB(255, 199, 72, 78),
+                  ], // Define the gradient colors
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Container(
+                padding: EdgeInsets.all(10),
+                constraints: BoxConstraints(
+                  maxWidth: double.infinity,
+                  minHeight: 30.0,
+                ),
+                alignment: Alignment.center,
+                child: const Text(
+                  'Delete Goal',
+                  style: TextStyle(
+                    color: Colors.white, // Set text color to white
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  //Delete goal method
+  void _deleteGoal(BuildContext context, DocumentReference goalRef) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          title: Text(
+            'Delete Goal',
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            'Are you sure you want to delete this goal? This action cannot be undone.',
+            style: TextStyle(color: Colors.black),
+          ),
+          actions: [
+            TextButton(
+              child: Text('Cancel', style: TextStyle(color: Colors.black)),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: Text('Delete', style: TextStyle(color: Colors.red)),
+              onPressed: () async {
+                try {
+                  await _firestore
+                      .runTransaction((Transaction myTransaction) async {
+                    myTransaction.delete(goalRef);
+                  });
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('goal deleted successfully')),
+                  );
+                  Navigator.of(context).pop(); // Close both dialogs
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error deleting goal: $e')),
+                  );
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   Widget _buildCompletedGoalContent(String goalName) {
     return Row(

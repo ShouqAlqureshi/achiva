@@ -1,9 +1,11 @@
+import 'package:achiva/views/streakCalculator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import 'package:achiva/views/FriendsFeed/friends_feed_page.dart';
 
 // Widget for each post card (display post content)
 class PostCard extends StatefulWidget {
@@ -12,7 +14,9 @@ class PostCard extends StatefulWidget {
   final String? photoUrl;
   final String timestamp;
   final String? profilePicUrl;
-  final String? postId; // Add this line to receive the postId
+  final String? postId;
+  final String userId; 
+  final VoidCallback onPostDeleted; 
 
   const PostCard({
     required this.userName,
@@ -20,8 +24,12 @@ class PostCard extends StatefulWidget {
     this.photoUrl,
     required this.timestamp,
     this.profilePicUrl,
-    this.postId, // Add this line
-  });
+    this.postId,
+    required this.userId,
+    required this.onPostDeleted,
+     Key? key,
+
+  }): super(key: key);
 
   @override
   _PostCardState createState() => _PostCardState();
@@ -55,7 +63,61 @@ void _fetchReactions() async {
     print('Failed to fetch reactions: $error');
   }
 }
+// Add delete post function
+  Future<void> _deletePost() async {
+    try {
+      // Show confirmation dialog
+      bool confirmDelete = await showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Delete Post'),
+            content: const Text('Are you sure you want to delete this post?'),
+            actions: [
+              TextButton(
+                child: const Text('Cancel'),
+                onPressed: () => Navigator.of(context).pop(false),
+              ),
+              TextButton(
+                child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                onPressed: () => Navigator.of(context).pop(true),
+              ),
+            ],
+          );
+        },
+      ) ?? false;
 
+      if (!confirmDelete) return;
+
+      // Delete the post from Firestore
+      await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(widget.userId)
+          .collection('allPosts')
+          .doc(widget.postId)
+          .delete();
+          widget.onPostDeleted();
+          await StreakCalculator.handlePostDeleted();
+
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Post deleted successfully'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (error) {
+      print('Failed to delete post: $error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to delete post'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
   
 void _showReactionsDialog() {
   // Check if there are any reactions
@@ -244,6 +306,8 @@ Future<DocumentSnapshot?> _findPostDocument(String postId) async {
 
   @override
   Widget build(BuildContext context) {
+        final currentUser = FirebaseAuth.instance.currentUser;
+    final isCurrentUserPost = currentUser?.uid == widget.userId;
     return GestureDetector(
       onLongPress: _showEmojiPicker,
       onDoubleTap: _handleDoubleTap,
@@ -282,6 +346,12 @@ Future<DocumentSnapshot?> _findPostDocument(String postId) async {
                               fontWeight: FontWeight.bold, fontSize: 16.0),
                         ),
                       ),
+                      if (isCurrentUserPost)
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, color: Colors.red),
+                          onPressed: _deletePost,
+                          tooltip: 'Delete post',
+                        ),
                     ],
                   ),
                 ),

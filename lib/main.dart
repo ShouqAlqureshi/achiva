@@ -1,3 +1,4 @@
+import 'package:achiva/utilities/local_notification.dart';
 import 'package:achiva/views/activity/activity.dart';
 import 'package:achiva/views/auth/gender_selection_view.dart';
 import 'package:achiva/views/auth/new_user_info_view.dart';
@@ -17,6 +18,9 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  //initialize the flutter local notifications
+ //  await LocalNotification.requestExactAlarmPermission();
+  await LocalNotification.init();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
