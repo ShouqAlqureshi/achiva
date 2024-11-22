@@ -141,12 +141,38 @@ class _GoalTasksState extends State<GoalTasks> {
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
-                _buildDetailRow('Date', task['date']),
-                _buildDetailRow('Description', task['description']),
-                _buildDetailRow('Start Time', task['startTime']),
-                _buildDetailRow('End Time', task['endTime']),
-                _buildDetailRow('Location', task['location']),
-                _buildDetailRow('Recurrence', task['recurrence']),
+                 _buildDetailRow('Date', task['date'], "lib/images/date.png"),
+                const Divider(
+                  indent: 20,
+                  endIndent: 20,
+                ),
+                _buildDetailRow('Description', task['description'],
+                    "lib/images/description.png"),
+                const Divider(
+                  indent: 20,
+                  endIndent: 20,
+                ),
+                _buildDetailRow(
+                    'Duration', task['duration'], "lib/images/duration.png"),
+                const Divider(
+                  indent: 20,
+                  endIndent: 20,
+                ),
+                _buildDetailRow('Start Time', task['startTime'],
+                    "lib/images/startTime.png"),
+                const Divider(
+                  indent: 20,
+                  endIndent: 20,
+                ),
+                _buildDetailRow(
+                    'End Time', task['endTime'], "lib/images/endTime.png"),
+                const Divider(
+                  indent: 20,
+                  endIndent: 20,
+                ),
+                _buildDetailRow(
+                    'Location', task['location'], "lib/images/location.png"),
+                    _buildDetailRow('Recurrence', task['recurrence'],"lib/images/location.png"),
               ],
             ),
           ),
@@ -750,15 +776,14 @@ class _GoalTasksState extends State<GoalTasks> {
     }
   }
 
-  Widget _buildDetailRow(String title, String? value) {
-    // Consider null, empty string, and "Unknown location" as 'Not set'
+ Widget _buildDetailRow(String title, String? value, String image) {
+// Consider null, empty string, and "Unknown location" as 'Not set'
     final displayValue = (value == null ||
             value.trim().isEmpty ||
             value.trim() == 'Unknown location')
         ? 'Not set'
-        : value;
-
-    return Padding(
+        : value;    
+        return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -779,7 +804,7 @@ class _GoalTasksState extends State<GoalTasks> {
               fontSize: 18,
             ),
           ),
-          Expanded(
+           Expanded(
             child: Text(
               displayValue,
               style: TextStyle(
