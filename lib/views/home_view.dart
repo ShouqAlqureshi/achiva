@@ -484,7 +484,7 @@ class _HomePageState extends State<HomeScreen> {
                           itemBuilder: (context, index) {
                             return FutureBuilder<DocumentSnapshot>(
                               future:
-                                  getGoalDocument(snapshot.data!.docs[index]),
+                                  getGoalDocument(snapshot.data!.docs[index]),//filters which type of goal it is (shared or regular)
                               builder: (context,
                                   AsyncSnapshot<DocumentSnapshot>
                                       goalSnapshot) {
