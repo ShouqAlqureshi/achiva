@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:achiva/views/addition_views/NotificationHandlingfortask.dart';
 
 class EditTaskDialog extends StatefulWidget {
   final DocumentReference taskRef;
@@ -564,6 +565,20 @@ Future<void> _saveTask() async {
       } else {
         // Handle regular single task update
         await taskDocRef.update(updatedTaskData);
+final DateTime taskDateTime = DateTime(
+  _selectedDate.year,
+  _selectedDate.month,
+  _selectedDate.day,
+  _startTime.hour,
+  _startTime.minute,
+);
+await TaskNotificationManager.updateTaskNotification(
+  oldTaskName: widget.taskData['taskName'],
+  oldGoalName: widget.goalName,
+  newTaskName: taskName,
+  newGoalName: widget.goalName,
+  newDateTime: taskDateTime,
+);
 
         if (mounted) {
           Navigator.of(context).pop(); // Close the dialog
@@ -633,9 +648,15 @@ Future<void> _updateAllWeeklyTasks(
   // Update all tasks with the same redundancyId
   for (var doc in tasksToUpdate.docs) {
     batch.update(doc.reference, updatedTaskData);
+    
   }
 
   await batch.commit();
+  await TaskNotificationManager.updateAllWeeklyTaskNotifications(
+  tasks: tasksToUpdate.docs,
+  newTaskName: updatedTaskData['taskName'],
+  goalName: widget.goalName,
+);
 }
  
     @override
