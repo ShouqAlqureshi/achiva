@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:achiva/utilities/local_notification.dart'; // Add this import
 
 class TaskOperations {
   /// Shows a confirmation dialog and handles the task deletion process
@@ -7,6 +8,7 @@ class TaskOperations {
   static Future<bool> deleteTask(
     BuildContext context, 
     DocumentReference taskRef,
+    String goalName,
   ) async {
     bool wasDeleted = false;
     final scaffoldMessenger = ScaffoldMessenger.of(context);
@@ -21,7 +23,7 @@ class TaskOperations {
               future: taskRef.get(),
               builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const SizedBox.shrink(); // Return empty widget while loading
+                  return const SizedBox.shrink();
                 }
 
                 if (snapshot.hasError) {
@@ -43,6 +45,9 @@ class TaskOperations {
                 final bool isRepeating = taskData != null && 
                                        taskData.containsKey('redundancyId') && 
                                        taskData['redundancyId'] != null;
+                
+                // Extract task name and goal name for notification cancellation
+                final String taskName = taskData?['name'] ?? '';
 
                 if (!isRepeating) {
                   // Simple delete dialog for non-repeating tasks
@@ -67,6 +72,12 @@ class TaskOperations {
                         child: Text('Delete', style: TextStyle(color: Colors.red)),
                         onPressed: () async {
                           try {
+                            // Cancel the notification before deleting the task
+                            await LocalNotification.cancelNotification(
+                              taskName: taskName,
+                              goalName: goalName,
+                            );
+                            
                             await taskRef.delete();
                             wasDeleted = true;
                             Navigator.of(dialogContext).pop();
@@ -84,7 +95,7 @@ class TaskOperations {
                   );
                 }
 
-                // Dialog for repeating tasks
+// Dialog for repeating tasks
                 return AlertDialog(
                   backgroundColor: Colors.white,
                   title: Text(
@@ -107,6 +118,12 @@ class TaskOperations {
                         style: TextStyle(color: Colors.red)),
                       onPressed: () async {
                         try {
+                          // Cancel the notification for this specific task
+                          await LocalNotification.cancelNotification(
+                            taskName: taskName,
+                            goalName: goalName,
+                          );
+                          
                           await taskRef.delete();
                           wasDeleted = true;
                           Navigator.of(dialogContext).pop();
@@ -135,11 +152,18 @@ class TaskOperations {
                             .get();
                           
                           final batch = FirebaseFirestore.instance.batch();
+                          
+                          // Cancel notifications for all tasks in the batch
                           for (var doc in querySnapshot.docs) {
+                            final Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+                            await LocalNotification.cancelNotification(
+                              taskName: data['name'] ?? '',
+                              goalName: goalName,
+                            );
                             batch.delete(doc.reference);
                           }
-                          await batch.commit();
                           
+                          await batch.commit();
                           wasDeleted = true;
                           Navigator.of(dialogContext).pop();
                           scaffoldMessenger.showSnackBar(

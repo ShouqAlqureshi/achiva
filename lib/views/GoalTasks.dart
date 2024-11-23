@@ -174,7 +174,12 @@ class _GoalTasksState extends State<GoalTasks> {
                 ),
                 _buildDetailRow(
                     'Location', task['location'], "lib/images/location.png"),
-                    _buildDetailRow('Recurrence', task['recurrence'],"lib/images/location.png"),
+                    const Divider(
+                  indent: 20,
+                  endIndent: 20,
+                ),
+                    _buildDetailRow('Recurrence', task['recurrence'],"lib/images/recurrence.png"),
+                
               ],
             ),
           ),
@@ -191,7 +196,7 @@ class _GoalTasksState extends State<GoalTasks> {
               onPressed: () async {
                 Navigator.of(context).pop(); // Close the details dialog
                 bool wasDeleted =
-                    await TaskOperations.deleteTask(context, taskRef);
+                    await TaskOperations.deleteTask(context, taskRef,goalName);
                 if (wasDeleted) {
                   Navigator.of(context)
                       .pop(); // Close the parent dialog if deletion was successful
