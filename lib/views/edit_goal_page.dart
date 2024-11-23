@@ -29,7 +29,7 @@ class _EditGoalPageState extends State<EditGoalPage> {
   bool _isDateValid = true; // Tracks if the date is valid
   String? errorMessage = "";
   Validators validate = Validators();
-  Sharedgoal sharedgoal = Sharedgoal();
+  // Sharedgoal sharedgoal = Sharedgoal();
   
    @override
   void initState() {

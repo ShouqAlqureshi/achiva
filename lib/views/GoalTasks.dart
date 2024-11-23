@@ -10,6 +10,8 @@ import 'package:achiva/utilities/colors.dart';
 import 'package:timelines/timelines.dart';
 import 'package:achiva/views/addition_views/deleteTask.dart';
 
+import 'sharedgoal/sharedgoal.dart';
+
 class GoalTasks extends StatefulWidget {
   final DocumentSnapshot goalDocument;
   final String userId = FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -863,9 +865,222 @@ class _GoalTasksState extends State<GoalTasks> {
                             fontSize: 24,
                             fontWeight: FontWeight.w400,
                           ),
+                          
                         ),
                       ),
-                      // Updated Progress Indicator
+                      if (goalData['sharedID']!= null)
+            Positioned(
+  child: GestureDetector(
+    onTap: () {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.8,
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.7,
+              ),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color.fromARGB(255, 30, 12, 48),
+                    Color.fromARGB(255, 77, 64, 98),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 10,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Participants',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(color: Colors.white24),
+                  
+                  // Participants List
+                  StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('sharedGoal')
+                        .doc(goalData['sharedID'])
+                        .collection('participants')
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        return const Center(
+                          child: Text(
+                            'Something went wrong',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        );
+                      }
+
+                      if (!snapshot.hasData) {
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                          ),
+                        );
+                      }
+
+                      final participants = snapshot.data!.docs;
+                      
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const BouncingScrollPhysics(),
+                            itemCount: participants.length,
+                            itemBuilder: (context, index) {
+                              final participant = participants[index].data() as Map<String, dynamic>;
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0,
+                                  vertical: 8.0,
+                                ),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white10,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: ListTile(
+                                    leading: CircleAvatar(
+                                      backgroundImage: participant['photo'] != null
+                                          ? NetworkImage(participant['photo'])
+                                          : null,
+                                      child: participant['photo'] == null
+                                          ? const Icon(Icons.person, color: Colors.white)
+                                          : null,
+                                      backgroundColor: Colors.grey[700],
+                                    ),
+                                    title: Text(
+                                      participant['fname'] ?? 'Anonymous',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      participant['role'] ?? 'owner',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.7),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: InkWell(
+                              onTap: () {
+                                Navigator.of(context).pop();
+                                // Add navigation to add participant page
+                                // Navigator.push(
+                                //   context, 
+                                //   MaterialPageRoute(
+                                //     builder: (context) => showFriendListDialog(context,goalData['sharedID'], goalData['goalID']),
+                                //   ),
+                                // );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12.0,
+                                  horizontal: 16.0,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white10,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.white24,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    Icon(
+                                      Icons.add_circle_outline,
+                                      color: Colors.white,
+                                      size: 24,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Add Participant',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    },
+    child: Container(
+      width: 80,
+      height: 55,
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(255, 18, 89, 147).withOpacity(0.2),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(2, 2),
+          ),
+        ],
+      ),
+      child: const Icon(
+        Icons.group,
+        color: Colors.white,
+        size: 30,
+      ),
+    ),
+  ),
+),
                       StreamBuilder<double>(
                         stream: _progressStream,
                         builder: (context, snapshot) {

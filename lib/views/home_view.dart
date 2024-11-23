@@ -509,7 +509,8 @@ class _HomePageState extends State<HomeScreen> {
                                     goalDocument.data() as Map<String, dynamic>;
                                 final String goalName = goalData['name'];
                                 final visible = goalData['visibility'];
-                                DateTime date = DateTime.parse(goalData['date']);
+                                DateTime date =
+                                    DateTime.parse(goalData['date']);
 
                                 return StreamBuilder<Map<String, dynamic>>(
                                   stream: getGoalWithProgress(goalDocument),
@@ -529,14 +530,8 @@ class _HomePageState extends State<HomeScreen> {
                                         progressSnapshot.data!['progress'];
                                     final isDone = progress >= 100;
 
-                                    return _buildGoalCard(
-                                      goalName,
-                                      progress,
-                                      isDone,
-                                      goalDocument,
-                                       date, 
-                                       visible
-                                    );
+                                    return _buildGoalCard(goalName, progress,
+                                        isDone, goalDocument, date, visible);
                                   },
                                 );
                               },
@@ -557,20 +552,18 @@ class _HomePageState extends State<HomeScreen> {
 
   Future<QueryDocumentSnapshot<Object?>> getGoalDocument(
       QueryDocumentSnapshot originalDocument) async {
-    final goalData = originalDocument.data() as Map<String, dynamic>;
+    // // If the goal has a sharedId, fetch from sharedGoal collection
+    // if (goalData.containsKey('sharedId') && goalData['sharedId'] != null) {
+    //   final sharedDocSnapshot = await FirebaseFirestore.instance
+    //       .collection('sharedGoal')
+    //       .where(FieldPath.documentId, isEqualTo: goalData['sharedId'])
+    //       .limit(1)
+    //       .get();
 
-    // If the goal has a sharedId, fetch from sharedGoal collection
-    if (goalData.containsKey('sharedId') && goalData['sharedId'] != null) {
-      final sharedDocSnapshot = await FirebaseFirestore.instance
-          .collection('sharedGoal')
-          .where(FieldPath.documentId, isEqualTo: goalData['sharedId'])
-          .limit(1)
-          .get();
-
-      if (sharedDocSnapshot.docs.isNotEmpty) {
-        return sharedDocSnapshot.docs.first;
-      }
-    }
+    //   if (sharedDocSnapshot.docs.isNotEmpty) {
+    //     return sharedDocSnapshot.docs.first;
+    //   }
+    // }
 
     // Otherwise return the original document
     return originalDocument;
@@ -578,51 +571,109 @@ class _HomePageState extends State<HomeScreen> {
 
   Widget _buildGoalCard(String goalName, double progress, bool isDone,
       DocumentSnapshot goalDocument, DateTime goalDate, bool visibl) {
+    final goalData = goalDocument.data() as Map<String, dynamic>;
+    final bool isSharedGoal =
+        goalData.containsKey('isShared') && goalData['isShared'] != null;
+
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => GoalTasks(goalDocument: goalDocument),
-          ),
-        );
+      onTap: () async {
+        {
+          if (goalDocument['isShared'] == true) {
+            String sharedID = goalDocument['sharedID'];
+
+            DocumentSnapshot sharedGoalDoc = await FirebaseFirestore.instance
+                .collection('sharedGoal')
+                .doc(sharedID)
+                .get();
+
+            if (sharedGoalDoc.exists) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => GoalTasks(goalDocument: sharedGoalDoc),
+                ),
+              );
+            } else {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => GoalTasks(goalDocument: goalDocument),
+                ),
+              );
+            }
+          }
+        }
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        margin:
-            const EdgeInsets.only(left: 15, right: 15, top: 30, bottom: 150),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color.fromARGB(255, 30, 12, 48),
-              Color.fromARGB(255, 77, 64, 98),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(25),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 4),
+      child: Stack(
+        clipBehavior: Clip.none, // Allow positioning outside the parent
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            margin: const EdgeInsets.only(
+                left: 15, right: 15, top: 30, bottom: 150),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color.fromARGB(255, 30, 12, 48),
+                  Color.fromARGB(255, 77, 64, 98),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(25),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (isDone) ...[
-              _buildCompletedGoalContent(goalName)
-            ] else ...[
-              _buildInProgressGoalContent(goalName, progress, goalDocument)
-            ],
-            //Colling method return widget for edit and delete goal
-            _buildEditDeleteButtons(
-                goalDocument.reference, goalDate, goalName, visibl),
-          ],
-        ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (isDone) ...[
+                  _buildCompletedGoalContent(goalName)
+                ] else ...[
+                  _buildInProgressGoalContent(goalName, progress, goalDocument)
+                ],
+                // Edit and delete buttons
+                _buildEditDeleteButtons(
+                    goalDocument.reference, goalDate, goalName, visibl),
+              ],
+            ),
+          ),
+          if (isSharedGoal)
+            Positioned(
+              top: 220,
+              right: 40,
+              child: Container(
+                margin: const EdgeInsets.only(
+                    bottom: 10), // Add downward margin here
+                width: 70,
+                height: 70,
+
+                decoration: BoxDecoration(
+                  color:
+                      const Color.fromARGB(255, 18, 89, 147).withOpacity(0.2),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: Offset(2, 2),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.group,
+                  color: Colors.white,
+                  size: 30,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

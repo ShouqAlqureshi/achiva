@@ -15,6 +15,13 @@ class AddGoalPage extends StatefulWidget {
 
 class _AddGoalPageState extends State<AddGoalPage> {
   final TextEditingController _nameController = TextEditingController();
+  final SharedGoalManager _sharedGoalManager = SharedGoalManager();
+  final Validators _validate = Validators();
+  final Uuid _uuid = Uuid();
+
+    late String _sharedID;
+  late String _goalID;
+
   bool _visibility = true;
   bool _sharedGoal = false;
   DateTime? _selectedDate;
@@ -22,60 +29,77 @@ class _AddGoalPageState extends State<AddGoalPage> {
   bool _isDateValid = true; // Tracks if the date is valid
   String? errorMessage = "";
   Validators validate = Validators();
-  Sharedgoal sharedgoal = Sharedgoal();
 
-  Future<void> _goToAddTaskPage() async {
+  @override
+  void initState() {
+    super.initState();
+    _sharedID = _uuid.v4();
+    _goalID = _uuid.v4();
+  }
+
+Future<void> _goToAddTaskPage() async {
+  setState(() {
+    // Reset error states
+    _isDateValid = _selectedDate != null;
+    errorMessage = null;
+  });
+
+  if (_nameController.text.trim().isEmpty) {
     setState(() {
-      // Reset error states
-      _isDateValid = _selectedDate != null;
-      errorMessage = null;
+      _isNameValid = false;
+      errorMessage = "Please enter a goal name";
+    });
+    _showError('Please enter a goal name');
+    return;
+  }
+
+  try {
+    bool isValid = await validate.isGoalNameValid(_nameController.text, context);
+    
+    setState(() {
+      _isNameValid = isValid;
+      if (!isValid) {
+        errorMessage = "The goal name exists, try changing the name";
+      }
     });
 
-    if (_nameController.text.trim().isEmpty) {
-      setState(() {
-        _isNameValid = false;
-        errorMessage = "Please enter a goal name";
-      });
-      _showError('Please enter a goal name');
-      return;
-    }
-
-    try {
-      // Wait for the async validation
-      bool isValid =
-          await validate.isGoalNameValid(_nameController.text, context);
-
-      setState(() {
-        _isNameValid = isValid;
-        if (!isValid) {
-          errorMessage = "The goal name exists, try changing the name";
-        }
-      });
-
-      // Check all validation conditions
-      if (_isNameValid && _isDateValid) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => AddTaskPage(
-              goalName: _nameController.text,
-              goalDate: _selectedDate!,
-              goalVisibility: _visibility,
-              sharedGoal: _sharedGoal,
-            ),
-          ),
+    if (_isNameValid && _isDateValid) {
+      // Create shared goal if selected
+      if (_sharedGoal) {
+        await _sharedGoalManager.createSharedGoal(
+          goalName: _nameController.text,
+          date: DateFormat('yyyy-MM-dd').format(_selectedDate!),
+          visibility: _visibility,
+          sharedID: _sharedID,
+          goalID: _goalID,
+          context: context,
+          isOwner: true, // Mark creator as owner
         );
-      } else {
-        String errorMsg = '';
-        if (!_isDateValid) errorMsg = 'Please select an end date';
-        if (!_isNameValid) errorMsg = errorMessage ?? 'Invalid goal name';
-        _showError(errorMsg);
       }
-    } catch (e) {
-      _showError('An error occurred while validating the goal name');
-      print('Error validating goal name: $e');
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AddTaskPage(
+            goalName: _nameController.text,
+            goalDate: _selectedDate!,
+            goalVisibility: _visibility,
+            sharedGoal: _sharedGoal,
+            sharedID: _sharedID,
+          ),
+        ),
+      );
+    } else {
+      String errorMsg = '';
+      if (!_isDateValid) errorMsg = 'Please select an end date';
+      if (!_isNameValid) errorMsg = errorMessage ?? 'Invalid goal name';
+      _showError(errorMsg);
     }
+  } catch (e) {
+    _showError('An error occurred while validating the goal name');
+    print('Error validating goal name: $e');
   }
+}
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -103,8 +127,8 @@ class _AddGoalPageState extends State<AddGoalPage> {
   @override
   Widget build(BuildContext context) {
     final Uuid uuid = Uuid();
-    final String sharedID = uuid.v4();
-    final String goalid = uuid.v4();
+    // final String sharedID = uuid.v4();
+    // final String goalid = uuid.v4();
     return Scaffold(
       extendBodyBehindAppBar: true, // Extend the body behind the AppBar
       backgroundColor: Colors.transparent, // Transparent background
@@ -232,7 +256,7 @@ class _AddGoalPageState extends State<AddGoalPage> {
                                     ),
                                     onPressed: () {
                                       showFriendListDialog(
-                                          context, sharedID, goalid);
+                                          context, _sharedID, _goalID);
                                     },
                                     child: Padding(
                                       padding: const EdgeInsets.symmetric(

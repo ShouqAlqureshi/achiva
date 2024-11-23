@@ -4,6 +4,7 @@ import 'dart:developer';
 
 import 'package:achiva/utilities/loading.dart';
 import 'package:achiva/views/addition_views/add_redundence_tasks.dart';
+import 'package:achiva/views/sharedgoal/sharedgoal.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -18,6 +19,7 @@ class AddTaskPage extends StatefulWidget {
   final bool goalVisibility;
   final bool sharedGoal;
   final bool isSharedGoal;
+  final String sharedID;
   const AddTaskPage({
     super.key,
     required this.goalName,
@@ -25,6 +27,7 @@ class AddTaskPage extends StatefulWidget {
     required this.goalVisibility,
     required this.sharedGoal,
     this.isSharedGoal = false,
+    required this.sharedID,
   });
 
   @override
@@ -46,7 +49,26 @@ class _AddTaskPageState extends State<AddTaskPage> {
   bool _isDateValid = true;
   bool _isStartTimeValid = true;
   bool _isEndTimeValid = true;
+   // Helper method for input validation
+bool _validateInputs() {
+  setState(() {
+    _isTaskNameValid = _taskNameController.text.isNotEmpty;
+    _isDateValid = _selectedDate != null;
+    _isStartTimeValid = _startTime != null;
+    _isEndTimeValid = _endTime != null &&
+        (_endTime!.hour > _startTime!.hour ||
+            (_endTime!.hour == _startTime!.hour &&
+                _endTime!.minute > _startTime!.minute));
+  });
 
+  if (!_isTaskNameValid || !_isDateValid || !_isStartTimeValid || !_isEndTimeValid) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please fill in all required fields')),
+    );
+    return false;
+  }
+  return true;
+}
   // Add a task to the list
   Future<void> _createGoalAndAddTask() async {
     showLoadingDialog(context);
@@ -59,6 +81,47 @@ class _AddTaskPageState extends State<AddTaskPage> {
               (_endTime!.hour == _startTime!.hour &&
                   _endTime!.minute > _startTime!.minute));
     });
+  
+  if (!_validateInputs()) {
+    Navigator.of(context).pop();
+    return;
+  }  {
+    final User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) throw Exception("User not logged in");
+
+    // Prepare task data
+    taskData = {
+      'taskName': _taskNameController.text,
+      'description': _descriptionController.text.isEmpty ? null : _descriptionController.text,
+      'location': _locationController.text.isEmpty ? null : _locationController.text,
+      'date': DateFormat('yyyy-MM-dd').format(_selectedDate!),
+      'startTime': _startTime!.format(context),
+      'endTime': _endTime!.format(context),
+      'recurrence': _selectedRecurrence ?? 'No recurrence',
+    };
+    if (widget.sharedGoal) {
+      // For shared goals, only add to sharedGoal collection
+      await SharedGoalManager().addTaskToSharedGoal(
+        sharedID: widget.sharedID,
+        taskData: taskData,
+        context: context,
+      );
+    } else {
+      // For personal goals, add to user's goals collection
+      final userRef = FirebaseFirestore.instance.collection('Users').doc(user.uid);
+      await userRef
+          .collection('goals')
+          .doc(widget.goalName)
+          .collection('tasks')
+          .add(taskData);
+      
+      // await userRef.collection('goals').doc(widget.goalName).update({
+      //   'notasks': FieldValue.increment(1),
+      // });
+      
+    }
+    
+
 
     if (!_isTaskNameValid ||
         !_isDateValid ||
@@ -80,6 +143,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
         throw Exception(
             "Phone number is not available for the logged-in user.");
       }
+      
 
       QuerySnapshot userSnapshot = await FirebaseFirestore.instance
           .collection('Users')
@@ -109,14 +173,16 @@ class _AddTaskPageState extends State<AddTaskPage> {
         );
         return;
       }
-
-      // Create the goal
-      await goalsCollectionRef.doc(widget.goalName).set({
-        'name': widget.goalName,
-        'date': widget.goalDate.toIso8601String(),
-        'visibility': widget.goalVisibility,
-        'notasks': 1, // Initially set to 1 as we're adding one task
-      });
+      // if (!widget.sharedGoal) {
+      //   // Create the goal
+      //   await goalsCollectionRef.doc(widget.goalName).set({
+      //   'name': widget.goalName,
+      //   'date': widget.goalDate.toIso8601String(),
+      //   'visibility': widget.goalVisibility,
+      //   'notasks': 1, // Initially set to 1 as we're adding one task
+      // });
+      // }
+      
 
       // Prepare task data
       taskData = {
@@ -157,44 +223,53 @@ class _AddTaskPageState extends State<AddTaskPage> {
         if (createdTasks.isNotEmpty) {
           log("Recurring tasks created successfully");
           widget.isSharedGoal
-              ?await FirebaseFirestore.instance
+              ? await FirebaseFirestore.instance
                   .collection('sharedGoal')
                   .doc(widget.goalName)
                   .update(
-                      {'notasks': FieldValue.increment(createdTasks
-                .length)}):
-          await goalsCollectionRef.doc(widget.goalName).update({
-            'notasks': FieldValue.increment(createdTasks
-                .length) // -1 because we already set it to 1 initially
-          });
+                      {'notasks': FieldValue.increment(createdTasks.length)})
+              : await goalsCollectionRef.doc(widget.goalName).update({
+                  'notasks': FieldValue.increment(createdTasks
+                      .length)
+                });
         }
       } else {
-        if (widget.isSharedGoal) {
-          // widget.goalName is the sharedid
-          await FirebaseFirestore.instance
-              .collection('sharedGoal')
-              .doc(widget.goalName)
-              .collection('tasks')
-              .add(taskData);
-        } else {
-          await goalsCollectionRef
-              .doc(widget.goalName)
-              .collection('tasks')
-              .add(taskData);
-        }
+        if (widget.sharedGoal) {
+  await SharedGoalManager().addTaskToSharedGoal(
+    sharedID: widget.sharedID,
+    taskData: taskData,
+    context: context,
+  );
+} else {
+  // Your existing code for non-shared goals
+  await goalsCollectionRef
+      .doc(widget.goalName)
+      .collection('tasks')
+      .add(taskData);
+}
+    
       }
       LocalNotification.scheduleTaskDueNotification(
         taskName: _taskNameController.text,
-        dueDate: _selectedDate!.add(Duration(hours: _startTime!.hour, minutes: _startTime!.minute)),
+        dueDate: _selectedDate!.add(
+            Duration(hours: _startTime!.hour, minutes: _startTime!.minute)),
         goalName: widget.goalName,
       );
       if (mounted) {
-
-        Navigator.of(context).pop();
-      }
-
-
-
+      Navigator.of(context).pop(); 
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Task added successfully')),
+      );
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+    }
+  } catch (e) {
+    print("Error creating goal and adding task: $e");
+    Navigator.of(context).pop(); // Dismiss loading
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error adding task: $e')),
+    );
+  }
+}
 
       // Show success message only when the goal and task are successfully created
       ScaffoldMessenger.of(context).showSnackBar(
@@ -202,14 +277,8 @@ class _AddTaskPageState extends State<AddTaskPage> {
             content: Text('Goal created and task added successfully')),
       );
       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
-    } catch (e) {
-      log("$e");
-      Navigator.of(context).pop(); //dismiss loading
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error creating goal and adding task: $e')),
-      );
     }
-  }
+  
 
   // Method to select date
   Future<void> _selectDate(BuildContext context) async {
