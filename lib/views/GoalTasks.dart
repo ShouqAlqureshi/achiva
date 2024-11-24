@@ -943,7 +943,7 @@ class _GoalTasksState extends State<GoalTasks> {
                                                 IconButton(
                                                   icon: const Icon(Icons.close,
                                                       color: Colors.white),
-                                                  onPressed: () =>  showFriendListDialog(context, goalData['sharedID'], goalData['goalID']),
+                                                  onPressed: () => Navigator.of(context).pop() ,
 
                                                 ),
                                               ],
