@@ -1,111 +1,259 @@
+import 'dart:developer';
+
+import 'package:achiva/utilities/loading.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:rxdart/rxdart.dart';
+import 'package:achiva/views/sharedgoal/sharedgoal.dart';
 
-class IncomingRequestsPage extends StatelessWidget {
-  const IncomingRequestsPage({super.key});
 
-  // Fetch current user ID
-  String getCurrentUserId() {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      throw Exception("User not logged in");
-    }
-    return user.uid;
-  }
+class IncomingRequestsPage extends StatefulWidget {
+  const IncomingRequestsPage({Key? key}) : super(key: key);
 
   @override
+  _IncomingRequestsPageState createState() => _IncomingRequestsPageState();
+}
+
+class _IncomingRequestsPageState extends State<IncomingRequestsPage> {
+  final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
+  Map<String, String> goalNames = {};
+
+  Stream<List<QueryDocumentSnapshot>> getCombinedStream() {
+    final friendRequestsStream = FirebaseFirestore.instance
+        .collection('Users')
+        .doc(currentUserId)
+        .collection('friendRequests')
+        .where('status', isEqualTo: 'pending')
+        .snapshots();
+
+    final goalInvitationsStream = FirebaseFirestore.instance
+        .collectionGroup('goalInvitations')
+        .where('toUserID', isEqualTo: currentUserId)
+        .where('status', isEqualTo: 'pending')
+        .snapshots();
+
+    return CombineLatestStream.combine2(
+      friendRequestsStream,
+      goalInvitationsStream,
+      (QuerySnapshot friendRequests, QuerySnapshot goalInvitations) async {
+        List<QueryDocumentSnapshot> combinedDocs = [
+          ...friendRequests.docs,
+          ...goalInvitations.docs
+        ];
+
+        // Fetch goal names for goal invitations
+        for (var doc in goalInvitations.docs) {
+          String sharedID = doc['sharedID'];
+          await _fetchGoalName(sharedID);
+        }
+
+        return combinedDocs;
+      },
+    ).asyncMap((event) => event);
+  }
+
+  Future<void> _fetchGoalName(String sharedID) async {
+    if (!goalNames.containsKey(sharedID)) {
+      try {
+        final goalDoc = await FirebaseFirestore.instance
+            .collection('sharedGoal')
+            .doc(sharedID)
+            .get();
+
+        if (goalDoc.exists) {
+          final data = goalDoc.data();
+          if (data != null && data.containsKey('name')) {
+            goalNames[sharedID] = data['name'];
+          } else {
+            goalNames[sharedID] = 'Undefined Goal';
+          }
+        }
+      } catch (e) {
+        print('Error fetching goal name for $sharedID: $e');
+        goalNames[sharedID] = 'Undefined Goal';
+      }
+    }
+  }
+
+ @override
   Widget build(BuildContext context) {
-    String currentUserId = getCurrentUserId();
-    // String currentUserId = "ccvx5cv1SwZQWQrvX3QBjONPbe63";
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('Users')
-          .doc(currentUserId)
-          .collection('friendRequests')
-          .where('status', isEqualTo: 'pending')
-          .snapshots(),
+    return StreamBuilder<List<QueryDocumentSnapshot>>(
+      stream: getCombinedStream(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator());
         }
+
         if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
         }
 
-        final friendRequests = snapshot.data?.docs ?? [];
-        if (friendRequests.isEmpty) {
-          return noPendingFriendRequestsWidget(
-              'You have no pending friend requests.');
+        final requests = snapshot.data ?? [];
+
+        if (requests.isEmpty) {
+          return noResults('You have no pending requests/invitations.');
         }
 
-        return StreamBuilder<List<DocumentSnapshot>>(
-          stream: _filteredFriendRequestsStream(friendRequests),
-          builder: (context, filteredSnapshot) {
-            if (filteredSnapshot.connectionState == ConnectionState.waiting) {
-              return Center(child: CircularProgressIndicator());
-            }
+        return ListView.builder(
+          itemCount: requests.length,
+          itemBuilder: (context, index) {
+            var request = requests[index];
+            var data = request.data() as Map<String, dynamic>;
+            bool isGoalInvitation = data.containsKey('sharedID');
+            String userId = isGoalInvitation ? data['fromUserID'] : data['userId'];
+            String? sharedID = isGoalInvitation ? data['sharedID'] : null;
+            String? goalID = isGoalInvitation ? data['goalID'] : null;
+            String invitationID = isGoalInvitation ? data['InvitationID'] : null;
 
-            final filteredFriendRequests = filteredSnapshot.data ?? [];
-            if (filteredFriendRequests.isEmpty) {
-              return noPendingFriendRequestsWidget(
-                  'You have no pending friend requests.');
-            }
 
-            return ListView(
-              children: filteredFriendRequests.map((doc) {
-                var friendRequestData = doc.data() as Map<String, dynamic>;
-                String userId = friendRequestData['userId'];
-                String requestId = friendRequestData['requestId'];
-                return StreamBuilder<DocumentSnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('Users')
-                      .doc(userId)
-                      .snapshots(),
-                  builder: (context, userSnapshot) {
-                    if (userSnapshot.connectionState ==
-                        ConnectionState.waiting) {
-                      return Center(child: CircularProgressIndicator());
+            return FutureBuilder<DocumentSnapshot>(
+              future: FirebaseFirestore.instance
+                  .collection('Users')
+                  .doc(userId)
+                  .get(),
+              builder: (context, userSnapshot) {
+                if (userSnapshot.connectionState == ConnectionState.waiting) {
+                  return const CircularProgressIndicator();
+                }
+
+                var userData = userSnapshot.data?.data() as Map<String, dynamic>?;
+                String fullName = userData?['username'] ??
+                    "${userData?['fname']} ${userData?['lname']}";
+                String? photoUrl = userData?['photo'];
+
+                return FriendRequestCard(
+                  name: fullName,
+                  pictureUrl: photoUrl,
+                  isGoalInvitation: isGoalInvitation,
+                  goalName: isGoalInvitation
+                      ? goalNames[sharedID] ?? 'Loading...'
+                      : null,
+                  onAccept: () {
+                    if (isGoalInvitation) {
+                      handleInvitationResponse(
+                        invitationID: invitationID,
+                        sharedID: sharedID!,
+                        goalID: goalID!,
+                        response: 'accepted',
+                        context: context,
+                      );
+                    } else {
+                      _handleAccept(isGoalInvitation, userId, request.id, sharedID);
                     }
-
-                    var userData =
-                        userSnapshot.data?.data() as Map<String, dynamic>?;
-
-                    String fullName = "Anonymous";
-                    String? photoUrl;
-
-                    if (userData != null) {
-                      String username = userData['username'] ?? "";
-                      String fname = userData['fname'] ?? "";
-                      String lname = userData['lname'] ?? "";
-
-                      if (username.isNotEmpty) {
-                        fullName = username;
-                      } else if (fname.isNotEmpty || lname.isNotEmpty) {
-                        fullName = '$fname $lname'.trim();
-                      }
-
-                      photoUrl = userData['photo'];
-                    }
-
-                    return FriendRequestCard(
-                      name: fullName,
-                      pictureUrl: photoUrl,
-                      onAccept: () {
-                        _acceptFriendRequest(currentUserId, userId, requestId);
-                      },
-                      onReject: () {
-                        _rejectFriendRequest(currentUserId, userId, requestId);
-                      },
-                    );
                   },
+                  onReject: () => _handleReject(
+                      isGoalInvitation, userId, request.id, sharedID),
                 );
-              }).toList(),
+              },
             );
           },
         );
       },
     );
+  }
+
+  Future<void> handleInvitationResponse({
+  required String invitationID,
+  required String sharedID,
+  required String goalID,
+  required String response,
+  required BuildContext context,
+}) async {
+  try {
+    final String userId = FirebaseAuth.instance.currentUser!.uid;
+    
+    // Get user's details
+    final userDoc = await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(userId)
+        .get();
+    final userData = userDoc.data() ?? {};
+
+    // Update invitation status
+    await FirebaseFirestore.instance
+        .collection('sharedGoal')
+        .doc(sharedID)
+        .collection('goalInvitations')
+        .doc(invitationID)
+        .update({
+      'status': response,
+      'respondedAt': FieldValue.serverTimestamp(),
+    });
+
+    if (response == 'accepted') {
+      // Get the shared goal data
+      final sharedGoalDoc = await FirebaseFirestore.instance
+          .collection('sharedGoal')
+          .doc(sharedID)
+          .get();
+          
+      if (!sharedGoalDoc.exists) {
+        throw Exception('Shared goal not found');
+      }
+
+      final sharedGoalData = sharedGoalDoc.data()!;
+      
+      // Update participants map in shared goal using dot notation
+      await FirebaseFirestore.instance
+          .collection('sharedGoal')
+          .doc(sharedID)
+          .update({
+        'participants.$userId': {
+          'role': 'participant',
+          'joinedAt': FieldValue.serverTimestamp(),
+        }
+      });
+
+      // Add to user's personal goals
+      await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(userId)
+          .collection('goals')
+          .doc(goalID)
+          .set({
+        'name': sharedGoalData['name'],
+        'date': sharedGoalData['date'],
+        'visibility': sharedGoalData['visibility'],
+        'notasks': sharedGoalData['notasks'],
+        'sharedID': sharedID,
+        'isShared': true,
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Successfully joined shared goal'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  } catch (e) {
+    log('Error handling invitation response: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error processing invitation: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
+
+  void _handleAccept(bool isGoalInvitation, String userId, String requestId,
+      String? sharedID) {
+    if (isGoalInvitation) {
+      _acceptcollab(currentUserId, sharedID!, requestId);
+    } else {
+      _acceptFriendRequest(currentUserId, userId, requestId);
+    }
+  }
+
+  void _handleReject(bool isGoalInvitation, String userId, String requestId,
+      String? sharedID) {
+    if (isGoalInvitation) {
+      _rejectcollab(currentUserId, sharedID!, requestId);
+    } else {
+      _rejectFriendRequest(currentUserId, userId, requestId);
+    }
   }
 
   // Stream for filtering valid friend requests
@@ -130,31 +278,7 @@ class IncomingRequestsPage extends StatelessWidget {
     yield validFriendRequests;
   }
 
-  Widget noPendingFriendRequestsWidget(String massage) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(30),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Image.asset(
-                'lib/images/no-results.png',
-                fit: BoxFit.contain,
-                height: 100,
-              ),
-              SizedBox(height: 40),
-              Text(
-                massage,
-                style: TextStyle(fontSize: 16, color: Colors.white70),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+
 
   void _acceptFriendRequest(
       String currentUserId, String friendId, String requestId) {
@@ -199,6 +323,18 @@ class IncomingRequestsPage extends StatelessWidget {
         .set({'userId': currentUserId});
   }
 
+  Future<void> _acceptcollab(
+      String currentUserId, String sharedId, String invitationId) async {
+    await FirebaseFirestore.instance
+        .collection('sharedGoal')
+        .doc(sharedId)
+        .collection('goalInvitations')
+        .doc(invitationId)
+        .update({
+      'status': "accepted",
+    });
+  }
+
   void _rejectFriendRequest(
       String currentUserId, String friendId, String requestId) {
     FirebaseFirestore.instance
@@ -227,21 +363,45 @@ class IncomingRequestsPage extends StatelessWidget {
       'timestamp': FieldValue.serverTimestamp(),
     });
   }
+
+  Future<void> _rejectcollab(
+      String currentUserId, String sharedId, String invitationId) async {
+    DocumentReference docRef = FirebaseFirestore.instance
+        .collection('sharedGoal')
+        .doc(sharedId)
+        .collection('goalInvitations')
+        .doc(invitationId);
+
+    try {
+      DocumentSnapshot docSnapshot = await docRef.get();
+      if (docSnapshot.exists) {
+        await docRef.update({'status': "rejected"});
+        log('Document updated successfully.');
+      } else {
+        log('Document does not exist at path: ${docRef.path}');
+      }
+    } catch (e) {
+      log('Error updating document: $e');
+    }
+  }
 }
 
 class FriendRequestCard extends StatelessWidget {
   final String name;
   final String? pictureUrl;
+  final bool isGoalInvitation;
   final VoidCallback onAccept;
   final VoidCallback onReject;
+  final String? goalName;
 
-  const FriendRequestCard({
-    super.key,
-    required this.name,
-    required this.pictureUrl,
-    required this.onAccept,
-    required this.onReject,
-  });
+  const FriendRequestCard(
+      {super.key,
+      required this.name,
+      required this.pictureUrl,
+      required this.onAccept,
+      required this.onReject,
+      required this.isGoalInvitation,
+      required this.goalName});
 
   @override
   Widget build(BuildContext context) {
@@ -263,52 +423,108 @@ class FriendRequestCard extends StatelessWidget {
         ),
         child: Padding(
           padding: EdgeInsets.all(15), // Increased padding slightly
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: Colors.white.withOpacity(0.9),
-                backgroundImage:
-                    pictureUrl != null ? NetworkImage(pictureUrl!) : null,
-                child: pictureUrl == null
-                    ? Icon(Icons.account_circle,
-                        size: 60, color: Colors.grey[400])
-                    : null,
-              ),
-              SizedBox(width: 15),
-              Expanded(
-                child: Text(
-                  name,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    color: Colors
-                        .white, // Changed text color to white for contrast
+              if (isGoalInvitation) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    "Goal Collab",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.orange,
+                    ),
                   ),
                 ),
-              ),
-              ElevatedButton(
-                onPressed: onAccept,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color.fromARGB(255, 71, 141, 74),
-                  padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              ],
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Colors.white.withOpacity(0.9),
+                    backgroundImage:
+                        pictureUrl != null ? NetworkImage(pictureUrl!) : null,
+                    child: pictureUrl == null
+                        ? Icon(Icons.account_circle,
+                            size: 60, color: Colors.grey[400])
+                        : null,
                   ),
-                ),
-                child: Text('Accept', style: TextStyle(color: Colors.white)),
-              ),
-              SizedBox(width: 10),
-              ElevatedButton(
-                onPressed: onReject,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color.fromARGB(255, 186, 38, 27),
-                  padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                  SizedBox(width: 15),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                                // Wrap Text in Expanded
+                                child: Text(
+                              name,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white,
+                              ),
+                              overflow:
+                                  TextOverflow.ellipsis, // Handle overflow
+                            )),
+                          ],
+                        ),
+                        if (isGoalInvitation) ...[
+                          SizedBox(height: 7),
+                          Text(
+                            "has wants to collab on $goalName ",
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: Colors
+                                  .white, // Changed text color to white for contrast
+                            ),
+                            overflow: TextOverflow.visible,
+                            softWrap: true,
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                ),
-                child: Text('Reject', style: TextStyle(color: Colors.white)),
+                  SizedBox(width: 10),
+                  ElevatedButton(
+                    onPressed: onAccept,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color.fromARGB(255, 71, 141, 74),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child:
+                        Text('Accept', style: TextStyle(color: Colors.white)),
+                  ),
+                  SizedBox(width: 10),
+                  ElevatedButton(
+                    onPressed: onReject,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color.fromARGB(255, 186, 38, 27),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child:
+                        Text('Reject', style: TextStyle(color: Colors.white)),
+                  ),
+                ],
               ),
             ],
           ),

@@ -9,6 +9,8 @@ import 'package:intl/intl.dart';
 import 'package:achiva/utilities/colors.dart';
 import 'package:timelines/timelines.dart';
 import 'package:achiva/views/addition_views/deleteTask.dart';
+import 'sharedgoal/sharedgoal.dart';
+
 
 class GoalTasks extends StatefulWidget {
   final DocumentSnapshot goalDocument;
@@ -36,11 +38,7 @@ class _GoalTasksState extends State<GoalTasks> {
   }
 
   Stream<double> _createProgressStream() {
-    return FirebaseFirestore.instance
-        .collection("Users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection('goals')
-        .doc(widget.goalDocument.id)
+    return widget.goalDocument.reference
         .collection('tasks')
         .snapshots()
         .map((snapshot) {
@@ -58,8 +56,15 @@ class _GoalTasksState extends State<GoalTasks> {
     });
   }
 
-  void _showTaskDetails(BuildContext context, Map<String, dynamic> task,
-      DocumentReference taskRef, DateTime goalDate, String goalName) {
+  void _showTaskDetails(
+      BuildContext context,
+      Map<String, dynamic> task,
+      DocumentReference taskRef,
+      DateTime goalDate,
+      String goalName,
+      bool isCompleted) {
+        
+    final goalData = widget.goalDocument.data() as Map<String, dynamic>;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -81,25 +86,107 @@ class _GoalTasksState extends State<GoalTasks> {
                   constraints: BoxConstraints(),
                 ),
               ),
-              Text(
-                task['taskName'] ?? 'Task Details',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    task['taskName'] ?? 'Task Details',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (isCompleted && widget.goalDocument['visibility'] == true)
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          Navigator.of(context)
+                              .pop(); // Close the current dialog
+                          String goalId = widget.goalDocument.id;
+                          String taskId = taskRef.id;
+                          // Show the CreatePostDialog
+                          bool? result = await showDialog<bool>(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return CreatePostDialog(
+                                userId: widget.userId,
+                                goalId: goalId,
+                                taskId: taskId,
+                              );
+                            },
+                          ).then((value) async {
+                            if (value == true) {
+                              var tasks = await widget.goalDocument.reference
+                                  .collection('tasks')
+                                  .orderBy('startTime')
+                                  .get();
+                            }
+                            return null;
+                          });
+                        },
+                        style: ButtonStyle(
+                          backgroundColor:
+                              WidgetStateProperty.all(Colors.transparent),
+                          elevation: WidgetStateProperty.all(
+                              0), // Remove button shadow
+                          padding: WidgetStateProperty.all(
+                              EdgeInsets.zero), // Remove padding
+                        ),
+                        child: Image.asset("lib/images/post.png",
+                            fit: BoxFit.contain,
+                            height: 30,
+                            color: Colors.grey[800]),
+                      ),
+                    ),
+                ],
               ),
+              SizedBox(
+                height: 15,
+              )
             ],
           ),
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
-                _buildDetailRow('Date', task['date']),
-                _buildDetailRow('Description', task['description']),
-                _buildDetailRow('Start Time', task['startTime']),
-                _buildDetailRow('End Time', task['endTime']),
-                _buildDetailRow('Location', task['location']),
-                _buildDetailRow('Recurrence', task['recurrence']),
+                _buildDetailRow('Date', task['date'], "lib/images/date.png"),
+                const Divider(
+                  indent: 20,
+                  endIndent: 20,
+                ),
+                _buildDetailRow('Description', task['description'],
+                    "lib/images/description.png"),
+                const Divider(
+                  indent: 20,
+                  endIndent: 20,
+                ),
+                _buildDetailRow(
+                    'Duration', task['duration'], "lib/images/duration.png"),
+                const Divider(
+                  indent: 20,
+                  endIndent: 20,
+                ),
+                _buildDetailRow('Start Time', task['startTime'],
+                    "lib/images/startTime.png"),
+                const Divider(
+                  indent: 20,
+                  endIndent: 20,
+                ),
+                _buildDetailRow(
+                    'End Time', task['endTime'], "lib/images/endTime.png"),
+                const Divider(
+                  indent: 20,
+                  endIndent: 20,
+                ),
+                _buildDetailRow(
+                    'Location', task['location'], "lib/images/location.png"),
+                    const Divider(
+                  indent: 20,
+                  endIndent: 20,
+                ),
+                    _buildDetailRow('Recurrence', task['recurrence'],"lib/images/recurrence.png"),
+                
               ],
             ),
           ),
@@ -116,7 +203,7 @@ class _GoalTasksState extends State<GoalTasks> {
               onPressed: () async {
                 Navigator.of(context).pop(); // Close the details dialog
                 bool wasDeleted =
-                    await TaskOperations.deleteTask(context, taskRef);
+                    await TaskOperations.deleteTask(context, taskRef,goalName);
                 if (wasDeleted) {
                   Navigator.of(context)
                       .pop(); // Close the parent dialog if deletion was successful
@@ -131,6 +218,8 @@ class _GoalTasksState extends State<GoalTasks> {
 
   void _editTask(BuildContext context, DocumentReference taskRef,
       Map<String, dynamic> taskData, DateTime goalDate, String goalName) {
+    
+    final goalData = widget.goalDocument.data() as Map<String, dynamic>;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -140,6 +229,8 @@ class _GoalTasksState extends State<GoalTasks> {
           goalDate: goalDate,
           usergoallistrefrence: usergoallistrefrence,
           goalName: goalName,
+          isSharedGoal: goalData['sharedID'] != null,
+          sharedkey: goalData['sharedID'],
         );
       },
     );
@@ -154,9 +245,21 @@ class _GoalTasksState extends State<GoalTasks> {
         builder: (BuildContext context) {
           return AlertDialog(
             backgroundColor: Colors.white,
-            title: Text('Uncheck Task',
-                style: TextStyle(
-                    color: Colors.black, fontWeight: FontWeight.bold)),
+            title: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Image.asset(
+                  'lib/images/uncheck.png',
+                  fit: BoxFit.contain,
+                  height: 60,
+                ),
+                Text('Uncheck Task',
+                    style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20)),
+              ],
+            ),
             content: Text(
                 'Are you sure you want to mark this task as incomplete?',
                 style: TextStyle(color: Colors.black)),
@@ -190,9 +293,21 @@ class _GoalTasksState extends State<GoalTasks> {
           builder: (BuildContext context) {
             return AlertDialog(
               backgroundColor: Colors.white,
-              title: Text('Task Completed!',
-                  style: TextStyle(
-                      color: Colors.black, fontWeight: FontWeight.bold)),
+              title: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Image.asset(
+                    'lib/images/check.png',
+                    fit: BoxFit.contain,
+                    height: 60,
+                  ),
+                  Text('Task Completed!',
+                      style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20)),
+                ],
+              ),
               content: Text('Congratulations on completing your task!',
                   style: TextStyle(color: Colors.black)),
               actions: <Widget>[
@@ -213,9 +328,21 @@ class _GoalTasksState extends State<GoalTasks> {
           builder: (BuildContext context) {
             return AlertDialog(
               backgroundColor: Colors.white,
-              title: Text('Task Completed!',
-                  style: TextStyle(
-                      color: Colors.black, fontWeight: FontWeight.bold)),
+              title: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Image.asset(
+                    'lib/images/post.png',
+                    fit: BoxFit.contain,
+                    height: 60,
+                  ),
+                  Text('Task Completed!',
+                      style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20)),
+                ],
+              ),
               content: Text(
                   'Congratulations on completing your task!\nDo you want to make a post about it?',
                   style: TextStyle(color: Colors.black)),
@@ -667,25 +794,32 @@ class _GoalTasksState extends State<GoalTasks> {
     }
   }
 
-  Widget _buildDetailRow(String title, String? value) {
-    // Consider null, empty string, and "Unknown location" as 'Not set'
+  Widget _buildDetailRow(String title, String? value, String image) {
+// Consider null, empty string, and "Unknown location" as 'Not set'
     final displayValue = (value == null ||
             value.trim().isEmpty ||
             value.trim() == 'Unknown location')
         ? 'Not set'
         : value;
-
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Image.asset(
+            image,
+            fit: BoxFit.contain,
+            height: 20,
+          ),
+          SizedBox(
+            width: 10,
+          ),
           Text(
             '$title: ',
             style: TextStyle(
               color: Colors.black,
               fontWeight: FontWeight.bold,
-              fontSize: 16,
+              fontSize: 18,
             ),
           ),
           Expanded(
@@ -701,6 +835,18 @@ class _GoalTasksState extends State<GoalTasks> {
       ),
     );
   }
+
+  Future<void> showParticipantsDialog(BuildContext context, String sharedID, String goalID) {
+  return showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        child: ParticipantsDialogContent(sharedID: sharedID, goalID: goalID),
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -749,7 +895,277 @@ class _GoalTasksState extends State<GoalTasks> {
                           ),
                         ),
                       ),
-                      // Updated Progress Indicator
+                      if (goalData['sharedID'] != null)
+                        Positioned(
+                          child: GestureDetector(
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return Dialog(
+                                    backgroundColor: Colors.transparent,
+                                    child: Container(
+                                      width: MediaQuery.of(context).size.width *
+                                          0.8,
+                                      constraints: BoxConstraints(
+                                        maxHeight:
+                                            MediaQuery.of(context).size.height *
+                                                0.7,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [
+                                            Color.fromARGB(255, 30, 12, 48),
+                                            Color.fromARGB(255, 77, 64, 98),
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(20),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color:
+                                                Colors.black.withOpacity(0.3),
+                                            blurRadius: 10,
+                                            spreadRadius: 2,
+                                          ),
+                                        ],
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          // Header
+                                          Padding(
+                                            padding: const EdgeInsets.all(16.0),
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                const Text(
+                                                  'Participants',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 20,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                IconButton(
+                                                  icon: const Icon(Icons.close,
+                                                      color: Colors.white),
+                                                  onPressed: () =>  showParticipantsDialog(context, goalData['sharedID'], goalData['goalID']),
+
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const Divider(color: Colors.white24),
+
+                                          // Participants List
+                                          StreamBuilder<QuerySnapshot>(
+                                            stream: FirebaseFirestore.instance
+                                                .collection('sharedGoal')
+                                                .doc(goalData['sharedID'])
+                                                .collection('participants')
+                                                .snapshots(),
+                                            builder: (context, snapshot) {
+                                              if (snapshot.hasError) {
+                                                return const Center(
+                                                  child: Text(
+                                                    'Something went wrong',
+                                                    style: TextStyle(
+                                                        color: Colors.white),
+                                                  ),
+                                                );
+                                              }
+
+                                              if (!snapshot.hasData) {
+                                                return const Center(
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                    color: Colors.white,
+                                                  ),
+                                                );
+                                              }
+
+                                              final participants =
+                                                  snapshot.data!.docs;
+
+                                              return Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  ListView.builder(
+                                                    shrinkWrap: true,
+                                                    physics:
+                                                        const BouncingScrollPhysics(),
+                                                    itemCount:
+                                                        participants.length,
+                                                    itemBuilder:
+                                                        (context, index) {
+                                                      final participant =
+                                                          participants[index]
+                                                                  .data()
+                                                              as Map<String,
+                                                                  dynamic>;
+                                                      return Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                          horizontal: 16.0,
+                                                          vertical: 8.0,
+                                                        ),
+                                                        child: Container(
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color:
+                                                                Colors.white10,
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        12),
+                                                          ),
+                                                          child: ListTile(
+                                                            leading:
+                                                                CircleAvatar(
+                                                              backgroundImage: participant[
+                                                                          'photo'] !=
+                                                                      null
+                                                                  ? NetworkImage(
+                                                                      participant[
+                                                                          'photo'])
+                                                                  : null,
+                                                              child: participant[
+                                                                          'photo'] ==
+                                                                      null
+                                                                  ? const Icon(
+                                                                      Icons
+                                                                          .person,
+                                                                      color: Colors
+                                                                          .white)
+                                                                  : null,
+                                                              backgroundColor:
+                                                                  Colors.grey[
+                                                                      700],
+                                                            ),
+                                                            title: Text(
+                                                              participant[
+                                                                      'fname'] ??
+                                                                  'Anonymous',
+                                                              style:
+                                                                  const TextStyle(
+                                                                color: Colors
+                                                                    .white,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                              ),
+                                                            ),
+                                                            subtitle: Text(
+                                                              participant[
+                                                                      'role'] ??
+                                                                  'owner',
+                                                              style: TextStyle(
+                                                                color: Colors
+                                                                    .white
+                                                                    .withOpacity(
+                                                                        0.7),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                                Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.of(context).pop(); 
+                          showParticipantsDialog(context, goalData['sharedID'], goalData['goalID']);
+                        },
+                                                      
+                                                      child: Container(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                          vertical: 12.0,
+                                                          horizontal: 16.0,
+                                                        ),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: Colors.white10,
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(12),
+                                                          border: Border.all(
+                                                            color:
+                                                                Colors.white24,
+                                                            width: 1,
+                                                          ),
+                                                        ),
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .center,
+                                                          children: const [
+                                                            Icon(
+                                                              Icons
+                                                                  .add_circle_outline,
+                                                              color:
+                                                                  Colors.white,
+                                                              size: 24,
+                                                            ),
+                                                            SizedBox(width: 8),
+                                                            Text(
+                                                              'Add Participant',
+                                                              style: TextStyle(
+                                                                color: Colors
+                                                                    .white,
+                                                                fontSize: 16,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                            child: Container(
+                              width: 80,
+                              height: 55,
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 18, 89, 147)
+                                    .withOpacity(0.2),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 8,
+                                    offset: const Offset(2, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.group,
+                                color: Colors.white,
+                                size: 30,
+                              ),
+                            ),
+                          ),
+                        ),
                       StreamBuilder<double>(
                         stream: _progressStream,
                         builder: (context, snapshot) {
@@ -852,54 +1268,77 @@ class _GoalTasksState extends State<GoalTasks> {
                               final isCompleted = task['completed'] ?? false;
                               return GestureDetector(
                                 onTap: () => _showTaskDetails(
-                                    context, task, taskDoc.reference, goalDate, goalName),
+                                    context,
+                                    task,
+                                    taskDoc.reference,
+                                    goalDate,
+                                    goalName,
+                                    isCompleted),
                                 child: Padding(
                                   padding: const EdgeInsets.only(
                                       left: 22.0, bottom: 40.0, right: 22.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
-                                      SizedBox(
-                                          height:
-                                              16), // Increased space above task details
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              taskName,
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            SizedBox(
+                                                height:
+                                                    16), // Increased space above task details
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.center,
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    taskName,
+                                                    style: TextStyle(
+                                                      fontSize: 20,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: isCompleted
+                                                          ? Colors.grey
+                                                          : Colors.black,
+                                                      decoration: isCompleted
+                                                          ? TextDecoration
+                                                              .lineThrough
+                                                          : TextDecoration.none,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Text(
+                                                  startTime,
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    color: Colors.grey[600],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            SizedBox(height: 4),
+                                            Text(
+                                              date,
                                               style: TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.w500,
-                                                color: isCompleted
-                                                    ? Colors.grey
-                                                    : Colors.black,
-                                                decoration: isCompleted
-                                                    ? TextDecoration.lineThrough
-                                                    : TextDecoration.none,
+                                                fontSize: 14,
+                                                color: Colors.grey[600],
                                               ),
                                             ),
-                                          ),
-                                          Text(
-                                            startTime,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.grey[600],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(height: 4),
-                                      Text(
-                                        date,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey[600],
+                                          ],
                                         ),
+                                      ),
+                                      Icon(
+                                        Icons.arrow_forward_ios,
+                                        color: Colors.grey[700],
+                                        size: 15, // Adjust the size as needed
+                                      ),
+                                      SizedBox(
+                                        width: 10,
                                       ),
                                     ],
                                   ),
@@ -980,6 +1419,8 @@ class _GoalTasksState extends State<GoalTasks> {
                         goalName: goalName,
                         goalDate: goalDate,
                         goalVisibility: visibilty,
+                        isSharedGoal: goalData['sharedID'] != null,
+                        sharedkey: goalData['sharedID'],
                       ),
                     ),
                   );
@@ -999,6 +1440,223 @@ class _GoalTasksState extends State<GoalTasks> {
                   : Colors.grey,
               child: Icon(Icons.add, color: Colors.white),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+
+Future<void> showParticipantsDialog(BuildContext context, String sharedID, String goalID) {
+  return showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        child: ParticipantsDialogContent(sharedID: sharedID, goalID: goalID),
+      );
+    },
+  );
+}
+
+class ParticipantsDialogContent extends StatelessWidget {
+  final String sharedID;
+  final String goalID;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  ParticipantsDialogContent({
+    Key? key,
+    required this.sharedID,
+    required this.goalID,
+  }) : super(key: key);
+
+  Future<Map<String, dynamic>?> _getUserData(String userId) async {
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    return userDoc.data();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: MediaQuery.of(context).size.width * 0.8,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.7,
+      ),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.fromARGB(255, 30, 12, 48),
+            Color.fromARGB(255, 77, 64, 98),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 10,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Participants',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          ),
+          const Divider(color: Colors.white24),
+
+          // Participants List
+          StreamBuilder<DocumentSnapshot>(
+            stream: _firestore.collection('sharedGoal').doc(sharedID).snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return const Center(
+                  child: Text('Something went wrong', style: TextStyle(color: Colors.white)),
+                );
+              }
+
+              if (!snapshot.hasData) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                );
+              }
+
+              final goalData = snapshot.data!.data() as Map<String, dynamic>;
+              final participants = goalData['participants'] as Map<String, dynamic>? ?? {};
+
+              return Flexible(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: participants.length,
+                        itemBuilder: (context, index) {
+                          final userId = participants.keys.elementAt(index);
+                          final participantData = participants[userId] as Map<String, dynamic>;
+
+                          return FutureBuilder<Map<String, dynamic>?>(
+                            future: _getUserData(userId),
+                            builder: (context, userSnapshot) {
+                              if (!userSnapshot.hasData) {
+                                return const SizedBox(height: 72);
+                              }
+
+                              final userData = userSnapshot.data!;
+
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0,
+                                  vertical: 8.0,
+                                ),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white10,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: ListTile(
+                                    leading: CircleAvatar(
+                                      backgroundImage: userData['photo'] != null
+                                          ? NetworkImage(userData['photo'])
+                                          : null,
+                                      child: userData['photo'] == null
+                                          ? const Icon(Icons.person, color: Colors.white)
+                                          : null,
+                                      backgroundColor: Colors.grey[700],
+                                    ),
+                                    title: Text(
+                                      '${userData['fname']} ${userData['lname']}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      participantData['role'] ?? 'participant',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.7),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                    // Add Participant Button
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          showFriendListDialog(context, sharedID, goalID);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12.0,
+                            horizontal: 16.0,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white10,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.white24,
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(
+                                Icons.add_circle_outline,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Add Participant',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),
