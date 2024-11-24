@@ -180,8 +180,17 @@ class RankingsService {
         .cast<Map<String, dynamic>>()
         .toList();
 
-    rankings.sort(
-        (a, b) => b['productivityScore'].compareTo(a['productivityScore']));
+    rankings.sort((a, b) {
+  // First compare by productivity score
+  final scoreComparison = b['productivityScore'].compareTo(a['productivityScore']);
+  
+  // If scores are equal, use name as tiebreaker
+  if (scoreComparison == 0) {
+    return (a['fullName'] as String).compareTo(b['fullName'] as String);
+  }
+  
+  return scoreComparison;
+});
     return rankings;
   }
 
