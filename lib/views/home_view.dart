@@ -123,19 +123,53 @@ class _HomePageState extends State<HomeScreen> {
         .switchMap((goalSnapshots) {
       // Create a stream for each goal's tasks
       final taskStreams = goalSnapshots.docs.map((goalDoc) {
-        return goalDoc.reference
-            .collection('tasks')
-            .where('completed', isEqualTo: true)
-            .snapshots()
-            .map((taskSnapshot) {
-          return taskSnapshot.docs.where((task) {
-            final completedDate =
-                (task.data()['completedDate'] as Timestamp?)?.toDate();
-            if (completedDate == null) return false;
+        final goalData = goalDoc.data();
+        final sharedId = goalData['sharedID'] as String?;
 
-            return completedDate.isAfter(today) &&
-                completedDate.isBefore(tomorrow);
-          }).length;
+        // Streams for both personal and shared tasks
+        final List<Stream<int>> combinedTaskStreams = [
+          // Personal tasks stream
+          goalDoc.reference
+              .collection('tasks')
+              .where('completed', isEqualTo: true)
+              .snapshots()
+              .map((taskSnapshot) {
+            return taskSnapshot.docs.where((task) {
+              final completedDate =
+                  (task.data()['completedDate'] as Timestamp?)?.toDate();
+              if (completedDate == null) return false;
+
+              return completedDate.isAfter(today) &&
+                  completedDate.isBefore(tomorrow);
+            }).length;
+          }),
+        ];
+
+        // Add shared tasks stream if sharedId exists
+        if (sharedId != null && sharedId.isNotEmpty) {
+          final sharedTaskStream = FirebaseFirestore.instance
+              .collection('sharedGoal')
+              .doc(sharedId)
+              .collection('tasks')
+              .where('completed', isEqualTo: true)
+              .snapshots()
+              .map((taskSnapshot) {
+            return taskSnapshot.docs.where((task) {
+              final completedDate =
+                  (task.data()['completedDate'] as Timestamp?)?.toDate();
+              if (completedDate == null) return false;
+
+              return completedDate.isAfter(today) &&
+                  completedDate.isBefore(tomorrow);
+            }).length;
+          });
+
+          combinedTaskStreams.add(sharedTaskStream);
+        }
+
+        // Combine personal and shared task streams
+        return Rx.combineLatest(combinedTaskStreams, (List<int> counts) {
+          return counts.reduce((sum, count) => sum + count);
         });
       });
 
@@ -144,7 +178,7 @@ class _HomePageState extends State<HomeScreen> {
         return Stream.value(0);
       }
 
-      // Combine all task streams and sum their values
+      // Combine all goal task streams
       return Rx.combineLatest(taskStreams, (List<int> counts) {
         return counts.reduce((sum, count) => sum + count);
       });
@@ -168,19 +202,53 @@ class _HomePageState extends State<HomeScreen> {
         .switchMap((goalSnapshots) {
       // Create a stream for each goal's tasks
       final taskStreams = goalSnapshots.docs.map((goalDoc) {
-        return goalDoc.reference
-            .collection('tasks')
-            .where('completed', isEqualTo: true)
-            .snapshots()
-            .map((taskSnapshot) {
-          return taskSnapshot.docs.where((task) {
-            final completedDate =
-                (task.data()['completedDate'] as Timestamp?)?.toDate();
-            if (completedDate == null) return false;
+        final goalData = goalDoc.data();
+        final sharedId = goalData['sharedID'] as String?;
 
-            return completedDate.isAfter(startDate) &&
-                completedDate.isBefore(endDate);
-          }).length;
+        // Streams for both personal and shared tasks
+        final List<Stream<int>> combinedTaskStreams = [
+          // Personal tasks stream
+          goalDoc.reference
+              .collection('tasks')
+              .where('completed', isEqualTo: true)
+              .snapshots()
+              .map((taskSnapshot) {
+            return taskSnapshot.docs.where((task) {
+              final completedDate =
+                  (task.data()['completedDate'] as Timestamp?)?.toDate();
+              if (completedDate == null) return false;
+
+              return completedDate.isAfter(startDate) &&
+                  completedDate.isBefore(endDate);
+            }).length;
+          }),
+        ];
+
+        // Add shared tasks stream if sharedId exists
+        if (sharedId != null && sharedId.isNotEmpty) {
+          final sharedTaskStream = FirebaseFirestore.instance
+              .collection('sharedGoal')
+              .doc(sharedId)
+              .collection('tasks')
+              .where('completed', isEqualTo: true)
+              .snapshots()
+              .map((taskSnapshot) {
+            return taskSnapshot.docs.where((task) {
+              final completedDate =
+                  (task.data()['completedDate'] as Timestamp?)?.toDate();
+              if (completedDate == null) return false;
+
+              return completedDate.isAfter(startDate) &&
+                  completedDate.isBefore(endDate);
+            }).length;
+          });
+
+          combinedTaskStreams.add(sharedTaskStream);
+        }
+
+        // Combine personal and shared task streams
+        return Rx.combineLatest(combinedTaskStreams, (List<int> counts) {
+          return counts.reduce((sum, count) => sum + count);
         });
       });
 
@@ -189,7 +257,7 @@ class _HomePageState extends State<HomeScreen> {
         return Stream.value(0);
       }
 
-      // Combine all task streams and sum their values
+      // Combine all goal task streams
       return Rx.combineLatest(taskStreams, (List<int> counts) {
         return counts.reduce((sum, count) => sum + count);
       });
@@ -483,8 +551,8 @@ class _HomePageState extends State<HomeScreen> {
                           itemCount: snapshot.data!.docs.length,
                           itemBuilder: (context, index) {
                             return FutureBuilder<DocumentSnapshot>(
-                              future:
-                                  getGoalDocument(snapshot.data!.docs[index]),//filters which type of goal it is (shared or regular)
+                              future: getGoalDocument(snapshot.data!.docs[
+                                  index]), //filters which type of goal it is (shared or regular)
                               builder: (context,
                                   AsyncSnapshot<DocumentSnapshot>
                                       goalSnapshot) {
@@ -569,21 +637,21 @@ class _HomePageState extends State<HomeScreen> {
     return originalDocument;
   }
 
-Widget _buildGoalCard(String goalName, double progress, bool isDone,
-    DocumentSnapshot goalDocument, DateTime goalDate, bool visibl) {
-  final goalData = goalDocument.data() as Map<String, dynamic>;
-  final bool isSharedGoal =
-      goalData.containsKey('isShared') && goalData['isShared'] != null;
+  Widget _buildGoalCard(String goalName, double progress, bool isDone,
+      DocumentSnapshot goalDocument, DateTime goalDate, bool visibl) {
+    final goalData = goalDocument.data() as Map<String, dynamic>;
+    final bool isSharedGoal =
+        goalData.containsKey('isShared') && goalData['isShared'] != null;
 
-  return GestureDetector(
-    onTap: () async {
-      // Handle navigation for both shared and regular goals
-      if (isSharedGoal) {
-        String sharedID = goalDocument['sharedID'];
-        DocumentSnapshot sharedGoalDoc = await FirebaseFirestore.instance
-            .collection('sharedGoal')
-            .doc(sharedID)
-            .get();
+    return GestureDetector(
+      onTap: () async {
+        // Handle navigation for both shared and regular goals
+        if (isSharedGoal) {
+          String sharedID = goalDocument['sharedID'];
+          DocumentSnapshot sharedGoalDoc = await FirebaseFirestore.instance
+              .collection('sharedGoal')
+              .doc(sharedID)
+              .get();
 
         if (sharedGoalDoc.exists) {
           Navigator.push(

@@ -9,7 +9,6 @@ import 'package:intl/intl.dart';
 import 'package:achiva/utilities/colors.dart';
 import 'package:timelines/timelines.dart';
 import 'package:achiva/views/addition_views/deleteTask.dart';
-
 import 'sharedgoal/sharedgoal.dart';
 
 
@@ -64,6 +63,8 @@ class _GoalTasksState extends State<GoalTasks> {
       DateTime goalDate,
       String goalName,
       bool isCompleted) {
+        
+    final goalData = widget.goalDocument.data() as Map<String, dynamic>;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -217,6 +218,8 @@ class _GoalTasksState extends State<GoalTasks> {
 
   void _editTask(BuildContext context, DocumentReference taskRef,
       Map<String, dynamic> taskData, DateTime goalDate, String goalName) {
+    
+    final goalData = widget.goalDocument.data() as Map<String, dynamic>;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -226,6 +229,8 @@ class _GoalTasksState extends State<GoalTasks> {
           goalDate: goalDate,
           usergoallistrefrence: usergoallistrefrence,
           goalName: goalName,
+          isSharedGoal: goalData['sharedID'] != null,
+          sharedkey: goalData['sharedID'],
         );
       },
     );
