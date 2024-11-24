@@ -7,7 +7,7 @@ import 'package:uuid/uuid.dart';
 class SharedGoalManager {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-
+  
   Future<void> createSharedGoal({
     required String goalName,
     required String date,
@@ -61,7 +61,7 @@ class SharedGoalManager {
   }) async {
     try {
       // Add task only to sharedGoal collection
-      await FirebaseFirestore.instance
+      await _firestore
           .collection('sharedGoal')
           .doc(sharedID)
           .collection('tasks')
@@ -95,6 +95,7 @@ class SharedGoalManager {
     }
   }
 
+
   Future<void> handleInvitationResponse({
     required String invitationID,
     required String sharedID,
@@ -104,7 +105,7 @@ class SharedGoalManager {
   }) async {
     try {
       final String userId = _auth.currentUser!.uid;
-
+      
       // Get user's details
       final userDoc = await _firestore.collection('Users').doc(userId).get();
       final userData = userDoc.data() ?? {};
@@ -122,14 +123,13 @@ class SharedGoalManager {
 
       if (response == 'accepted') {
         // Get the shared goal data
-        final sharedGoalDoc =
-            await _firestore.collection('sharedGoal').doc(sharedID).get();
+        final sharedGoalDoc = await _firestore.collection('sharedGoal').doc(sharedID).get();
         if (!sharedGoalDoc.exists) {
           throw Exception('Shared goal not found');
         }
 
         final sharedGoalData = sharedGoalDoc.data()!;
-
+        
         // Create participant data
         final participantData = {
           'userId': userId,
@@ -175,14 +175,13 @@ class SharedGoalManager {
       final String userId = _auth.currentUser!.uid;
 
       // Get the shared goal to check user's role
-      final sharedGoalDoc =
-          await _firestore.collection('sharedGoal').doc(sharedID).get();
+      final sharedGoalDoc = await _firestore.collection('sharedGoal').doc(sharedID).get();
       if (!sharedGoalDoc.exists) {
         throw Exception('Shared goal not found');
       }
 
       final sharedGoalData = sharedGoalDoc.data()!;
-
+      
       // Check if user is the owner
       if (sharedGoalData['owner']['userId'] == userId) {
         // If owner is leaving, archive the goal instead of deleting
@@ -198,11 +197,10 @@ class SharedGoalManager {
         // If participant is leaving, remove them from participants array
         final participants = List.from(sharedGoalData['participants']);
         participants.removeWhere((p) => p['userId'] == userId);
-
-        await _firestore
-            .collection('sharedGoal')
-            .doc(sharedID)
-            .update({'participants': participants});
+        
+        await _firestore.collection('sharedGoal').doc(sharedID).update({
+          'participants': participants
+        });
       }
 
       // Remove goal from user's personal goals
@@ -226,7 +224,7 @@ class SharedGoalManager {
   // }) async {
   //   try {
   //     final String userId = _auth.currentUser!.uid;
-
+      
   //     // Add creator information to task data
   //     final enhancedTaskData = {
   //       ...taskData,
@@ -463,7 +461,7 @@ Future<bool> _inviteCollaborator(
         .doc(invitationID)
         .set({
       'InvitationID': invitationID,
-      "sharedID": sharedID,
+      "sharedID":sharedID,
       'goalID': goalID,
       'fromUserID': userId,
       'toUserID': friendId,
