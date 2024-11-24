@@ -5,6 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:achiva/views/sharedgoal/sharedgoal.dart';
+
 
 class IncomingRequestsPage extends StatefulWidget {
   const IncomingRequestsPage({Key? key}) : super(key: key);
@@ -61,8 +63,8 @@ class _IncomingRequestsPageState extends State<IncomingRequestsPage> {
 
         if (goalDoc.exists) {
           final data = goalDoc.data();
-          if (data != null && data.containsKey('goalName')) {
-            goalNames[sharedID] = data['goalName'];
+          if (data != null && data.containsKey('name')) {
+            goalNames[sharedID] = data['name'];
           } else {
             goalNames[sharedID] = 'Undefined Goal';
           }
@@ -74,7 +76,7 @@ class _IncomingRequestsPageState extends State<IncomingRequestsPage> {
     }
   }
 
-  @override
+ @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<QueryDocumentSnapshot>>(
       stream: getCombinedStream(),
@@ -90,8 +92,7 @@ class _IncomingRequestsPageState extends State<IncomingRequestsPage> {
         final requests = snapshot.data ?? [];
 
         if (requests.isEmpty) {
-          return noResults(
-              'You have no pending requests/invitations.');
+          return noResults('You have no pending requests/invitations.');
         }
 
         return ListView.builder(
@@ -100,9 +101,11 @@ class _IncomingRequestsPageState extends State<IncomingRequestsPage> {
             var request = requests[index];
             var data = request.data() as Map<String, dynamic>;
             bool isGoalInvitation = data.containsKey('sharedID');
-            String userId =
-                isGoalInvitation ? data['fromUserID'] : data['userId'];
+            String userId = isGoalInvitation ? data['fromUserID'] : data['userId'];
             String? sharedID = isGoalInvitation ? data['sharedID'] : null;
+            String? goalID = isGoalInvitation ? data['goalID'] : null;
+            String invitationID = isGoalInvitation ? data['InvitationID'] : null;
+
 
             return FutureBuilder<DocumentSnapshot>(
               future: FirebaseFirestore.instance
@@ -114,8 +117,7 @@ class _IncomingRequestsPageState extends State<IncomingRequestsPage> {
                   return const CircularProgressIndicator();
                 }
 
-                var userData =
-                    userSnapshot.data?.data() as Map<String, dynamic>?;
+                var userData = userSnapshot.data?.data() as Map<String, dynamic>?;
                 String fullName = userData?['username'] ??
                     "${userData?['fname']} ${userData?['lname']}";
                 String? photoUrl = userData?['photo'];
@@ -127,8 +129,19 @@ class _IncomingRequestsPageState extends State<IncomingRequestsPage> {
                   goalName: isGoalInvitation
                       ? goalNames[sharedID] ?? 'Loading...'
                       : null,
-                  onAccept: () => _handleAccept(
-                      isGoalInvitation, userId, request.id, sharedID),
+                  onAccept: () {
+                    if (isGoalInvitation) {
+                      handleInvitationResponse(
+                        invitationID: invitationID,
+                        sharedID: sharedID!,
+                        goalID: goalID!,
+                        response: 'accepted',
+                        context: context,
+                      );
+                    } else {
+                      _handleAccept(isGoalInvitation, userId, request.id, sharedID);
+                    }
+                  },
                   onReject: () => _handleReject(
                       isGoalInvitation, userId, request.id, sharedID),
                 );
@@ -139,6 +152,91 @@ class _IncomingRequestsPageState extends State<IncomingRequestsPage> {
       },
     );
   }
+
+  Future<void> handleInvitationResponse({
+  required String invitationID,
+  required String sharedID,
+  required String goalID,
+  required String response,
+  required BuildContext context,
+}) async {
+  try {
+    final String userId = FirebaseAuth.instance.currentUser!.uid;
+    
+    // Get user's details
+    final userDoc = await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(userId)
+        .get();
+    final userData = userDoc.data() ?? {};
+
+    // Update invitation status
+    await FirebaseFirestore.instance
+        .collection('sharedGoal')
+        .doc(sharedID)
+        .collection('goalInvitations')
+        .doc(invitationID)
+        .update({
+      'status': response,
+      'respondedAt': FieldValue.serverTimestamp(),
+    });
+
+    if (response == 'accepted') {
+      // Get the shared goal data
+      final sharedGoalDoc = await FirebaseFirestore.instance
+          .collection('sharedGoal')
+          .doc(sharedID)
+          .get();
+          
+      if (!sharedGoalDoc.exists) {
+        throw Exception('Shared goal not found');
+      }
+
+      final sharedGoalData = sharedGoalDoc.data()!;
+      
+      // Update participants map in shared goal using dot notation
+      await FirebaseFirestore.instance
+          .collection('sharedGoal')
+          .doc(sharedID)
+          .update({
+        'participants.$userId': {
+          'role': 'participant',
+          'joinedAt': FieldValue.serverTimestamp(),
+        }
+      });
+
+      // Add to user's personal goals
+      await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(userId)
+          .collection('goals')
+          .doc(goalID)
+          .set({
+        'name': sharedGoalData['name'],
+        'date': sharedGoalData['date'],
+        'visibility': sharedGoalData['visibility'],
+        'notasks': sharedGoalData['notasks'],
+        'sharedID': sharedID,
+        'isShared': true,
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Successfully joined shared goal'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  } catch (e) {
+    log('Error handling invitation response: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error processing invitation: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
 
   void _handleAccept(bool isGoalInvitation, String userId, String requestId,
       String? sharedID) {
