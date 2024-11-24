@@ -836,17 +836,17 @@ class _GoalTasksState extends State<GoalTasks> {
     );
   }
 
-  Future<void> showFriendListDialog(BuildContext context, String sharedID, String goalID) {
-  return showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return Dialog(
-        backgroundColor: Colors.transparent,
-        child: ParticipantsDialogContent(sharedID: sharedID, goalID: goalID),
-      );
-    },
-  );
-}
+//   Future<void> showFriendListDialog(BuildContext context, String sharedID, String goalID) {
+//   return showDialog(
+//     context: context,
+//     builder: (BuildContext context) {
+//       return Dialog(
+//         backgroundColor: Colors.transparent,
+//         child: ParticipantsDialogContent(sharedID: sharedID, goalID: goalID),
+//       );
+//     },
+//   );
+// }
 
   @override
   Widget build(BuildContext context) {
@@ -1449,17 +1449,17 @@ class _GoalTasksState extends State<GoalTasks> {
 
 
 
-Future<void> showFriendListDialog(BuildContext context, String sharedID, String goalID) {
-  return showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return Dialog(
-        backgroundColor: Colors.transparent,
-        child: ParticipantsDialogContent(sharedID: sharedID, goalID: goalID),
-      );
-    },
-  );
-}
+// Future<void> showFriendListDialog(BuildContext context, String sharedID, String goalID) {
+//   return showDialog(
+//     context: context,
+//     builder: (BuildContext context) {
+//       return Dialog(
+//         backgroundColor: Colors.transparent,
+//         child: ParticipantsDialogContent(sharedID: sharedID, goalID: goalID),
+//       );
+//     },
+//   );
+// }
 
 class ParticipantsDialogContent extends StatelessWidget {
   final String sharedID;
