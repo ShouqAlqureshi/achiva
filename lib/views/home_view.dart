@@ -637,17 +637,24 @@ class _HomePageState extends State<HomeScreen> {
     return originalDocument;
   }
 
-  Widget _buildGoalCard(String goalName, double progress, bool isDone,
-      DocumentSnapshot goalDocument, DateTime goalDate, bool visibl) {
-    final goalData = goalDocument.data() as Map<String, dynamic>;
-    final bool isSharedGoal =
-        goalData.containsKey('isShared') && goalData['isShared'] != null;
+Widget _buildGoalCard(
+  String goalName,
+  double progress,
+  bool isDone,
+  DocumentSnapshot goalDocument,
+  DateTime goalDate,
+  bool visibl,
+) {
+  final goalData = goalDocument.data() as Map<String, dynamic>;
+  final bool isSharedGoal =
+      goalData.containsKey('isShared') && goalData['isShared'] == true;
 
-    return GestureDetector(
-      onTap: () async {
-        // Handle navigation for both shared and regular goals
-        if (isSharedGoal) {
-          String sharedID = goalDocument['sharedID'];
+  return GestureDetector(
+    onTap: () async {
+      // Handle navigation for both shared and regular goals
+      if (isSharedGoal) {
+        String? sharedID = goalData['sharedID'] as String?;
+        if (sharedID != null) {
           DocumentSnapshot sharedGoalDoc = await FirebaseFirestore.instance
               .collection('sharedGoal')
               .doc(sharedID)
@@ -661,6 +668,7 @@ class _HomePageState extends State<HomeScreen> {
               ),
             );
           } else {
+            // Navigate to the original goal if shared goal is not found
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -668,190 +676,231 @@ class _HomePageState extends State<HomeScreen> {
               ),
             );
           }
-        } else {
-          // Handle regular (non-shared) goals
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => GoalTasks(goalDocument: goalDocument),
-            ),
-          );
         }
-      },
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            margin: const EdgeInsets.only(
-                left: 15, right: 15, top: 30, bottom: 150),
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color.fromARGB(255, 30, 12, 48),
-                  Color.fromARGB(255, 77, 64, 98),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+      } else {
+        // Handle regular (non-shared) goals
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => GoalTasks(goalDocument: goalDocument),
+          ),
+        );
+      }
+    },
+    child: Stack(
+      clipBehavior: Clip.none,
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: const EdgeInsets.only(left: 15, right: 15, top: 30, bottom: 150),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color.fromARGB(255, 30, 12, 48),
+                Color.fromARGB(255, 77, 64, 98),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(25),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
               ),
-              borderRadius: BorderRadius.circular(25),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 4),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (isSharedGoal) ...[
+                FutureBuilder<DocumentSnapshot>(
+                  future: _getSharedGoalDocument(goalDocument),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (snapshot.hasError) {
+                      return Text('Error: ${snapshot.error}');
+                    }
+
+                    if (!snapshot.hasData || !snapshot.data!.exists) {
+                      return const Text('Shared goal not found');
+                    }
+
+                    return _buildEditDeleteButtons(
+                      snapshot.data!.reference,
+                      goalDate,
+                      goalName,
+                      visibl,
+                    );
+                  },
+                ),
+              ] else ...[
+                _buildEditDeleteButtons(
+                  goalDocument.reference,
+                  goalDate,
+                  goalName,
+                  visibl,
                 ),
               ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildEditDeleteButtons(
-                    goalDocument.reference, goalDate, goalName, visibl),
-                if (isDone) ...[
-                  _buildCompletedGoalContent(goalName)
-                ] else ...[
-                  _buildInProgressGoalContent(goalName, progress, goalDocument)
-                ],
-                
+              if (isDone) ...[
+                _buildCompletedGoalContent(goalName),
+              ] else ...[
+                _buildInProgressGoalContent(goalName, progress, goalDocument),
               ],
+            ],
+          ),
+        ),
+        if (isSharedGoal)
+          Positioned(
+            top: 220,
+            right: 40,
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(255, 18, 89, 147).withOpacity(0.2),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: Offset(2, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.group,
+                color: Colors.white,
+                size: 30,
+              ),
             ),
           ),
-          if (isSharedGoal)
-            Positioned(
-              top: 220,
-              right: 40,
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  color:
-                      const Color.fromARGB(255, 18, 89, 147).withOpacity(0.2),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 8,
-                      offset: Offset(2, 2),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.group,
-                  color: Colors.white,
-                  size: 30,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
+      ],
+    ),
+  );
+}
+
+Future<DocumentSnapshot> _getSharedGoalDocument(DocumentSnapshot goalDoc) async {
+  final goalData = goalDoc.data() as Map<String, dynamic>;
+  final sharedID = goalData['sharedID'] as String?;
+  if (sharedID != null) {
+    return await FirebaseFirestore.instance
+        .collection('sharedGoal')
+        .doc(sharedID)
+        .get();
   }
+  throw Exception('Shared ID is missing.');
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //Method return widget for edit and delete goal
   Widget _buildEditDeleteButtons(DocumentReference goalRef, DateTime goalDate,
-    String goalName, bool visible) {
-  return Align(
-    alignment: Alignment.centerRight,
-    child: Theme(
-      // Custom theme for popup menu
-      data: Theme.of(context).copyWith(
-        popupMenuTheme: PopupMenuThemeData(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-          ),
-          color: Colors.transparent,
-          elevation: 0,
-        ),
-      ),
-      child: PopupMenuButton(
-        icon: const Icon(Icons.more_vert, color: Colors.grey),
-        position: PopupMenuPosition.under,
-        offset: const Offset(10, 10),
-        itemBuilder: (context) => [
-          // Wrapping items in a Container to apply gradient
-          PopupMenuItem(
-            padding: EdgeInsets.zero,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [
-                    Color.fromARGB(255, 105, 105, 105),
-                    Color.fromARGB(255, 72, 72, 72),
-                  ],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: ListTile(
-                leading: const Icon(Icons.edit, color: Colors.white),
-                title: const Text(
-                  'Edit Goal',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+      String goalName, bool visible) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Theme(
+        // Custom theme for popup menu
+        data: Theme.of(context).copyWith(
+          popupMenuTheme: PopupMenuThemeData(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
             ),
-            onTap: () {
-              Future.delayed(
-                const Duration(seconds: 0),
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => EditGoalPage(
-                      goalRef: goalRef,
-                      goalDate: goalDate,
-                      goalName: goalName,
-                      visibility: visible,
+            color: Colors.transparent,
+            elevation: 0,
+          ),
+        ),
+        child: PopupMenuButton(
+          icon: const Icon(Icons.more_vert, color: Colors.grey),
+          position: PopupMenuPosition.under,
+          offset: const Offset(10, 10),
+          itemBuilder: (context) => [
+            // Wrapping items in a Container to apply gradient
+            PopupMenuItem(
+              padding: EdgeInsets.zero,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color.fromARGB(255, 105, 105, 105),
+                      Color.fromARGB(255, 72, 72, 72),
+                    ],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: ListTile(
+                  leading: const Icon(Icons.edit, color: Colors.white),
+                  title: const Text(
+                    'Edit Goal',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-              );
-            },
-          ),
-          PopupMenuItem(
-            padding: EdgeInsets.zero,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [
-                    Color.fromARGB(255, 198, 137, 137),
-                    Color.fromARGB(255, 219, 110, 115),
-                  ],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-                borderRadius: BorderRadius.circular(15),
               ),
-              child: ListTile(
-                leading: const Icon(Icons.delete, color: Colors.white),
-                title: const Text(
-                  'Delete Goal',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+              onTap: () {
+                Future.delayed(
+                  const Duration(seconds: 0),
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditGoalPage(
+                        goalRef: goalRef,
+                        goalDate: goalDate,
+                        goalName: goalName,
+                        visibility: visible,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+            PopupMenuItem(
+              padding: EdgeInsets.zero,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color.fromARGB(255, 198, 137, 137),
+                      Color.fromARGB(255, 219, 110, 115),
+                    ],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: ListTile(
+                  leading: const Icon(Icons.delete, color: Colors.white),
+                  title: const Text(
+                    'Delete Goal',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
+              onTap: () {
+                Future.delayed(
+                  const Duration(seconds: 0),
+                  () => _deleteGoal(context, goalRef),
+                );
+              },
             ),
-            onTap: () {
-              Future.delayed(
-                const Duration(seconds: 0),
-                () => _deleteGoal(context, goalRef),
-              );
-            },
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   //Delete goal method
   void _deleteGoal(BuildContext context, DocumentReference goalRef) {
