@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:achiva/utilities/loading.dart';
 import 'package:achiva/views/addition_views/add_redundence_tasks.dart';
+import 'package:achiva/views/sharedgoal/sharedgoal.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -15,13 +16,14 @@ class AddTaskIndependentlyPage extends StatefulWidget {
   final DateTime goalDate;
   final bool goalVisibility;
   final bool isSharedGoal;
-
+  final String sharedkey;
   const AddTaskIndependentlyPage({
     super.key,
     required this.goalName, //incase of sharedgoal it will be the sharedID
     required this.goalDate,
     required this.goalVisibility,
     this.isSharedGoal = false,
+    this.sharedkey = "",
   });
 
   @override
@@ -90,19 +92,22 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
       } else {
         userDocRef = userSnapshot.docs.first.reference;
       }
+      CollectionReference goalsCollectionRef = widget.isSharedGoal
+          ? userDocRef.collection('sharedGoal')
+          : userDocRef.collection('goals');
 
-      CollectionReference goalsCollectionRef = userDocRef.collection('goals');
-      DocumentSnapshot goalSnapshot =
-          await goalsCollectionRef.doc(widget.goalName).get();
+      DocumentSnapshot goalSnapshot = widget.isSharedGoal
+          ? await goalsCollectionRef.doc(widget.sharedkey).get()
+          : await goalsCollectionRef.doc(widget.goalName).get();
 
-      if (!goalSnapshot.exists) {
-        log("the goal name does not exists.");
-        Navigator.of(context).pop(); // Dismiss loading dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("the goal name does not exists.")),
-        );
-        return;
-      }
+      // if (!goalSnapshot.exists) {
+      //   log("the goal name does not exists.");
+      //   Navigator.of(context).pop(); // Dismiss loading dialog
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     SnackBar(content: Text("the goal name does not exists.")),
+      //   );
+      //   return;
+      // }
 
       // Prepare task data
       taskData = {
@@ -122,30 +127,30 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
       // Add the task
       if (_selectedRecurrence == "Weekly") {
         createdTasks = await taskManager.addRecurringTask(
-          goalName: widget.goalName,
-          startDate: _selectedDate!, // Ensure _selectedDate is non-null
-          startTime: _startTime!, // Ensure _startTime is non-null
-          endTime: _endTime!, // Ensure _endTime is non-null
-          location: _locationController.text.isNotEmpty
-              ? _locationController.text
-              : null, // Safely pass null if location is empty
-          recurrenceType: _selectedRecurrence ??
-              'No recurrence', // Default to 'No recurrence'
-          description: _descriptionController.text.isNotEmpty
-              ? _descriptionController.text
-              : null, // Safely pass null if description is empty
-          taskName: _taskNameController.text,
-          usergoallistrefrence: goalsCollectionRef,
-          goalDate: widget.goalDate,
-          isSharedGoal: widget.isSharedGoal,
-        );
+            goalName: widget.goalName,
+            startDate: _selectedDate!, // Ensure _selectedDate is non-null
+            startTime: _startTime!, // Ensure _startTime is non-null
+            endTime: _endTime!, // Ensure _endTime is non-null
+            location: _locationController.text.isNotEmpty
+                ? _locationController.text
+                : null, // Safely pass null if location is empty
+            recurrenceType: _selectedRecurrence ??
+                'No recurrence', // Default to 'No recurrence'
+            description: _descriptionController.text.isNotEmpty
+                ? _descriptionController.text
+                : null, // Safely pass null if description is empty
+            taskName: _taskNameController.text,
+            usergoallistrefrence: goalsCollectionRef,
+            goalDate: widget.goalDate,
+            isSharedGoal: widget.isSharedGoal,
+            sharedkey: widget.sharedkey);
 
         if (createdTasks.isNotEmpty) {
           log("Recurring tasks created successfully");
           widget.isSharedGoal
               ? await FirebaseFirestore.instance
                   .collection('sharedGoal')
-                  .doc(widget.goalName)
+                  .doc(widget.sharedkey)
                   .update(
                       {'notasks': FieldValue.increment(createdTasks.length)})
               : await goalsCollectionRef.doc(widget.goalName).update(
@@ -154,15 +159,11 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
       } else {
         if (widget.isSharedGoal) {
           // widget.goalName is the sharedid
-          await FirebaseFirestore.instance
-              .collection('sharedGoal')
-              .doc(widget.goalName)
-              .collection('tasks')
-              .add(taskData);
-          await FirebaseFirestore.instance
-              .collection('sharedGoal')
-              .doc(widget.goalName)
-              .update({'notasks': FieldValue.increment(1)});
+          await SharedGoalManager().addTaskToSharedGoal(
+            sharedID: widget.sharedkey,
+            taskData: taskData,
+            context: context,
+          );
         } else {
           await goalsCollectionRef
               .doc(widget.goalName)
@@ -178,7 +179,8 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
       }
       LocalNotification.scheduleTaskDueNotification(
         taskName: _taskNameController.text,
-        dueDate: _selectedDate!.add(Duration(hours: _startTime!.hour, minutes: _startTime!.minute)),
+        dueDate: _selectedDate!.add(
+            Duration(hours: _startTime!.hour, minutes: _startTime!.minute)),
         goalName: widget.goalName,
       );
       ScaffoldMessenger.of(context).showSnackBar(
@@ -188,9 +190,15 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
     } catch (e) {
       log("$e");
       Navigator.of(context).pop(); // Dismiss loading dialog
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error adding task: $e')),
-      );
+      if (e is FirebaseException) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Firebase Error: ${e.message}')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error adding task: $e')),
+        );
+      }
     }
   }
 
