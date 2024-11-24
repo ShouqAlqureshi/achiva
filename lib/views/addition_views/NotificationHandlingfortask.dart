@@ -22,12 +22,6 @@ class TaskNotificationManager {
 
       // For recurring tasks, we might want to handle differently
       if (isRecurring) {
-        // Schedule both due and hour notifications
-        await LocalNotification.scheduleTaskDueNotification(
-          taskName: newTaskName,
-          dueDate: newDateTime,
-          goalName: newGoalName,
-        );
         
         await LocalNotification.scheduleTaskHourNotification(
           taskName: newTaskName,
