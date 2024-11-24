@@ -29,7 +29,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final TextEditingController _lnameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   GlobalKey<FormState> formState = GlobalKey<FormState>();
-bool isFormSubmited = false;
+  bool isFormSubmited = false;
+
   void setUserDataToTextFields() {
     widget.layoutCubit.userImage = null;
     _fnameController.text = widget.layoutCubit.user!.fname;
@@ -66,6 +67,45 @@ bool isFormSubmited = false;
     } catch (e) {
       print('Error: $e');
       return false;
+    }
+  }
+
+  Future<void> updateUserData() async {
+    try {
+      final userRef = FirebaseFirestore.instance
+          .collection("Users")
+          .doc(AppConstants.kUserID ?? widget.layoutCubit.user!.id);
+
+      // First, get the current user document
+      final userDoc = await userRef.get();
+      if (!userDoc.exists) {
+        throw Exception('User document not found');
+      }
+
+      // Get current data
+      final currentData = userDoc.data() as Map<String, dynamic>;
+
+      // Create update map with only the profile fields
+      final Map<String, dynamic> updateData = {
+        'fname': _fnameController.text.trim(),
+        'lname': _lnameController.text.trim(),
+        'gender': widget.layoutCubit.chosenGender!,
+        'email': _emailController.text.trim(),
+      };
+
+      // If there's a new photo, add it to the update data
+      if (widget.layoutCubit.userImage != null) {
+        // Add your image upload logic here and update the photo field
+        // updateData['photo'] = uploadedPhotoUrl;
+      }
+
+      // Update only the specified fields using set with merge
+      await userRef.set(updateData, SetOptions(merge: true));
+
+      // Notify success
+      widget.layoutCubit.emit(UpdateUserDataSuccessfullyState());
+    } catch (e) {
+      widget.layoutCubit.emit(UpdateUserDataWithFailureState(message: e.toString()));
     }
   }
 
@@ -106,7 +146,8 @@ bool isFormSubmited = false;
                               radius: 64,
                               backgroundImage: NetworkImage(widget.layoutCubit.user!.photo!),
                             );
-                          } else {return CircleAvatar(
+                          } else {
+                            return CircleAvatar(
                               radius: 64,
                               backgroundColor: Colors.grey[200],
                               child: const Icon(Icons.person, size: 60, color: Colors.grey),
@@ -140,6 +181,7 @@ bool isFormSubmited = false;
                     } else if (val.contains(" ")) {
                       return "whitespace is not allowed in First Name";
                     }
+                    return null;
                   },
                   textInputAction: TextInputAction.next,
                   controller: _fnameController,
@@ -205,56 +247,46 @@ bool isFormSubmited = false;
                       showSnackBarWidget(
                           message: "Your information is updated successfully",
                           successOrNot: true,
-                          context: context);Navigator.pop(context);
+                          context: context);
+                      Navigator.pop(context);
                     }
                   },
-                  builder: (context, state) =>
-                  state is UpdateUserDataLoadingState 
-                  ?
-                 const Align(
-                            alignment: Alignment
-                                .center,
-                            child: CircularProgressIndicator(),
-                          ):BtnWidget(
-                    minWidth: double.infinity,
-                    onTap: () async {
-                     
-                      if (_fnameController.text.isNotEmpty &&
-                          _lnameController.text.isNotEmpty &&
-                          _emailController.text.isNotEmpty &&
-                          widget.layoutCubit.chosenGender == null) {
-                        showSnackBarWidget(
-                            message: "Please, Choose your gender",
-                            successOrNot: false,
-                            context: context);
-                      } else if (await checkIfEmailExists(_emailController.text) &&
-                          _emailController.text != widget.layoutCubit.user!.email) {
-                        showSnackBarWidget(
-                            message: "Email already exists",
-                            successOrNot: false,
-                            context: context);
-                      } else {
-                        if (formState.currentState!.validate()) {
-                          widget.layoutCubit.updateUserData(
-                            fname: _fnameController.text.trim(),
-                            lname: _lnameController.text.trim(),
-                            gender: widget.layoutCubit.chosenGender!,
-                            userID: AppConstants.kUserID ?? widget.layoutCubit.user!.id,
-                            email: _emailController.text.trim(),
-                          );
-                        }
-                      }
-                    
-                    },
-                    title: state is UpdateUserDataLoadingState
-                        ? "Update data loading"
-                        : "Update",
-                  ),
+                  builder: (context, state) => state is UpdateUserDataLoadingState
+                      ? const Align(
+                          alignment: Alignment.center,
+                          child: CircularProgressIndicator(),
+                        )
+                      : BtnWidget(
+                          minWidth: double.infinity,
+                          onTap: () async {
+                            if (_fnameController.text.isNotEmpty &&
+                                _lnameController.text.isNotEmpty &&
+                                _emailController.text.isNotEmpty &&
+                                widget.layoutCubit.chosenGender == null) {
+                              showSnackBarWidget(
+                                  message: "Please, Choose your gender",
+                                  successOrNot: false,
+                                  context: context);
+                            } else if (await checkIfEmailExists(_emailController.text) &&
+                                _emailController.text != widget.layoutCubit.user!.email) {
+                              showSnackBarWidget(
+                                  message: "Email already exists",
+                                  successOrNot: false,
+                                  context: context);
+                            } else {
+                              if (formState.currentState!.validate()) {
+                                await updateUserData();
+                              }
+                            }
+                          },
+                          title: state is UpdateUserDataLoadingState
+                              ? "Update data loading"
+                              : "Update",
+                        ),
                 ),
               ],
             ),
           ),
-       
         ],
       ),
     );

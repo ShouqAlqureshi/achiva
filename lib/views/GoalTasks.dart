@@ -953,7 +953,7 @@ class _GoalTasksState extends State<GoalTasks> {
                                                 IconButton(
                                                   icon: const Icon(Icons.close,
                                                       color: Colors.white),
-                                                  onPressed: () =>  showParticipantsDialog(context, goalData['sharedID'], goalData['goalID']),
+                                                  onPressed: () =>  showFriendListDialog(context, goalData['sharedID'], goalData['goalID']),
 
                                                 ),
                                               ],
@@ -1081,7 +1081,7 @@ class _GoalTasksState extends State<GoalTasks> {
                       child: InkWell(
                         onTap: () {
                           Navigator.of(context).pop(); 
-                          showParticipantsDialog(context, goalData['sharedID'], goalData['goalID']);
+                          showFriendListDialog(context, goalData['sharedID'], goalData['goalID']);
                         },
                                                       
                                                       child: Container(
