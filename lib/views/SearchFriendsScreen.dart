@@ -14,20 +14,24 @@ class SearchFriendsScreen extends StatefulWidget {
 }
 
 class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
-  final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController(text: '5');  // Initialize with '5'
   final _formKey = GlobalKey<FormState>();
   List<DocumentSnapshot> _searchResults = [];
-  var _accept=false;
-  final Map<String, bool> _requestStatuses = {}; // Track request statuses
+  var _accept = false;
+  final Map<String, bool> _requestStatuses = {};
   String? _currentUserPhoneNumber;
 
   @override
   void initState() {
     super.initState();
     _initializeUserData();
+    // Set cursor position after the pre-filled '5'
+    _searchController.selection = TextSelection.fromPosition(
+      TextPosition(offset: _searchController.text.length)
+    );
+    
   }
-
-  Future<void> _initializeUserData() async {
+   Future<void> _initializeUserData() async {
     String userId = FirebaseAuth.instance.currentUser!.uid;
     DocumentReference userDocRef =
         FirebaseFirestore.instance.collection('Users').doc(userId);
@@ -41,21 +45,20 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
   }
 
   String? _validatePhoneNumber(String value) {
-    String pattern = r'^\d{9}$'; // Exact 9 digits after +966
+    String pattern = r'^\d{8}$'; // Changed to 8 digits since '5' is pre-filled
     RegExp regExp = RegExp(pattern);
 
     if (value.isEmpty || value.trim().isEmpty) {
       return 'Phone number cannot be empty';
-    } else if (!regExp.hasMatch(value)) {
-      return 'Phone number must be 9 digits';
+    } else if (!regExp.hasMatch(value.substring(1))) { // Check only the last 8 digits
+      return 'Phone number must be 8 digits after 5';
     }
     return null;
   }
 
-  // Modify this to check request status when loading search results
   Future<void> _searchFriendsByPhoneNumber() async {
     if (_formKey.currentState!.validate()) {
-      String query = "+966" + _searchController.text.trim();
+      String query = "+9665" + _searchController.text.substring(1).trim();
       try {
         QuerySnapshot results = await FirebaseFirestore.instance
             .collection('Users')
@@ -66,13 +69,11 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
           _showDialog('Phone number does not exist');
         } else {
           setState(() {
-            _searchResults.clear();
             _searchResults = results.docs;
-            _requestStatuses.clear(); // Clear previous statuses
+            _requestStatuses.clear();
           });
           for (var doc in _searchResults) {
-            String friendId = doc.id;
-            await _checkFriendRequestStatus(friendId); // Check request status
+            await _checkFriendRequestStatus(doc.id);
           }
         }
       } catch (e) {
@@ -234,6 +235,7 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -271,7 +273,6 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Message above the phone number field
             Text(
               'Please enter a phone number in this format:[5xxxxxxxx]"',
               style: TextStyle(fontSize: 14, color: Colors.grey[700]),
@@ -280,87 +281,72 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
 
             Form(
               key: _formKey,
-              child: Row(
-                children: [
-                  // Static Country Code
-                  Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 12.0, vertical: 18.0),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                          color: const Color.fromARGB(255, 51, 25, 57),
-                          width: 1),
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(12.0),
-                        bottomLeft: Radius.circular(12.0),
-                      ),
-                    ),
-                    child: Text(
-                      '+966', // Static country code
-                      style: TextStyle(fontSize: 18.0),
-                    ),
-                  ),
-                  Expanded(
-                    child: TextFormField(
-                      keyboardType: TextInputType.phone,
-                      style: TextStyle(fontSize: 18),
-                      controller: _searchController,
-                      inputFormatters: [
-                        LengthLimitingTextInputFormatter(9),
-                        FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
-                        FilteringTextInputFormatter.deny(RegExp(r'\s')),
-                      ],
-
-                      decoration: InputDecoration(
-                        labelText: 'Enter Phone Number',
-                        labelStyle: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[700],
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.only(
-                              topRight: Radius.circular(12),
-                              bottomRight: Radius.circular(12)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.only(
-                              topRight: Radius.circular(12),
-                              bottomRight: Radius.circular(12)),
-                          borderSide: BorderSide(
-                              color: const Color.fromARGB(255, 51, 25, 57)),
-                        ),
-                        contentPadding: EdgeInsets.symmetric(
-                          vertical: 12.0,
-                          horizontal: 16.0,
-                        ),
-                        suffixIcon: Container(
-                          margin: EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                Color.fromARGB(255, 66, 32, 101),
-                                Color.fromARGB(255, 77, 64, 98),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: IconButton(
-                            icon: Icon(Icons.search, color: Colors.white),
-                            onPressed: () {
-                              _removeWhitespace(); // Remove whitespaces before search
-                              _searchFriendsByPhoneNumber();
-                            },
-                          ),
-                        ),
-                      ),
-                      validator: (value) => _validatePhoneNumber(value!),
-                      onChanged: (value) =>
-                          _removeWhitespace(), // Remove spaces on change
-                    ),
-                  ),
+              child: TextFormField(
+                keyboardType: TextInputType.phone,
+                style: TextStyle(fontSize: 18),
+                controller: _searchController,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(9),  // Total length including pre-filled '5'
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+                  FilteringTextInputFormatter.deny(RegExp(r'\s')),
                 ],
+                decoration: InputDecoration(
+                  prefixText: '+966',
+                  prefixStyle: TextStyle(
+                    fontSize: 18,
+                    color: Colors.black,
+                  ),
+                  labelText: 'Enter Phone Number',
+                  labelStyle: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[700],
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: const Color.fromARGB(255, 51, 25, 57),
+                    ),
+                  ),
+                  contentPadding: EdgeInsets.symmetric(
+                    vertical: 12.0,
+                    horizontal: 16.0,
+                  ),
+                  suffixIcon: Container(
+                    margin: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Color.fromARGB(255, 66, 32, 101),
+                          Color.fromARGB(255, 77, 64, 98),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: IconButton(
+                      icon: Icon(Icons.search, color: Colors.white),
+                      onPressed: () {
+                        _removeWhitespace();
+                        _searchFriendsByPhoneNumber();
+                      },
+                    ),
+                  ),
+                ),
+                validator: (value) => _validatePhoneNumber(value!),
+                onChanged: (value) {
+                  // Ensure '5' is always at the start
+                  if (!value.startsWith('5')) {
+                    _searchController.text = '5' + (value.isNotEmpty ? value.substring(value.length - 1) : '');
+                    _searchController.selection = TextSelection.fromPosition(
+                      TextPosition(offset: _searchController.text.length)
+                    );
+                  }
+                  _removeWhitespace();
+                },
               ),
             ),
             SizedBox(height: 16),

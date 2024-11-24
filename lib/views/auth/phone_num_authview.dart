@@ -24,7 +24,7 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
   @override
   void initState() {
     super.initState();
-    _phonenumber = TextEditingController();
+    _phonenumber = TextEditingController(text: '+9665');
   }
 
   @override
@@ -46,11 +46,11 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
-                    Color.fromARGB(255, 30, 12, 48),
+              Color.fromARGB(255, 30, 12, 48),
               Color.fromARGB(255, 77, 64, 98),
             ],
-          begin: Alignment.centerLeft,
-           end: Alignment.centerRight,
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
           ),
         ),
         child: Scaffold(
@@ -135,10 +135,27 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                           inputFormatters: [
                             LengthLimitingTextInputFormatter(13),
                             FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                            // Prevent deleting the prefix
+                            TextInputFormatter.withFunction((oldValue, newValue) {
+                              if (newValue.text.length < 5) {
+                                return oldValue;
+                              }
+                              if (!newValue.text.startsWith('+9665')) {
+                                return oldValue;
+                              }
+                              return newValue;
+                            }),
                           ],
                           onChanged: (value) {
                             setState(() {
                               isPhonenumTouched = true;
+                              // Ensure the prefix stays
+                              if (!value.startsWith('+9665')) {
+                                _phonenumber.text = '+9665${value.substring(5)}';
+                                _phonenumber.selection = TextSelection.fromPosition(
+                                  TextPosition(offset: _phonenumber.text.length),
+                                );
+                              }
                             });
                           },
                           autofocus: true,
@@ -150,12 +167,11 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                             fillColor: Colors.grey.withOpacity(0.1),
                             filled: true,
                             counterText: '',
-                            hintText: "Enter your phone number",
+                            hintText: "+9665xxxxxxxx",
                             prefixIcon: const Icon(Icons.phone),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(30),
-                              borderSide: (isPhonenumTouched ||
-                                          isFormSubmitted) &&
+                              borderSide: (isPhonenumTouched || isFormSubmitted) &&
                                       (validation
                                               .validatePhoneNum(_phonenumber.text)
                                               ?.isNotEmpty ??
@@ -183,60 +199,65 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
                                 ),
                               )
                             : ElevatedButton(
-  onPressed: () async {
-    setState(() {
-      isloading = true;
-      isFormSubmitted = true;
-    });
+                                onPressed: () async {
+                                  setState(() {
+                                    isloading = true;
+                                    isFormSubmitted = true;
+                                  });
 
-    if (validation.validatePhoneNum(_phonenumber.text)?.isEmpty ?? true) {
-      await verifyPhoneNumber();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Please fill phone number field correctly',
-          ),
-        ),
-      );
-      setState(() {
-        isloading = false;
-      });
-    }
-  },
-  style: ElevatedButton.styleFrom(
-    padding: EdgeInsets.zero, // Remove default padding for the button
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(30), // Rounded corners
-    ),
-  ),
-  child: Ink(
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: [                  Color.fromARGB(255, 66, 32, 101),
-                    Color.fromARGB(255, 77, 64, 98),], // Define the gradient colors
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-      borderRadius: BorderRadius.circular(30),
-    ),
-    child: Container(
-      constraints: BoxConstraints(
-        maxWidth: double.infinity,
-        minHeight: 50.0,
-      ),
-      alignment: Alignment.center,
-      child: const Text(
-        'Continue',
-        style: TextStyle(
-          color: Colors.white, // Set text color to white
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    ),
-  ),
-),
+                                  if (validation
+                                          .validatePhoneNum(_phonenumber.text)
+                                          ?.isEmpty ??
+                                      true) {
+                                    await verifyPhoneNumber();
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Please fill phone number field correctly',
+                                        ),
+                                      ),
+                                    );
+                                    setState(() {
+                                      isloading = false;
+                                    });
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                ),
+                                child: Ink(
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color.fromARGB(255, 66, 32, 101),
+                                        Color.fromARGB(255, 77, 64, 98),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                  child: Container(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: double.infinity,
+                                      minHeight: 50.0,
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: const Text(
+                                      'Continue',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
                       ],
                     ),
                   ),
@@ -311,6 +332,7 @@ class _PhoneNumAuthViewState extends State<PhoneNumAuthView> {
       isloading = false;
       isFormSubmitted = false;
       isPhonenumTouched = false;
+      _phonenumber.text = '+9665';
     });
   }
 }
