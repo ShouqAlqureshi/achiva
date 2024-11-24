@@ -701,7 +701,8 @@ Widget _buildGoalCard(String goalName, double progress, bool isDone,
                       goalRef: goalRef,
                       goalDate: goalDate,
                       goalName: goalName,
-                      visibility: visible),
+                      visibility: visible
+                      ),
                 ),
               );
             },

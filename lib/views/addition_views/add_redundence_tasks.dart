@@ -22,6 +22,7 @@ class RecurringTaskManager {
     required CollectionReference usergoallistrefrence,
     required DateTime goalDate,
     bool isSharedGoal = false,
+    String sharedkey = "",
   }) async {
     // Fetch the goal end date from Firestore
     DateTime endDate = goalDate;
@@ -65,13 +66,15 @@ class RecurringTaskManager {
           calcDuration(startTime, endTime),
           usergoallistrefrence,
           isSharedGoal,
+          sharedkey,
         );
 
         tasks.add(task);
       }
       LocalNotification.scheduleTaskDueNotification(
         taskName: taskName,
-        dueDate: currentDate.add(Duration(hours:  startTime.hour, minutes: startTime.minute)),
+        dueDate: currentDate
+            .add(Duration(hours: startTime.hour, minutes: startTime.minute)),
         goalName: goalName,
       );
       currentDate = currentDate.add(Duration(days: 1));
@@ -110,6 +113,7 @@ class RecurringTaskManager {
     String duration,
     usergoallistrefrence,
     bool isSharedGoal,
+    String sharedkey,
   ) async {
     final String taskId = _uuid.v4();
     final Map<String, dynamic> task = {
@@ -127,7 +131,7 @@ class RecurringTaskManager {
     if (isSharedGoal) {
       await FirebaseFirestore.instance
           .collection('sharedGoal')
-          .doc(goalName)
+          .doc(sharedkey)
           .collection('tasks')
           .doc(taskId)
           .set(task);
@@ -194,4 +198,3 @@ void main() async {
     log("Error creating recurring tasks: $e");
   }
 }
-

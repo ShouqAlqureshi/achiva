@@ -1,25 +1,28 @@
+import 'dart:developer';
+
 import 'package:achiva/views/auth/validators.dart';
 import 'package:achiva/views/sharedgoal/sharedgoal.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart'; // Import the intl package for date formatting
+
 class EditGoalPage extends StatefulWidget {
   final DocumentReference goalRef;
   final String goalName;
   final DateTime goalDate;
   final bool visibility;
 
-  const EditGoalPage({
-    super.key,
-    required this.goalRef,
-    required this.goalName,
-    required this.goalDate,
-    required this.visibility
-  });
+  const EditGoalPage(
+      {super.key,
+      required this.goalRef,
+      required this.goalName,
+      required this.goalDate,
+      required this.visibility});
   @override
   _EditGoalPageState createState() => _EditGoalPageState();
 }
+
 class _EditGoalPageState extends State<EditGoalPage> {
   final TextEditingController _nameController = TextEditingController();
   late bool _visibility;
@@ -30,16 +33,16 @@ class _EditGoalPageState extends State<EditGoalPage> {
   String? errorMessage = "";
   Validators validate = Validators();
   // Sharedgoal sharedgoal = Sharedgoal();
-  
-   @override
+
+  @override
   void initState() {
     super.initState();
     _nameController.text = widget.goalName;
     _selectedDate = _parseDate(widget.goalDate.toString());
-    _visibility=widget.visibility;
+    _visibility = widget.visibility;
   }
 
-    DateTime _parseDate(String date) {
+  DateTime _parseDate(String date) {
     try {
       return DateFormat('yyyy-MM-dd').parse(date);
     } catch (e) {
@@ -47,7 +50,7 @@ class _EditGoalPageState extends State<EditGoalPage> {
     }
   }
 
-@override
+  @override
   void dispose() {
     _nameController.dispose();
     super.dispose();
@@ -155,54 +158,56 @@ class _EditGoalPageState extends State<EditGoalPage> {
                           const SizedBox(height: 16),
 
                           // Date Field with Validation
-                           InkWell(
-                          onTap: () => _pickDate(context),
-                          child: Container(
-                            height: 40,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(30),
-                              border: Border.all(
-                                color: !_isDateValid
-                                    ? Colors.red
-                                    : !_isDateValid
-                                        ? Colors.red
-                                        : Colors.grey[300]!,
-                                width: !_isDateValid ? 2 : 1,
+                          InkWell(
+                            onTap: () => _pickDate(context),
+                            child: Container(
+                              height: 40,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 8,
                               ),
-                              color: Colors.white,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    DateFormat('dd.MM.yyyy').format(_selectedDate!),
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: !_isDateValid || !_isDateValid
-                                          ? Colors.red
-                                          : Colors.black,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                Icon(
-                                  Icons.calendar_today,
-                                  size: 16,
-                                  color: !_isDateValid || !_isDateValid
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(30),
+                                border: Border.all(
+                                  color: !_isDateValid
                                       ? Colors.red
-                                      : Colors.grey[600],
+                                      : !_isDateValid
+                                          ? Colors.red
+                                          : Colors.grey[300]!,
+                                  width: !_isDateValid ? 2 : 1,
                                 ),
-                              ],
+                                color: Colors.white,
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      DateFormat('dd.MM.yyyy')
+                                          .format(_selectedDate!),
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: !_isDateValid || !_isDateValid
+                                            ? Colors.red
+                                            : Colors.black,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.calendar_today,
+                                    size: 16,
+                                    color: !_isDateValid || !_isDateValid
+                                        ? Colors.red
+                                        : Colors.grey[600],
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
                           const SizedBox(height: 16),
-            
+
                           // Visibility Switch
                           SwitchListTile(
                             title: const Text('Visibility'),
@@ -281,29 +286,74 @@ class _EditGoalPageState extends State<EditGoalPage> {
 
       // Check all validation conditions
       if (_isNameValid && _isDateValid) {
-       try {
-      final Map<String, dynamic> updategoalData = {
-        'name': _nameController.text.trim(),
-        'date': DateFormat('yyyy-MM-dd').format(_selectedDate!),
-        'visibility': _visibility,
-      
-      };
+        try {
+          try {
+            // Prepare update data
+            final Map<String, dynamic> updategoalData = {
+              'name': _nameController.text.trim(),
+              'date': DateFormat('yyyy-MM-dd').format(_selectedDate!),
+              'visibility': _visibility,
+            };
 
-      await widget.goalRef.update(updategoalData);
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Goal updated successfully')),
-        );
-        Navigator.of(context).pop(); // Close both dialogs
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating task: $e')),
-        );
-      }
-    }
+            // Update primary goal
+            await widget.goalRef.update(updategoalData);
+            log('Primary goal updated successfully');
+
+            // Get goal document snapshot
+            final DocumentSnapshot goalDoc = await widget.goalRef.get();
+            final goalData = goalDoc.data() as Map<String, dynamic>?;
+
+            // Check and update shared goal if exists
+            if (goalData != null && goalData.containsKey('sharedID')) {
+              final String sharedId = goalData['sharedID'];
+
+              final DocumentReference sharedGoalRef = FirebaseFirestore.instance
+                  .collection('sharedGoal')
+                  .doc(sharedId);
+
+              try {
+                final sharedGoalDoc = await sharedGoalRef.get();
+
+                if (sharedGoalDoc.exists) {
+                  await sharedGoalRef.update(updategoalData);
+                  log('Shared goal updated successfully');
+                } else {
+                  log('Warning: Shared goal document not found for ID: $sharedId');
+                }
+              } catch (sharedError) {
+                log('Error updating shared goal: $sharedError');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                        'Error updating shared goal. Primary goal was updated.'),
+                  ),
+                );
+              }
+            }
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Goal updated successfully')),
+            );
+          } catch (e) {
+            log('Error in goal update process: $e');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error updating goal: $e')),
+            );
+          }
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Goal updated successfully')),
+            );
+            Navigator.of(context).pop(); // Close both dialogs
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error updating task: $e')),
+            );
+          }
+        }
       } else {
         String errorMsg = '';
         if (!_isDateValid) errorMsg = 'Please select an end date';

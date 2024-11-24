@@ -127,23 +127,23 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
       // Add the task
       if (_selectedRecurrence == "Weekly") {
         createdTasks = await taskManager.addRecurringTask(
-          goalName: widget.goalName,
-          startDate: _selectedDate!, // Ensure _selectedDate is non-null
-          startTime: _startTime!, // Ensure _startTime is non-null
-          endTime: _endTime!, // Ensure _endTime is non-null
-          location: _locationController.text.isNotEmpty
-              ? _locationController.text
-              : null, // Safely pass null if location is empty
-          recurrenceType: _selectedRecurrence ??
-              'No recurrence', // Default to 'No recurrence'
-          description: _descriptionController.text.isNotEmpty
-              ? _descriptionController.text
-              : null, // Safely pass null if description is empty
-          taskName: _taskNameController.text,
-          usergoallistrefrence: goalsCollectionRef,
-          goalDate: widget.goalDate,
-          isSharedGoal: widget.isSharedGoal,
-        );
+            goalName: widget.goalName,
+            startDate: _selectedDate!, // Ensure _selectedDate is non-null
+            startTime: _startTime!, // Ensure _startTime is non-null
+            endTime: _endTime!, // Ensure _endTime is non-null
+            location: _locationController.text.isNotEmpty
+                ? _locationController.text
+                : null, // Safely pass null if location is empty
+            recurrenceType: _selectedRecurrence ??
+                'No recurrence', // Default to 'No recurrence'
+            description: _descriptionController.text.isNotEmpty
+                ? _descriptionController.text
+                : null, // Safely pass null if description is empty
+            taskName: _taskNameController.text,
+            usergoallistrefrence: goalsCollectionRef,
+            goalDate: widget.goalDate,
+            isSharedGoal: widget.isSharedGoal,
+            sharedkey: widget.sharedkey);
 
         if (createdTasks.isNotEmpty) {
           log("Recurring tasks created successfully");
