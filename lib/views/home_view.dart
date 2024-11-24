@@ -653,14 +653,23 @@ class _HomePageState extends State<HomeScreen> {
               .doc(sharedID)
               .get();
 
-        if (sharedGoalDoc.exists) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => GoalTasks(goalDocument: sharedGoalDoc),
-            ),
-          );
+          if (sharedGoalDoc.exists) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => GoalTasks(goalDocument: sharedGoalDoc),
+              ),
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => GoalTasks(goalDocument: goalDocument),
+              ),
+            );
+          }
         } else {
+          // Handle regular (non-shared) goals
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -668,90 +677,82 @@ class _HomePageState extends State<HomeScreen> {
             ),
           );
         }
-      } else {
-        // Handle regular (non-shared) goals
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => GoalTasks(goalDocument: goalDocument),
-          ),
-        );
-      }
-    },
-    child: Stack(
-      clipBehavior: Clip.none,
-      children: [
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          margin: const EdgeInsets.only(
-              left: 15, right: 15, top: 30, bottom: 150),
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color.fromARGB(255, 30, 12, 48),
-                Color.fromARGB(255, 77, 64, 98),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(25),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-                _buildEditDeleteButtons(
-                  goalDocument.reference, goalDate, goalName, visibl),
-              if (isDone) ...[
-                _buildCompletedGoalContent(goalName)
-              ] else ...[
-                _buildInProgressGoalContent(goalName, progress, goalDocument)
-              ],
-            
-            ],
-          ),
-        ),
-        if (isSharedGoal)
-          Positioned(
-            top: 220,
-            right: 40,
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              width: 70,
-              height: 70,
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 18, 89, 147).withOpacity(0.2),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 8,
-                    offset: Offset(2, 2),
-                  ),
+      },
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            margin: const EdgeInsets.only(
+                left: 15, right: 15, top: 30, bottom: 150),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color.fromARGB(255, 30, 12, 48),
+                  Color.fromARGB(255, 77, 64, 98),
                 ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              child: const Icon(
-                Icons.group,
-                color: Colors.white,
-                size: 30,
-              ),
+              borderRadius: BorderRadius.circular(25),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildEditDeleteButtons(
+                    goalDocument.reference, goalDate, goalName, visibl),
+                if (isDone) ...[
+                  _buildCompletedGoalContent(goalName)
+                ] else ...[
+                  _buildInProgressGoalContent(goalName, progress, goalDocument)
+                ],
+                
+              ],
             ),
           ),
-      ],
-    ),
-  );
-}
+          if (isSharedGoal)
+            Positioned(
+              top: 220,
+              right: 40,
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  color:
+                      const Color.fromARGB(255, 18, 89, 147).withOpacity(0.2),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: Offset(2, 2),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.group,
+                  color: Colors.white,
+                  size: 30,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //Method return widget for edit and delete goal
-Widget _buildEditDeleteButtons(DocumentReference goalRef, DateTime goalDate,
+  Widget _buildEditDeleteButtons(DocumentReference goalRef, DateTime goalDate,
     String goalName, bool visible) {
   return Align(
     alignment: Alignment.centerRight,
