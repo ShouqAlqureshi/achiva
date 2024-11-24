@@ -1449,7 +1449,7 @@ class _GoalTasksState extends State<GoalTasks> {
 
 
 
-Future<void> showParticipantsDialog(BuildContext context, String sharedID, String goalID) {
+Future<void> showFriendListDialog(BuildContext context, String sharedID, String goalID) {
   return showDialog(
     context: context,
     builder: (BuildContext context) {
