@@ -575,49 +575,61 @@ class _HomePageState extends State<HomeScreen> {
                                 final goalDocument = goalSnapshot.data!;
                                 final goalData =
                                     goalDocument.data() as Map<String, dynamic>;
-return FutureBuilder<String>(
-            future: _getGoalName(goalData),
-            builder: (context, nameSnapshot) {
-              if (nameSnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (nameSnapshot.hasError) {
-                return const Text("Error fetching goal name");
-              }
-
-              final goalName = nameSnapshot.data ?? "Unnamed Goal";                                final visible = goalData['visibility'];
-                                DateTime date =
-                                    DateTime.parse(goalData['date']);
-
-                                return StreamBuilder<Map<String, dynamic>>(
-                                  stream: getGoalWithProgress(goalDocument),
-                                  builder: (context, progressSnapshot) {
-                                    if (progressSnapshot.connectionState ==
+                                return FutureBuilder<String>(
+                                  future: _getGoalName(goalData),
+                                  builder: (context, nameSnapshot) {
+                                    if (nameSnapshot.connectionState ==
                                         ConnectionState.waiting) {
                                       return const Center(
                                           child: CircularProgressIndicator());
                                     }
-                                    if (!progressSnapshot.hasData) {
-                                      return const Center(
-                                          child:
-                                              Text('Error loading progress'));
+
+                                    if (nameSnapshot.hasError) {
+                                      return const Text(
+                                          "Error fetching goal name");
                                     }
 
-                                    double progress =
-                                        progressSnapshot.data!['progress'];
-                                    final isDone = progress >= 100;
+                                    final goalName =
+                                        nameSnapshot.data ?? "Unnamed Goal";
+                                    final visible = goalData['visibility'];
+                                    DateTime date =
+                                        DateTime.parse(goalData['date']);
 
-                                    return _buildGoalCard(goalName, progress,
-                                        isDone, goalDocument, date, visible);
+                                    return StreamBuilder<Map<String, dynamic>>(
+                                      stream: getGoalWithProgress(goalDocument),
+                                      builder: (context, progressSnapshot) {
+                                        if (progressSnapshot.connectionState ==
+                                            ConnectionState.waiting) {
+                                          return const Center(
+                                              child:
+                                                  CircularProgressIndicator());
+                                        }
+                                        if (!progressSnapshot.hasData) {
+                                          return const Center(
+                                              child: Text(
+                                                  'Error loading progress'));
+                                        }
+
+                                        double progress =
+                                            progressSnapshot.data!['progress'];
+                                        final isDone = progress >= 100;
+
+                                        return _buildGoalCard(
+                                            goalName,
+                                            progress,
+                                            isDone,
+                                            goalDocument,
+                                            date,
+                                            visible);
+                                      },
+                                    );
                                   },
                                 );
                               },
                             );
                           },
-                        );
-                        },
-                      ),);
+                        ),
+                      );
                     },
                   ),
                 ),
@@ -648,168 +660,169 @@ return FutureBuilder<String>(
     return originalDocument;
   }
 
-Widget _buildGoalCard(
-  String goalName,
-  double progress,
-  bool isDone,
-  DocumentSnapshot goalDocument,
-  DateTime goalDate,
-  bool visibl,
-) {
-  final goalData = goalDocument.data() as Map<String, dynamic>;
-  final bool isSharedGoal =
-      goalData.containsKey('isShared') && goalData['isShared'] == true;
+  Widget _buildGoalCard(
+    String goalName,
+    double progress,
+    bool isDone,
+    DocumentSnapshot goalDocument,
+    DateTime goalDate,
+    bool visibl,
+  ) {
+    final goalData = goalDocument.data() as Map<String, dynamic>;
+    final bool isSharedGoal =
+        goalData.containsKey('isShared') && goalData['isShared'] == true;
 
-  return GestureDetector(
-    onTap: () async {
-      // Handle navigation for both shared and regular goals
-      if (isSharedGoal) {
-        String? sharedID = goalData['sharedID'] as String?;
-        if (sharedID != null) {
-          DocumentSnapshot sharedGoalDoc = await FirebaseFirestore.instance
-              .collection('sharedGoal')
-              .doc(sharedID)
-              .get();
+    return GestureDetector(
+      onTap: () async {
+        // Handle navigation for both shared and regular goals
+        if (isSharedGoal) {
+          String? sharedID = goalData['sharedID'] as String?;
+          if (sharedID != null) {
+            DocumentSnapshot sharedGoalDoc = await FirebaseFirestore.instance
+                .collection('sharedGoal')
+                .doc(sharedID)
+                .get();
 
-          if (sharedGoalDoc.exists) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => GoalTasks(goalDocument: sharedGoalDoc),
-              ),
-            );
-          } else {
-            // Navigate to the original goal if shared goal is not found
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => GoalTasks(goalDocument: goalDocument),
-              ),
-            );
+            if (sharedGoalDoc.exists) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => GoalTasks(goalDocument: sharedGoalDoc),
+                ),
+              );
+            } else {
+              // Navigate to the original goal if shared goal is not found
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => GoalTasks(goalDocument: goalDocument),
+                ),
+              );
+            }
           }
-        }
-      } else {
-        // Handle regular (non-shared) goals
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => GoalTasks(goalDocument: goalDocument),
-          ),
-        );
-      }
-    },
-    child: Stack(
-      clipBehavior: Clip.none,
-      children: [
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          margin: const EdgeInsets.only(left: 15, right: 15, top: 30, bottom: 150),
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color.fromARGB(255, 30, 12, 48),
-                Color.fromARGB(255, 77, 64, 98),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        } else {
+          // Handle regular (non-shared) goals
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => GoalTasks(goalDocument: goalDocument),
             ),
-            borderRadius: BorderRadius.circular(25),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 4),
+          );
+        }
+      },
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            margin: const EdgeInsets.only(
+                left: 15, right: 15, top: 30, bottom: 150),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color.fromARGB(255, 30, 12, 48),
+                  Color.fromARGB(255, 77, 64, 98),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (isSharedGoal) ...[
-                FutureBuilder<DocumentSnapshot>(
-                  future: _getSharedGoalDocument(goalDocument),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    if (snapshot.hasError) {
-                      return Text('Error: ${snapshot.error}');
-                    }
-
-                    if (!snapshot.hasData || !snapshot.data!.exists) {
-                      return const Text('Shared goal not found');
-                    }
-
-                    return _buildEditDeleteButtons(
-                      snapshot.data!.reference,
-                      goalDate,
-                      goalName,
-                      visibl,
-                    );
-                  },
-                ),
-              ] else ...[
-                _buildEditDeleteButtons(
-                  goalDocument.reference,
-                  goalDate,
-                  goalName,
-                  visibl,
+              borderRadius: BorderRadius.circular(25),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
                 ),
               ],
-              if (isDone) ...[
-                _buildCompletedGoalContent(goalName),
-              ] else ...[
-                _buildInProgressGoalContent(goalName, progress, goalDocument),
-              ],
-            ],
-          ),
-        ),
-        if (isSharedGoal)
-          Positioned(
-            top: 220,
-            right: 40,
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              width: 70,
-              height: 70,
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 18, 89, 147).withOpacity(0.2),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 8,
-                    offset: Offset(2, 2),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (isSharedGoal) ...[
+                  FutureBuilder<DocumentSnapshot>(
+                    future: _getSharedGoalDocument(goalDocument),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (snapshot.hasError) {
+                        return Text('Error: ${snapshot.error}');
+                      }
+
+                      if (!snapshot.hasData || !snapshot.data!.exists) {
+                        return const Text('Shared goal not found');
+                      }
+
+                      return _buildEditDeleteButtons(
+                        snapshot.data!.reference,
+                        goalDate,
+                        goalName,
+                        visibl,
+                      );
+                    },
+                  ),
+                ] else ...[
+                  _buildEditDeleteButtons(
+                    goalDocument.reference,
+                    goalDate,
+                    goalName,
+                    visibl,
                   ),
                 ],
-              ),
-              child: const Icon(
-                Icons.group,
-                color: Colors.white,
-                size: 30,
-              ),
+                if (isDone) ...[
+                  _buildCompletedGoalContent(goalName),
+                ] else ...[
+                  _buildInProgressGoalContent(goalName, progress, goalDocument),
+                ],
+              ],
             ),
           ),
-      ],
-    ),
-  );
-}
-
-Future<DocumentSnapshot> _getSharedGoalDocument(DocumentSnapshot goalDoc) async {
-  final goalData = goalDoc.data() as Map<String, dynamic>;
-  final sharedID = goalData['sharedID'] as String?;
-  if (sharedID != null) {
-    return await FirebaseFirestore.instance
-        .collection('sharedGoal')
-        .doc(sharedID)
-        .get();
+          if (isSharedGoal)
+            Positioned(
+              top: 220,
+              right: 40,
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  color:
+                      const Color.fromARGB(255, 18, 89, 147).withOpacity(0.2),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: Offset(2, 2),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.group,
+                  color: Colors.white,
+                  size: 30,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
-  throw Exception('Shared ID is missing.');
-}
 
-
+  Future<DocumentSnapshot> _getSharedGoalDocument(
+      DocumentSnapshot goalDoc) async {
+    final goalData = goalDoc.data() as Map<String, dynamic>;
+    final sharedID = goalData['sharedID'] as String?;
+    if (sharedID != null) {
+      return await FirebaseFirestore.instance
+          .collection('sharedGoal')
+          .doc(sharedID)
+          .get();
+    }
+    throw Exception('Shared ID is missing.');
+  }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //Method return widget for edit and delete goal
@@ -1117,29 +1130,32 @@ Future<DocumentSnapshot> _getSharedGoalDocument(DocumentSnapshot goalDoc) async 
       ],
     );
   }
-  
-Future<DocumentSnapshot> _getGoalDocument(QueryDocumentSnapshot originalDocument) async {
-  try {
-    final goalData = originalDocument.data() as Map<String, dynamic>;
-    
-    // If the goal has a sharedID, fetch from sharedGoal collection
-    if (goalData.containsKey('sharedID') && goalData['sharedID'] != null) {
-      final sharedDoc = await FirebaseFirestore.instance
-          .collection('sharedGoal')
-          .doc(goalData['sharedID'])
-          .get();
-      
-      if (sharedDoc.exists) {
-        return sharedDoc;
+
+  Future<DocumentSnapshot> _getGoalDocument(
+      QueryDocumentSnapshot originalDocument) async {
+    try {
+      final goalData = originalDocument.data() as Map<String, dynamic>;
+
+      // If the goal has a sharedID, fetch from sharedGoal collection
+      if (goalData.containsKey('sharedID') && goalData['sharedID'] != null) {
+        final sharedDoc = await FirebaseFirestore.instance
+            .collection('sharedGoal')
+            .doc(goalData['sharedID'])
+            .get();
+
+        if (sharedDoc.exists) {
+          return sharedDoc;
+        }
       }
+      // Return the original document if not shared or shared document not found
+      return originalDocument;
+    } catch (e) {
+      print('Error in getGoalDocument: $e');
+      return originalDocument;
     }
-    // Return the original document if not shared or shared document not found
-    return originalDocument;
-  } catch (e) {
-    print('Error in getGoalDocument: $e');
-    return originalDocument;
-  }}}
-  
+  }
+}
+
 Future<String> _getGoalName(Map<String, dynamic> goalData) async {
   try {
     if (goalData.containsKey('sharedID') && goalData['sharedID'] != null) {
@@ -1148,7 +1164,7 @@ Future<String> _getGoalName(Map<String, dynamic> goalData) async {
           .collection('sharedGoal')
           .doc(goalData['sharedID'])
           .get();
-      
+
       if (sharedDoc.exists) {
         final sharedData = sharedDoc.data();
         return sharedData?['name'] ?? 'Unnamed Shared Goal';
@@ -1160,7 +1176,8 @@ Future<String> _getGoalName(Map<String, dynamic> goalData) async {
   } catch (e) {
     print('Error fetching goal name: $e');
     return 'Error Loading Goal Name';
-  }  }
+  }
+}
 
 class CountdownManager {
   static final CountdownManager _instance = CountdownManager._internal();
