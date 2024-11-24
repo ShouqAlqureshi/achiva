@@ -575,8 +575,18 @@ class _HomePageState extends State<HomeScreen> {
                                 final goalDocument = goalSnapshot.data!;
                                 final goalData =
                                     goalDocument.data() as Map<String, dynamic>;
-                                final String goalName = goalData['name'];
-                                final visible = goalData['visibility'];
+return FutureBuilder<String>(
+            future: _getGoalName(goalData),
+            builder: (context, nameSnapshot) {
+              if (nameSnapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (nameSnapshot.hasError) {
+                return const Text("Error fetching goal name");
+              }
+
+              final goalName = nameSnapshot.data ?? "Unnamed Goal";                                final visible = goalData['visibility'];
                                 DateTime date =
                                     DateTime.parse(goalData['date']);
 
@@ -605,8 +615,9 @@ class _HomePageState extends State<HomeScreen> {
                               },
                             );
                           },
-                        ),
-                      );
+                        );
+                        },
+                      ),);
                     },
                   ),
                 ),
@@ -797,6 +808,7 @@ Future<DocumentSnapshot> _getSharedGoalDocument(DocumentSnapshot goalDoc) async 
   }
   throw Exception('Shared ID is missing.');
 }
+
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1105,7 +1117,50 @@ Future<DocumentSnapshot> _getSharedGoalDocument(DocumentSnapshot goalDoc) async 
       ],
     );
   }
-}
+  
+Future<DocumentSnapshot> _getGoalDocument(QueryDocumentSnapshot originalDocument) async {
+  try {
+    final goalData = originalDocument.data() as Map<String, dynamic>;
+    
+    // If the goal has a sharedID, fetch from sharedGoal collection
+    if (goalData.containsKey('sharedID') && goalData['sharedID'] != null) {
+      final sharedDoc = await FirebaseFirestore.instance
+          .collection('sharedGoal')
+          .doc(goalData['sharedID'])
+          .get();
+      
+      if (sharedDoc.exists) {
+        return sharedDoc;
+      }
+    }
+    // Return the original document if not shared or shared document not found
+    return originalDocument;
+  } catch (e) {
+    print('Error in getGoalDocument: $e');
+    return originalDocument;
+  }}}
+  
+Future<String> _getGoalName(Map<String, dynamic> goalData) async {
+  try {
+    if (goalData.containsKey('sharedID') && goalData['sharedID'] != null) {
+      // Fetch shared goal document
+      final sharedDoc = await FirebaseFirestore.instance
+          .collection('sharedGoal')
+          .doc(goalData['sharedID'])
+          .get();
+      
+      if (sharedDoc.exists) {
+        final sharedData = sharedDoc.data();
+        return sharedData?['name'] ?? 'Unnamed Shared Goal';
+      }
+      return 'Shared Goal Not Found';
+    }
+    // Return regular goal name
+    return goalData['name'] ?? 'Unnamed Goal';
+  } catch (e) {
+    print('Error fetching goal name: $e');
+    return 'Error Loading Goal Name';
+  }  }
 
 class CountdownManager {
   static final CountdownManager _instance = CountdownManager._internal();
