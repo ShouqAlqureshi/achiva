@@ -127,7 +127,7 @@ class LocalNotification {
         // Use timestamp as unique ID
        2,
         'Task Due Soon',
-        'Task "$taskName" from goal "$goalName" is due in soon',
+        'Task "$taskName" will start soon',
         tz.TZDateTime.from(scheduledDate, tz.local),
         NotificationDetails(
           android: AndroidNotificationDetails(
