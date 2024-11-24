@@ -927,7 +927,6 @@ class _HomePageState extends State<HomeScreen> {
     );
   }
 
-  //Delete goal method
   void _deleteGoal(BuildContext context, DocumentReference goalRef) {
     showDialog(
       context: context,
@@ -951,16 +950,21 @@ class _HomePageState extends State<HomeScreen> {
               child: Text('Delete', style: TextStyle(color: Colors.red)),
               onPressed: () async {
                 try {
+                  // Delete the goal document
                   await _firestore
                       .runTransaction((Transaction myTransaction) async {
                     myTransaction.delete(goalRef);
                   });
 
+                  // Show success message
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('goal deleted successfully')),
+                    const SnackBar(content: Text('Goal deleted successfully')),
                   );
-                  Navigator.of(context).pop(); // Close both dialogs
+
+                  // Close the dialog
+                  Navigator.of(context).pop(); // Close the alert dialog
                 } catch (e) {
+                  // Show error message
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Error deleting goal: $e')),
                   );
