@@ -12,6 +12,7 @@ import 'package:achiva/views/addition_views/deleteTask.dart';
 
 import 'sharedgoal/sharedgoal.dart';
 
+
 class GoalTasks extends StatefulWidget {
   final DocumentSnapshot goalDocument;
   final String userId = FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -830,6 +831,18 @@ class _GoalTasksState extends State<GoalTasks> {
     );
   }
 
+  Future<void> showParticipantsDialog(BuildContext context, String sharedID, String goalID) {
+  return showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        child: ParticipantsDialogContent(sharedID: sharedID, goalID: goalID),
+      );
+    },
+  );
+}
+
   @override
   Widget build(BuildContext context) {
     final goalData = widget.goalDocument.data() as Map<String, dynamic>;
@@ -935,9 +948,8 @@ class _GoalTasksState extends State<GoalTasks> {
                                                 IconButton(
                                                   icon: const Icon(Icons.close,
                                                       color: Colors.white),
-                                                  onPressed: () =>
-                                                      Navigator.of(context)
-                                                          .pop(),
+                                                  onPressed: () =>  showParticipantsDialog(context, goalData['sharedID'], goalData['goalID']),
+
                                                 ),
                                               ],
                                             ),
@@ -1059,22 +1071,14 @@ class _GoalTasksState extends State<GoalTasks> {
                                                       );
                                                     },
                                                   ),
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsets.all(
-                                                            16.0),
-                                                    child: InkWell(
-                                                      onTap: () {
-                                                        Navigator.of(context)
-                                                            .pop();
-                                                        // Add navigation to add participant page
-                                                        // Navigator.push(
-                                                        //   context,
-                                                        //   MaterialPageRoute(
-                                                        //     builder: (context) => showFriendListDialog(context,goalData['sharedID'], goalData['goalID']),
-                                                        //   ),
-                                                        // );
-                                                      },
+                                                Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.of(context).pop(); 
+                          showParticipantsDialog(context, goalData['sharedID'], goalData['goalID']);
+                        },
+                                                      
                                                       child: Container(
                                                         padding:
                                                             const EdgeInsets
@@ -1431,6 +1435,223 @@ class _GoalTasksState extends State<GoalTasks> {
                   : Colors.grey,
               child: Icon(Icons.add, color: Colors.white),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+
+Future<void> showParticipantsDialog(BuildContext context, String sharedID, String goalID) {
+  return showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        child: ParticipantsDialogContent(sharedID: sharedID, goalID: goalID),
+      );
+    },
+  );
+}
+
+class ParticipantsDialogContent extends StatelessWidget {
+  final String sharedID;
+  final String goalID;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  ParticipantsDialogContent({
+    Key? key,
+    required this.sharedID,
+    required this.goalID,
+  }) : super(key: key);
+
+  Future<Map<String, dynamic>?> _getUserData(String userId) async {
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    return userDoc.data();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: MediaQuery.of(context).size.width * 0.8,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.7,
+      ),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.fromARGB(255, 30, 12, 48),
+            Color.fromARGB(255, 77, 64, 98),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 10,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Participants',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          ),
+          const Divider(color: Colors.white24),
+
+          // Participants List
+          StreamBuilder<DocumentSnapshot>(
+            stream: _firestore.collection('sharedGoal').doc(sharedID).snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return const Center(
+                  child: Text('Something went wrong', style: TextStyle(color: Colors.white)),
+                );
+              }
+
+              if (!snapshot.hasData) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                );
+              }
+
+              final goalData = snapshot.data!.data() as Map<String, dynamic>;
+              final participants = goalData['participants'] as Map<String, dynamic>? ?? {};
+
+              return Flexible(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: participants.length,
+                        itemBuilder: (context, index) {
+                          final userId = participants.keys.elementAt(index);
+                          final participantData = participants[userId] as Map<String, dynamic>;
+
+                          return FutureBuilder<Map<String, dynamic>?>(
+                            future: _getUserData(userId),
+                            builder: (context, userSnapshot) {
+                              if (!userSnapshot.hasData) {
+                                return const SizedBox(height: 72);
+                              }
+
+                              final userData = userSnapshot.data!;
+
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0,
+                                  vertical: 8.0,
+                                ),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white10,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: ListTile(
+                                    leading: CircleAvatar(
+                                      backgroundImage: userData['photo'] != null
+                                          ? NetworkImage(userData['photo'])
+                                          : null,
+                                      child: userData['photo'] == null
+                                          ? const Icon(Icons.person, color: Colors.white)
+                                          : null,
+                                      backgroundColor: Colors.grey[700],
+                                    ),
+                                    title: Text(
+                                      '${userData['fname']} ${userData['lname']}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      participantData['role'] ?? 'participant',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.7),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                    // Add Participant Button
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          showFriendListDialog(context, sharedID, goalID);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12.0,
+                            horizontal: 16.0,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white10,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.white24,
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(
+                                Icons.add_circle_outline,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Add Participant',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),

@@ -639,13 +639,14 @@ Widget _buildGoalCard(String goalName, double progress, bool isDone,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+                _buildEditDeleteButtons(
+                  goalDocument.reference, goalDate, goalName, visibl),
               if (isDone) ...[
                 _buildCompletedGoalContent(goalName)
               ] else ...[
                 _buildInProgressGoalContent(goalName, progress, goalDocument)
               ],
-              _buildEditDeleteButtons(
-                  goalDocument.reference, goalDate, goalName, visibl),
+            
             ],
           ),
         ),
@@ -682,114 +683,106 @@ Widget _buildGoalCard(String goalName, double progress, bool isDone,
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //Method return widget for edit and delete goal
-  Widget _buildEditDeleteButtons(DocumentReference goalRef, DateTime goalDate,
-      String goalName, bool visible) {
-    return SizedBox(
-      width: double.infinity,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          //_myId == _fromUserID?
-          //Edit goal button
-          ElevatedButton(
-            onPressed: () async {
-              //Navigate edit goal page
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => EditGoalPage(
+Widget _buildEditDeleteButtons(DocumentReference goalRef, DateTime goalDate,
+    String goalName, bool visible) {
+  return Align(
+    alignment: Alignment.centerRight,
+    child: Theme(
+      // Custom theme for popup menu
+      data: Theme.of(context).copyWith(
+        popupMenuTheme: PopupMenuThemeData(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          color: Colors.transparent,
+          elevation: 0,
+        ),
+      ),
+      child: PopupMenuButton(
+        icon: const Icon(Icons.more_vert, color: Colors.grey),
+        position: PopupMenuPosition.under,
+        offset: const Offset(10, 10),
+        itemBuilder: (context) => [
+          // Wrapping items in a Container to apply gradient
+          PopupMenuItem(
+            padding: EdgeInsets.zero,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [
+                    Color.fromARGB(255, 105, 105, 105),
+                    Color.fromARGB(255, 72, 72, 72),
+                  ],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: ListTile(
+                leading: const Icon(Icons.edit, color: Colors.white),
+                title: const Text(
+                  'Edit Goal',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            onTap: () {
+              Future.delayed(
+                const Duration(seconds: 0),
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditGoalPage(
                       goalRef: goalRef,
                       goalDate: goalDate,
                       goalName: goalName,
-                      visibility: visible
-                      ),
+                      visibility: visible,
+                    ),
+                  ),
                 ),
               );
             },
-            style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.zero, // Remove default padding for the button
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20), // Rounded corners
-              ),
-            ),
-            child: Ink(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Color.fromARGB(255, 22, 158, 67),
-                    Color.fromARGB(255, 31, 204, 74),
-                  ], // Define the gradient colors
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Container(
-                padding: EdgeInsets.all(10),
-                constraints: BoxConstraints(
-                  maxWidth: double.infinity,
-                  minHeight: 30.0,
-                ),
-                alignment: Alignment.center,
-                child: const Text(
-                  'Edit Goal',
-                  style: TextStyle(
-                    color: Colors.white, // Set text color to white
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
           ),
-          //: Text(""),
-          // _myId == "123"?
-          //Delete goal button
-          ElevatedButton(
-            //Call delete goal method
-            onPressed: () async {
-              _deleteGoal(context, goalRef);
-            },
-            style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.zero, // Remove default padding for the button
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20), // Rounded corners
-              ),
-            ),
-            child: Ink(
+          PopupMenuItem(
+            padding: EdgeInsets.zero,
+            child: Container(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
+                gradient: const LinearGradient(
                   colors: [
-                    Color.fromARGB(255, 221, 67, 67),
-                    Color.fromARGB(255, 199, 72, 78),
-                  ], // Define the gradient colors
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+                    Color.fromARGB(255, 198, 137, 137),
+                    Color.fromARGB(255, 219, 110, 115),
+                  ],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
                 ),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(15),
               ),
-              child: Container(
-                padding: EdgeInsets.all(10),
-                constraints: BoxConstraints(
-                  maxWidth: double.infinity,
-                  minHeight: 30.0,
-                ),
-                alignment: Alignment.center,
-                child: const Text(
+              child: ListTile(
+                leading: const Icon(Icons.delete, color: Colors.white),
+                title: const Text(
                   'Delete Goal',
                   style: TextStyle(
-                    color: Colors.white, // Set text color to white
-                    fontSize: 16,
+                    color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
             ),
-          )
+            onTap: () {
+              Future.delayed(
+                const Duration(seconds: 0),
+                () => _deleteGoal(context, goalRef),
+              );
+            },
+          ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   //Delete goal method
   void _deleteGoal(BuildContext context, DocumentReference goalRef) {
