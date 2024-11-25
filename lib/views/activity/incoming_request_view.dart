@@ -104,8 +104,7 @@ class _IncomingRequestsPageState extends State<IncomingRequestsPage> {
             String userId = isGoalInvitation ? data['fromUserID'] : data['userId'];
             String? sharedID = isGoalInvitation ? data['sharedID'] : null;
             String? goalID = isGoalInvitation ? data['goalID'] : null;
-            String invitationID = isGoalInvitation ? data['InvitationID'] : null;
-
+String invitationID = isGoalInvitation ? data['InvitationID'] : '';
 
             return FutureBuilder<DocumentSnapshot>(
               future: FirebaseFirestore.instance
