@@ -19,7 +19,7 @@ class _AddGoalPageState extends State<AddGoalPage> {
   final Validators _validate = Validators();
   final Uuid _uuid = Uuid();
 
-    late String _sharedID;
+  late String _sharedID;
   late String _goalID;
 
   bool _visibility = true;
@@ -37,69 +37,71 @@ class _AddGoalPageState extends State<AddGoalPage> {
     _goalID = _uuid.v4();
   }
 
-Future<void> _goToAddTaskPage() async {
-  setState(() {
-    // Reset error states
-    _isDateValid = _selectedDate != null;
-    errorMessage = null;
-  });
-
-  if (_nameController.text.trim().isEmpty) {
+  Future<void> _goToAddTaskPage() async {
     setState(() {
-      _isNameValid = false;
-      errorMessage = "Please enter a goal name";
-    });
-    _showError('Please enter a goal name');
-    return;
-  }
-
-  try {
-    bool isValid = await validate.isGoalNameValid(_nameController.text, context);
-    
-    setState(() {
-      _isNameValid = isValid;
-      if (!isValid) {
-        errorMessage = "The goal name exists, try changing the name";
-      }
+      // Reset error states
+      _isDateValid = _selectedDate != null;
+      errorMessage = null;
     });
 
-    if (_isNameValid && _isDateValid) {
-      // Create shared goal if selected
-      if (_sharedGoal) {
-        await _sharedGoalManager.createSharedGoal(
-          goalName: _nameController.text,
-          date: DateFormat('yyyy-MM-dd').format(_selectedDate!),
-          visibility: _visibility,
-          sharedID: _sharedID,
-          goalID: _goalID,
-          context: context,
-          isOwner: true, // Mark creator as owner
-        );
-      }
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AddTaskPage(
-            goalName: _nameController.text,
-            goalDate: _selectedDate!,
-            goalVisibility: _visibility,
-            sharedGoal: _sharedGoal,
-            sharedID: _sharedID,
-          ),
-        ),
-      );
-    } else {
-      String errorMsg = '';
-      if (!_isDateValid) errorMsg = 'Please select an end date';
-      if (!_isNameValid) errorMsg = errorMessage ?? 'Invalid goal name';
-      _showError(errorMsg);
+    if (_nameController.text.trim().isEmpty) {
+      setState(() {
+        _isNameValid = false;
+        errorMessage = "Please enter a goal name";
+      });
+      _showError('Please enter a goal name');
+      return;
     }
-  } catch (e) {
-    _showError('An error occurred while validating the goal name');
-    print('Error validating goal name: $e');
+
+    try {
+      bool isValid =
+          await validate.isGoalNameValid(_nameController.text, context);
+
+      setState(() {
+        _isNameValid = isValid;
+        if (!isValid) {
+          errorMessage = "The goal name exists, try changing the name";
+        }
+      });
+
+      if (_isNameValid && _isDateValid) {
+        // Create shared goal if selected
+        if (_sharedGoal) {
+          await _sharedGoalManager.createSharedGoal(
+            goalName: _nameController.text,
+            date: DateFormat('yyyy-MM-dd').format(_selectedDate!),
+            visibility: _visibility,
+            sharedID: _sharedID,
+            goalID: _goalID,
+            context: context,
+            isOwner: true, // Mark creator as owner
+          );
+        }
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AddTaskPage(
+              goalName: _nameController.text,
+              goalDate: _selectedDate!,
+              goalVisibility: _visibility,
+              sharedGoal: _sharedGoal,
+              isSharedGoal: _sharedGoal,
+              sharedID: _sharedID,
+            ),
+          ),
+        );
+      } else {
+        String errorMsg = '';
+        if (!_isDateValid) errorMsg = 'Please select an end date';
+        if (!_isNameValid) errorMsg = errorMessage ?? 'Invalid goal name';
+        _showError(errorMsg);
+      }
+    } catch (e) {
+      _showError('An error occurred while validating the goal name');
+      print('Error validating goal name: $e');
+    }
   }
-}
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
