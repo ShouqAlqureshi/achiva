@@ -274,15 +274,15 @@ class _EditGoalPageState extends State<EditGoalPage> {
 
     try {
       // Wait for the async validation
-      bool isValid =
-          await validate.isGoalNameValid(_nameController.text, context);
+      // bool isValid =
+      //     await validate.isGoalNameValid(_nameController.text, context);
 
-      setState(() {
-        _isNameValid = isValid;
-        if (!isValid) {
-          errorMessage = "The goal name exists, try changing the name";
-        }
-      });
+      // setState(() {
+      //   _isNameValid = isValid;
+      //   if (!isValid) {
+      //     errorMessage = "The goal name exists, try changing the name";
+      //   }
+      // });
 
       // Check all validation conditions
       if (_isNameValid && _isDateValid) {
@@ -294,10 +294,7 @@ class _EditGoalPageState extends State<EditGoalPage> {
               'date': DateFormat('yyyy-MM-dd').format(_selectedDate!),
               'visibility': _visibility,
             };
-
-            // Update primary goal
-            await widget.goalRef.update(updategoalData);
-            log('Primary goal updated successfully');
+            final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
             // Get goal document snapshot
             final DocumentSnapshot goalDoc = await widget.goalRef.get();
@@ -305,11 +302,40 @@ class _EditGoalPageState extends State<EditGoalPage> {
 
             // Check and update shared goal if exists
             if (goalData != null && goalData.containsKey('sharedID')) {
-              final String sharedId = goalData['sharedID'];
+              // Update primary goal
+              await widget.goalRef.update(updategoalData);
+              log('Primary goal updated successfully');
+
+              final String sharedID = goalData['sharedID'];
+              // Get participants map
+              final Map<String, dynamic>? participants =
+                  goalData['participants'] as Map<String, dynamic>?;
+
+              if (participants == null) {
+                throw 'Participants data not found';
+              }
+              // Process each participant
+              for (String userId in participants.keys) {
+                // Reference to the user's goals subcollection
+                final userGoalsRef = _firestore
+                    .collection('Users')
+                    .doc(userId)
+                    .collection('goals');
+
+                // Query for goals with matching sharedID
+                final querySnapshot = await userGoalsRef
+                    .where('sharedID', isEqualTo: sharedID)
+                    .get();
+
+                // update each matching goal document
+                for (var doc in querySnapshot.docs) {
+                  await doc.reference.update(updategoalData);
+                }
+              }
 
               final DocumentReference sharedGoalRef = FirebaseFirestore.instance
                   .collection('sharedGoal')
-                  .doc(sharedId);
+                  .doc(sharedID);
 
               try {
                 final sharedGoalDoc = await sharedGoalRef.get();
@@ -318,7 +344,7 @@ class _EditGoalPageState extends State<EditGoalPage> {
                   await sharedGoalRef.update(updategoalData);
                   log('Shared goal updated successfully');
                 } else {
-                  log('Warning: Shared goal document not found for ID: $sharedId');
+                  log('Warning: Shared goal document not found for ID: $sharedID');
                 }
               } catch (sharedError) {
                 log('Error updating shared goal: $sharedError');
@@ -328,6 +354,23 @@ class _EditGoalPageState extends State<EditGoalPage> {
                         'Error updating shared goal. Primary goal was updated.'),
                   ),
                 );
+              }
+            } else {
+              // Update primary goal
+              bool isNameNotEdited =
+                  goalData!["name"] == updategoalData["name"];
+              if (isNameNotEdited) {
+                await widget.goalRef.update(updategoalData);
+                log('Primary goal updated successfully');
+              } else {
+                await widget.goalRef.update(updategoalData);
+                log('Primary goal updated successfully');
+                updateDocumentKeyWithSubcollection(
+                  oldDocRef: widget.goalRef,
+                  newDocId: updategoalData["name"],
+                  subcollectionPath: 'tasks',
+                );
+                log(' goal key updated successfully');
               }
             }
 
@@ -363,6 +406,62 @@ class _EditGoalPageState extends State<EditGoalPage> {
     } catch (e) {
       _showError('An error occurred while validating the goal name');
       print('Error validating goal name: $e');
+    }
+  }
+
+  Future<void> updateDocumentKeyWithSubcollection({
+    required DocumentReference oldDocRef,
+    required String newDocId,
+    required String subcollectionPath,
+  }) async {
+    try {
+      final FirebaseFirestore firestore = FirebaseFirestore.instance;
+      final String collectionPath = oldDocRef.parent.path;
+      final DocumentReference newDocRef =
+          firestore.collection(collectionPath).doc(newDocId);
+
+      // Step 1: Retrieve the main document's data
+      final DocumentSnapshot oldDocSnapshot = await oldDocRef.get();
+      if (oldDocSnapshot.exists) {
+        final Map<String, dynamic>? oldData =
+            oldDocSnapshot.data() as Map<String, dynamic>?;
+
+        if (oldData != null) {
+          // Step 2: Write the data to the new document
+          await newDocRef.set(oldData);
+
+          // Step 3: Copy all subcollection data
+          final QuerySnapshot subcollectionSnapshot =
+              await oldDocRef.collection(subcollectionPath).get();
+
+          for (var subDoc in subcollectionSnapshot.docs) {
+            final subData = subDoc.data() as Map<String, dynamic>;
+            await newDocRef
+                .collection(subcollectionPath)
+                .doc(subDoc.id)
+                .set(subData);
+          }
+
+          // Step 4: Delete the subcollection documents inside the old document
+          for (var subDoc in subcollectionSnapshot.docs) {
+            await oldDocRef
+                .collection(subcollectionPath)
+                .doc(subDoc.id)
+                .delete();
+          }
+
+          // Step 5: Delete the old document
+          await oldDocRef.delete();
+
+          print('Document key and subcollection updated successfully.');
+        } else {
+          print('Old document has no data.');
+        }
+      } else {
+        print('Old document does not exist.');
+      }
+    } catch (e) {
+      print('Error updating document key and subcollection: $e');
     }
   }
 }
