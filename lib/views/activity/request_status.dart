@@ -46,8 +46,8 @@ class _RequestStatusState extends State<RequestStatus> {
 
         if (goalDoc.exists) {
           final data = goalDoc.data();
-          if (data != null && data.containsKey('goalName')) {
-            goalNames[sharedID] = data['goalName'];
+          if (data != null && data.containsKey('name')) {
+            goalNames[sharedID] = data['name'];
           } else {
             goalNames[sharedID] = 'Undefined Name';
           }

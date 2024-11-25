@@ -169,6 +169,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
         // Add the task
         if (_selectedRecurrence == "Weekly") {
           createdTasks = await taskManager.addRecurringTask(
+            
             goalName: widget.goalName,
             startDate: _selectedDate!, // Ensure _selectedDate is non-null
             startTime: _startTime!, // Ensure _startTime is non-null
@@ -186,6 +187,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
             goalDate: widget.goalDate,
             isSharedGoal: widget.isSharedGoal,
             sharedkey:widget.sharedID ?? ""
+            
           );
 
           if (createdTasks.isNotEmpty) {
