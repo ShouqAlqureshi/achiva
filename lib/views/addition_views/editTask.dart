@@ -12,7 +12,7 @@ class EditTaskDialog extends StatefulWidget {
   final CollectionReference usergoallistrefrence;
   final String goalName;
   final bool isSharedGoal;  // Make sure this is properly used
-  final String sharedkey;   // Make sure this is properly used
+  final String? sharedkey;  // Changed to nullable
 
   const EditTaskDialog({
     super.key,
@@ -22,7 +22,7 @@ class EditTaskDialog extends StatefulWidget {
     required this.usergoallistrefrence,
     required this.goalName,
     this.isSharedGoal = false,
-    this.sharedkey = "",
+    this.sharedkey, 
   });
 
   @override
@@ -55,7 +55,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
   bool _changingToWeekly = false;
   bool _hasRedundancyId = false;
   bool get isSharedGoal => widget.isSharedGoal;
-  String get sharedkey => widget.sharedkey;
+  String get sharedkey => widget.sharedkey ?? "";
 
   @override
   void initState() {
