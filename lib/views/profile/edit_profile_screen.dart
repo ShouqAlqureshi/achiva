@@ -30,6 +30,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final TextEditingController _emailController = TextEditingController();
   GlobalKey<FormState> formState = GlobalKey<FormState>();
   bool isFormSubmited = false;
+  bool _hasChanges = false; // Track if any changes were made
+
+  void _checkForChanges() {
+    final hasTextChanges = 
+      _fnameController.text != widget.layoutCubit.user!.fname ||
+      _lnameController.text != widget.layoutCubit.user!.lname ||
+      _emailController.text != widget.layoutCubit.user!.email;
+    
+    final hasGenderChanges = 
+      widget.layoutCubit.chosenGender != widget.layoutCubit.user!.gender;
+    
+    final hasImageChanges = widget.layoutCubit.userImage != null;
+
+    setState(() {
+      _hasChanges = hasTextChanges || hasGenderChanges || hasImageChanges;
+    });
+  }
 
   void setUserDataToTextFields() {
     widget.layoutCubit.userImage = null;
@@ -42,11 +59,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     setUserDataToTextFields();
+    // Add listeners to all text controllers
+    _fnameController.addListener(_checkForChanges);
+    _lnameController.addListener(_checkForChanges);
+    _emailController.addListener(_checkForChanges);
     super.initState();
   }
 
   @override
   void dispose() {
+    // Remove listeners
+    _fnameController.removeListener(_checkForChanges);
+    _lnameController.removeListener(_checkForChanges);
+    _emailController.removeListener(_checkForChanges);
+    
     _fnameController.dispose();
     _lnameController.dispose();
     _emailController.dispose();
@@ -256,32 +282,37 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           alignment: Alignment.center,
                           child: CircularProgressIndicator(),
                         )
-                      : BtnWidget(
-                          minWidth: double.infinity,
-                          onTap: () async {
-                            if (_fnameController.text.isNotEmpty &&
-                                _lnameController.text.isNotEmpty &&
-                                _emailController.text.isNotEmpty &&
-                                widget.layoutCubit.chosenGender == null) {
-                              showSnackBarWidget(
-                                  message: "Please, Choose your gender",
-                                  successOrNot: false,
-                                  context: context);
-                            } else if (await checkIfEmailExists(_emailController.text) &&
-                                _emailController.text != widget.layoutCubit.user!.email) {
-                              showSnackBarWidget(
-                                  message: "Email already exists",
-                                  successOrNot: false,
-                                  context: context);
-                            } else {
-                              if (formState.currentState!.validate()) {
-                                await updateUserData();
+                      : Opacity(
+                          opacity: _hasChanges ? 1.0 : 0.5,
+                          child: BtnWidget(
+                            minWidth: double.infinity,
+                            onTap: () async {
+                              if (!_hasChanges) return; // Early return if no changes
+                              
+                              if (_fnameController.text.isNotEmpty &&
+                                  _lnameController.text.isNotEmpty &&
+                                  _emailController.text.isNotEmpty &&
+                                  widget.layoutCubit.chosenGender == null) {
+                                showSnackBarWidget(
+                                    message: "Please, Choose your gender",
+                                    successOrNot: false,
+                                    context: context);
+                              } else if (await checkIfEmailExists(_emailController.text) &&
+                                  _emailController.text != widget.layoutCubit.user!.email) {
+                                showSnackBarWidget(
+                                    message: "Email already exists",
+                                    successOrNot: false,
+                                    context: context);
+                              } else {
+                                if (formState.currentState!.validate()) {
+                                  await updateUserData();
+                                }
                               }
-                            }
-                          },
-                          title: state is UpdateUserDataLoadingState
-                              ? "Update data loading"
-                              : "Update",
+                            },
+                            title: state is UpdateUserDataLoadingState
+                                ? "Update data loading"
+                                : "Update",
+                          ),
                         ),
                 ),
               ],
