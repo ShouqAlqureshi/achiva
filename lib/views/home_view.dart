@@ -72,41 +72,63 @@ class _HomePageState extends State<HomeScreen> {
   }
 
   Stream<Map<String, dynamic>> getGoalWithProgress(
-      DocumentSnapshot goalDocument) {
-    final goalId = goalDocument.id;
-    final userId = FirebaseAuth.instance.currentUser!.uid;
+    DocumentSnapshot goalDocument) {
+  final goalData = goalDocument.data() as Map<String, dynamic>;
+  final userId = FirebaseAuth.instance.currentUser!.uid;
+  final bool isSharedGoal = 
+      goalData.containsKey('isShared') && goalData['isShared'] == true;
 
-    // Stream of tasks for the goal
-    final tasksStream = FirebaseFirestore.instance
+  // Stream for tasks depends on whether it's a shared or personal goal
+  Stream<QuerySnapshot> tasksStream;
+
+  if (isSharedGoal) {
+    final sharedId = goalData['sharedID'] as String?;
+    if (sharedId == null) {
+      return Stream.value({
+        'progress': 0.0,
+        'goalDocument': goalDocument,
+      });
+    }
+
+    // For shared goals, get tasks from sharedGoal collection
+    tasksStream = FirebaseFirestore.instance
+        .collection('sharedGoal')
+        .doc(sharedId)
+        .collection('tasks')
+        .snapshots();
+  } else {
+    // For personal goals, get tasks from user's goals collection
+    tasksStream = FirebaseFirestore.instance
         .collection("Users")
         .doc(userId)
         .collection('goals')
-        .doc(goalId)
+        .doc(goalDocument.id)
         .collection('tasks')
         .snapshots();
+  }
 
-    // Transform the stream to include progress calculation
-    return tasksStream.map((tasksSnapshot) {
-      if (tasksSnapshot.docs.isEmpty) {
-        return {
-          'progress': 0.0,
-          'goalDocument': goalDocument,
-        };
-      }
-
-      int completedTasks = tasksSnapshot.docs
-          .where((task) =>
-              (task.data() as Map<String, dynamic>)['completed'] == true)
-          .length;
-
-      double progress = (completedTasks / tasksSnapshot.docs.length) * 100;
-
+  // Transform the stream to include progress calculation
+  return tasksStream.map((tasksSnapshot) {
+    if (tasksSnapshot.docs.isEmpty) {
       return {
-        'progress': progress.roundToDouble(),
+        'progress': 0.0,
         'goalDocument': goalDocument,
       };
-    });
-  }
+    }
+
+    int completedTasks = tasksSnapshot.docs
+        .where((task) =>
+            (task.data() as Map<String, dynamic>)['completed'] == true)
+        .length;
+
+    double progress = (completedTasks / tasksSnapshot.docs.length) * 100;
+
+    return {
+      'progress': progress.roundToDouble(),
+      'goalDocument': goalDocument,
+    };
+  });
+}
 
   Stream<int> getCompletedTodayTasksCount() {
     final userId = FirebaseAuth.instance.currentUser!.uid;
