@@ -36,10 +36,19 @@ void main() async {
   
   // Set up auth state listener
   FirebaseAuth.instance.authStateChanges().listen((User? user) async {
-    if (user != null) {
-      await StreakCalculator.initialize();
+  if (user != null) {
+    try {
+      // Refresh user token to check account validity
+      await user.reload();
+    } catch (e) {
+      // If user can't be reloaded, it likely means the account was deleted
+      await FirebaseAuth.instance.signOut();
+      // Optionally navigate to phone auth view
+      // Note: You'll need to pass context or use a global navigation key
     }
-  });
+    await StreakCalculator.initialize();
+  }
+});
   runApp(const MyApp());
 }
 

@@ -319,13 +319,21 @@ class _NewUserInfoViewState extends State<NewUserInfoView> {
     );
   }
 
-  Future<bool> _validateForm() async {
-    bool isUnique = await validation.isEmailUnique(email.text);
-    return fn.text.isNotEmpty &&
-        ln.text.isNotEmpty &&
-        isUnique &&
-        (validation.validateEmail(email.text)?.isEmpty ?? true);
+Future<bool> _validateForm() async {
+  bool isUnique = await validation.isEmailUnique(email.text);
+  if (!isUnique) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Email already exists'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return false;
   }
+  return fn.text.isNotEmpty &&
+         ln.text.isNotEmpty &&
+         (validation.validateEmail(email.text)?.isEmpty ?? true);
+}
 
   Future<bool> showCancelDialog(BuildContext context) {
     return showDialog<bool>(
