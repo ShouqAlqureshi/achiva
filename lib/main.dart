@@ -46,7 +46,7 @@ void main() async {
     //   // Optionally navigate to phone auth view
     //   // Note: You'll need to pass context or use a global navigation key
     // }
-    // await StreakCalculator.initialize();
+    await StreakCalculator.initialize();
   }
 });
   runApp(const MyApp());
