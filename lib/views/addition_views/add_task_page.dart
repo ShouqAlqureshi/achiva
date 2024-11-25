@@ -19,7 +19,7 @@ class AddTaskPage extends StatefulWidget {
   final bool goalVisibility;
   final bool sharedGoal;
   final bool isSharedGoal;
-  final String sharedID;
+  final String? sharedID;
   const AddTaskPage({
     super.key,
     required this.goalName,
@@ -27,7 +27,7 @@ class AddTaskPage extends StatefulWidget {
     required this.goalVisibility,
     required this.sharedGoal,
     this.isSharedGoal = false,
-    required this.sharedID,
+    this.sharedID,
   });
 
   @override
@@ -185,6 +185,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
             usergoallistrefrence: goalsCollectionRef,
             goalDate: widget.goalDate,
             isSharedGoal: widget.isSharedGoal,
+            sharedkey:widget.sharedID ?? ""
           );
 
           if (createdTasks.isNotEmpty) {
@@ -201,7 +202,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
         } else {
           if (widget.sharedGoal) {
             await SharedGoalManager().addTaskToSharedGoal(
-              sharedID: widget.sharedID,
+              sharedID: widget.sharedID??"",
               taskData: taskData,
               context: context,
             );
