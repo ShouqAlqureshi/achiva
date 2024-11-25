@@ -939,7 +939,8 @@ class _HomePageState extends State<HomeScreen> {
     );
   }
 
-  void _deleteGoal(BuildContext context, DocumentReference goalRef) {
+  Future<void> _deleteGoal(
+      BuildContext context, DocumentReference goalRef) async {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -962,11 +963,89 @@ class _HomePageState extends State<HomeScreen> {
               child: Text('Delete', style: TextStyle(color: Colors.red)),
               onPressed: () async {
                 try {
-                  // Delete the goal document
-                  await _firestore
-                      .runTransaction((Transaction myTransaction) async {
-                    myTransaction.delete(goalRef);
-                  });
+                  // Get the goal document data
+                  final goalDoc = await goalRef.get();
+                  final goalData = goalDoc.data() as Map<String, dynamic>?;
+
+                  if (goalData == null) {
+                    throw 'Goal data not found';
+                  }
+
+                  // Check if sharedID exists
+                  final String? sharedID = goalData['sharedID'];
+                  if (sharedID == null) {
+                    // If no sharedID, delete the goal and its subcollection tasks
+                    await _firestore
+                        .runTransaction((Transaction myTransaction) async {
+                      // Delete the main goal
+                      myTransaction.delete(goalRef);
+
+                      // Reference to the tasks subcollection
+                      final tasksRef = goalRef.collection('tasks');
+
+                      // Get all tasks in the subcollection
+                      final tasksSnapshot = await tasksRef.get();
+
+                      // Delete each task document
+                      for (var taskDoc in tasksSnapshot.docs) {
+                        myTransaction.delete(taskDoc.reference);
+                      }
+                    });
+                  } else {
+                    // Get participants map
+                    final Map<String, dynamic>? participants =
+                        goalData['participants'] as Map<String, dynamic>?;
+
+                    if (participants == null) {
+                      throw 'Participants data not found';
+                    }
+
+                    // Start a transaction for atomic operations
+                    await _firestore
+                        .runTransaction((Transaction myTransaction) async {
+                      // Delete the main goal first
+                      myTransaction.delete(goalRef);
+
+                      // Reference to the tasks subcollection
+                      final tasksRef = goalRef.collection('tasks');
+
+                      // Get all tasks in the subcollection
+                      final tasksSnapshot = await tasksRef.get();
+
+                      // Delete each task document
+                      for (var taskDoc in tasksSnapshot.docs) {
+                        myTransaction.delete(taskDoc.reference);
+                      }
+                      // Reference to the invite subcollection
+                      final invitesRef = goalRef.collection('goalInvitations');
+
+                      // Get all invite in the subcollection
+                      final invitesSnapshot = await invitesRef.get();
+
+                      // Delete each invite document
+                      for (var inviteDoc in invitesSnapshot.docs) {
+                        myTransaction.delete(inviteDoc.reference);
+                      }
+                      // Process each participant
+                      for (String userId in participants.keys) {
+                        // Reference to the user's goals subcollection
+                        final userGoalsRef = _firestore
+                            .collection('Users')
+                            .doc(userId)
+                            .collection('goals');
+
+                        // Query for goals with matching sharedID
+                        final querySnapshot = await userGoalsRef
+                            .where('sharedID', isEqualTo: sharedID)
+                            .get();
+
+                        // Delete each matching goal document
+                        for (var doc in querySnapshot.docs) {
+                          myTransaction.delete(doc.reference);
+                        }
+                      }
+                    });
+                  }
 
                   // Show success message
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -974,12 +1053,14 @@ class _HomePageState extends State<HomeScreen> {
                   );
 
                   // Close the dialog
-                  Navigator.of(context).pop(); // Close the alert dialog
+                  Navigator.of(context).pop();
                 } catch (e) {
                   // Show error message
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Error deleting goal: $e')),
                   );
+                  // Close the dialog even if there's an error
+                  Navigator.of(context).pop();
                 }
               },
             ),
