@@ -151,9 +151,16 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
   Future<void> _sendFriendRequest(DocumentSnapshot friend) async {
     try {
       String userId = FirebaseAuth.instance.currentUser!.uid;
+       DocumentSnapshot currentUserDoc = await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(userId)
+        .get();
+    
+    String currentUserName = '${currentUserDoc['fname']} ${currentUserDoc['lname']}';
       String friendId = friend.id;
       final Uuid uuid = Uuid();
       final String requestId = uuid.v4();
+
       DocumentSnapshot requestDoc = await FirebaseFirestore.instance
           .collection('Users')
           .doc(friendId)
@@ -174,7 +181,7 @@ class _SearchFriendsScreenState extends State<SearchFriendsScreen> {
           .set({
         'userId': userId,
         'requestId': requestId,
-        'username': FirebaseAuth.instance.currentUser!.displayName,
+        'username':currentUserName,
         'status': 'pending',
         'requestedAt': FieldValue.serverTimestamp(),
       });
