@@ -47,17 +47,6 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
           children: [
             ListTileWidget(
               onTap: () {
-                Navigator.pushNamed(
-                    context, AppStrings.kNotificationsScreenName);
-              },
-              title: "Notifications",
-              leadingIconData: Icons.notification_important,
-              backgroundColor: Colors.deepPurple,
-              iconColor: Colors.white,
-              textColor: Colors.white,
-            ),
-            ListTileWidget(
-              onTap: () {
                 Navigator.push(
                     context,
                     MaterialPageRoute(
