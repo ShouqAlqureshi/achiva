@@ -263,6 +263,13 @@ class _HomePageState extends State<HomeScreen> {
       });
     });
   }
+   void _onGoalEdited() {
+    // Force refresh of countdown timers
+    setState(() {
+      // Clear existing countdown timers
+      CountdownManager().clearAll();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -760,6 +767,7 @@ class _HomePageState extends State<HomeScreen> {
                         goalDate,
                         goalName,
                         visibl,
+                        onEdit: _onGoalEdited, // Add onEdit callback
                       );
                     },
                   ),
@@ -769,6 +777,7 @@ class _HomePageState extends State<HomeScreen> {
                     goalDate,
                     goalName,
                     visibl,
+                    onEdit: _onGoalEdited, // Add onEdit callback
                   ),
                 ],
                 if (isDone) ...[
@@ -826,12 +835,16 @@ class _HomePageState extends State<HomeScreen> {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //Method return widget for edit and delete goal
-  Widget _buildEditDeleteButtons(DocumentReference goalRef, DateTime goalDate,
-      String goalName, bool visible) {
+ Widget _buildEditDeleteButtons(
+    DocumentReference goalRef,
+    DateTime goalDate,
+    String goalName,
+    bool visible, {
+    required VoidCallback onEdit,
+  }) {
     return Align(
       alignment: Alignment.centerRight,
       child: Theme(
-        // Custom theme for popup menu
         data: Theme.of(context).copyWith(
           popupMenuTheme: PopupMenuThemeData(
             shape: RoundedRectangleBorder(
@@ -846,7 +859,6 @@ class _HomePageState extends State<HomeScreen> {
           position: PopupMenuPosition.under,
           offset: const Offset(10, 10),
           itemBuilder: (context) => [
-            // Wrapping items in a Container to apply gradient
             PopupMenuItem(
               padding: EdgeInsets.zero,
               child: Container(
@@ -885,7 +897,7 @@ class _HomePageState extends State<HomeScreen> {
                         visibility: visible,
                       ),
                     ),
-                  ),
+                  ).then((_) => onEdit()), // Call onEdit callback after navigation
                 );
               },
             ),
@@ -1275,5 +1287,12 @@ class CountdownManager {
     _timers.remove(goalId);
     _controllers[goalId]?.close();
     _controllers.remove(goalId);
+  }
+   void clearAll() {
+    // Cancel and clear all existing timers and controllers
+    _controllers.forEach((_, controller) => controller.close());
+    _timers.forEach((_, timer) => timer.cancel());
+    _controllers.clear();
+    _timers.clear();
   }
 }
