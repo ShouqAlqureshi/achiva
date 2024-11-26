@@ -469,7 +469,7 @@ Future<bool> _inviteCollaborator(
       'InviteAt': FieldValue.serverTimestamp(),
     });
     Flushbar(
-      message: 'Friend request sent successfully',
+      message: 'Goal request sent successfully',
       duration: Duration(seconds: 3),
       backgroundColor: const Color.fromARGB(255, 39, 109, 41),
     ).show(context);
