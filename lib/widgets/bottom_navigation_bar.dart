@@ -42,7 +42,7 @@ class FloatingBottomNavigationBarWidget extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       _buildNavItem(Icons.home, 'Home', 0),
-                      _buildNavItem(Icons.people, 'Friends', 1),
+                      _buildNavItem(Icons.people, 'community', 1),
                       const SizedBox(width: 60), // Space for FAB
                       _buildNavItem(Icons.notifications, 'Requests', 2),
                       _buildNavItem(Icons.person, 'Profile', 3),
