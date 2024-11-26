@@ -222,47 +222,49 @@ class LayoutCubit extends Cubit<LayoutStates> {
     }
   }
 
-  Future<void> updateUserData({
-    required String fname,
-    required String lname,
-    required String gender,
-    required String userID,
-    required String email,
-  }) async {
-    try {
-      emit(UpdateUserDataLoadingState());
-      
-      String? urlOfUpdatedUserImage;
-      if (userImage != null) {
-        urlOfUpdatedUserImage = await uploadImageToStorage();
+Future<void> updateUserData({
+  required String fname,
+  required String lname,
+  required String gender,
+  required String userID,
+  required String email,
+}) async {
+  try {
+    emit(UpdateUserDataLoadingState());
+    
+    // Create a map of updates to preserve existing attributes
+    Map<String, dynamic> updateData = {
+      'fname': fname,
+      'lname': lname,
+      'email': email,
+      'gender': gender,
+    };
+
+    // Handle image upload separately
+    if (userImage != null) {
+      String? urlOfUpdatedUserImage = await uploadImageToStorage();
+      if (urlOfUpdatedUserImage != null) {
+        updateData['photo'] = urlOfUpdatedUserImage;
       }
-
-      final updatedUser = UserModel(
-        id: userID,
-        fname: fname,
-        lname: lname,
-        email: email,
-        gender: gender,
-        photo: urlOfUpdatedUserImage ?? user?.photo,
-        phoneNumber: user!.phoneNumber,
-      );
-
-      await cloudFirestore
-          .collection(AppStrings.kUsersCollectionName)
-          .doc(userID)
-          .set(updatedUser.toJson());
-
-      // Fetch updated user data
-      await getUserData(updateUserData: true);
-      emit(UpdateUserDataSuccessfullyState());
-    } on FirebaseException catch (e) {
-      log("UpdateUserData error: ${e.message}");
-      emit(UpdateUserDataWithFailureState(
-          message: await CheckInternetConnection.getStatus()
-              ? AppStrings.kInternetLostMessage
-              : AppStrings.kServerFailureMessage));
     }
+
+    // Update only the specified fields, preserving other attributes
+    await cloudFirestore
+        .collection(AppStrings.kUsersCollectionName)
+        .doc(userID)
+        .update(updateData);
+
+    // Fetch updated user data
+    await getUserData(updateUserData: true);
+    emit(UpdateUserDataSuccessfullyState());
+  } on FirebaseException catch (e) {
+    log("UpdateUserData error: ${e.message}");
+    emit(UpdateUserDataWithFailureState(
+        message: await CheckInternetConnection.getStatus()
+            ? AppStrings.kInternetLostMessage
+            : AppStrings.kServerFailureMessage));
   }
+}
 
   Future<void> signOut({
     required bool notToEmitToState,

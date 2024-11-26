@@ -70,44 +70,48 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  Future<void> updateUserData() async {
-    try {
-      final userRef = FirebaseFirestore.instance
-          .collection("Users")
-          .doc(AppConstants.kUserID ?? widget.layoutCubit.user!.id);
-
-      // First, get the current user document
-      final userDoc = await userRef.get();
-      if (!userDoc.exists) {
-        throw Exception('User document not found');
-      }
-
-      // Get current data
-      final currentData = userDoc.data() as Map<String, dynamic>;
-
-      // Create update map with only the profile fields
-      final Map<String, dynamic> updateData = {
-        'fname': _fnameController.text.trim(),
-        'lname': _lnameController.text.trim(),
-        'gender': widget.layoutCubit.chosenGender!,
-        'email': _emailController.text.trim(),
-      };
-
-      // If there's a new photo, add it to the update data
-      if (widget.layoutCubit.userImage != null) {
-        // Add your image upload logic here and update the photo field
-        // updateData['photo'] = uploadedPhotoUrl;
-      }
-
-      // Update only the specified fields using set with merge
-      await userRef.set(updateData, SetOptions(merge: true));
-
-      // Notify success
-      widget.layoutCubit.emit(UpdateUserDataSuccessfullyState());
-    } catch (e) {
-      widget.layoutCubit.emit(UpdateUserDataWithFailureState(message: e.toString()));
+Future<void> updateUserData() async {
+  try {
+    // Validate input fields
+    if (_fnameController.text.isEmpty ||
+        _lnameController.text.isEmpty ||
+        _emailController.text.isEmpty ||
+        widget.layoutCubit.chosenGender == null) {
+      showSnackBarWidget(
+        message: "Please fill in all fields",
+        successOrNot: false,
+        context: context
+      );
+      return;
     }
+
+    // Check if email is already in use by another user
+    if (await checkIfEmailExists(_emailController.text) &&
+        _emailController.text != widget.layoutCubit.user!.email) {
+      showSnackBarWidget(
+        message: "Email already exists",
+        successOrNot: false,
+        context: context
+      );
+      return;
+    }
+
+    // Call the updateUserData method from LayoutCubit
+    await widget.layoutCubit.updateUserData(
+      fname: _fnameController.text.trim(),
+      lname: _lnameController.text.trim(),
+      gender: widget.layoutCubit.chosenGender!,
+      userID: widget.layoutCubit.user!.id,
+      email: _emailController.text.trim(),
+    );
+  } catch (e) {
+    showSnackBarWidget(
+      message: "Error updating profile: ${e.toString()}",
+      successOrNot: false,
+      context: context
+    );
   }
+}
 
   bool isValidEmail(String email) {
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
