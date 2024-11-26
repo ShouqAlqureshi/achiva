@@ -283,6 +283,16 @@ class _EditGoalPageState extends State<EditGoalPage> {
       //     errorMessage = "The goal name exists, try changing the name";
       //   }
       // });
+        // Check if the goal is shared
+        final DocumentSnapshot goalDoc = await widget.goalRef.get();
+    final goalData = goalDoc.data() as Map<String, dynamic>?;
+    bool isSharedGoal = goalData != null && goalData.containsKey('sharedID');
+
+    // If not a shared goal, prevent name change
+    if (!isSharedGoal && goalData?['name'] != _nameController.text.trim()) {
+      _showError('Goal name cannot be changed for non-shared goals');
+      return;
+    }
 
       // Check all validation conditions
       if (_isNameValid && _isDateValid) {
