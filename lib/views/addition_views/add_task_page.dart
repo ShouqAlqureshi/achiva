@@ -132,7 +132,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
         DocumentSnapshot goalSnapshot =
             await goalsCollectionRef.doc(widget.goalName).get();
 
-        if ( widget.sharedGoal == false && goalSnapshot.exists ) {
+        if (widget.sharedGoal == false && goalSnapshot.exists) {
           log("The goal name exists, try changing the name");
           Navigator.of(context).pop(); //dismiss loading
           ScaffoldMessenger.of(context).showSnackBar(
@@ -144,11 +144,11 @@ class _AddTaskPageState extends State<AddTaskPage> {
         if (!widget.sharedGoal) {
           // Create the goal
           await goalsCollectionRef.doc(widget.goalName).set({
-          'name': widget.goalName,
-          'date': widget.goalDate.toIso8601String(),
-          'visibility': widget.goalVisibility,
-          'notasks': 1, // Initially set to 1 as we're adding one task
-        });
+            'name': widget.goalName,
+            'date': widget.goalDate.toIso8601String(),
+            'visibility': widget.goalVisibility,
+            'notasks': 1, // Initially set to 1 as we're adding one task
+          });
         }
 
         // Prepare task data
@@ -169,7 +169,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
         // Add the task
         if (_selectedRecurrence == "Weekly") {
           createdTasks = await taskManager.addRecurringTask(
-            
             goalName: widget.goalName,
             startDate: _selectedDate!, // Ensure _selectedDate is non-null
             startTime: _startTime!, // Ensure _startTime is non-null
@@ -186,8 +185,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
             usergoallistrefrence: goalsCollectionRef,
             goalDate: widget.goalDate,
             isSharedGoal: widget.isSharedGoal,
-            sharedkey:widget.sharedID ?? ""
-            
+            sharedkey: widget.sharedID ?? "",
           );
 
           if (createdTasks.isNotEmpty) {
@@ -195,7 +193,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
             widget.isSharedGoal
                 ? await FirebaseFirestore.instance
                     .collection('sharedGoal')
-                    .doc(widget.goalName)
+                    .doc(widget.sharedID)
                     .update(
                         {'notasks': FieldValue.increment(createdTasks.length)})
                 : await goalsCollectionRef.doc(widget.goalName).update(
@@ -204,39 +202,39 @@ class _AddTaskPageState extends State<AddTaskPage> {
         } else {
           if (widget.sharedGoal) {
             await SharedGoalManager().addTaskToSharedGoal(
-              sharedID: widget.sharedID??"",
+              sharedID: widget.sharedID ?? "",
               taskData: taskData,
               context: context,
             );
           } else {
-            // Your existing code for non-shared goals
+            // for non-shared goals
             await goalsCollectionRef
                 .doc(widget.goalName)
                 .collection('tasks')
                 .add(taskData);
           }
         }
-      //   if (widget.sharedGoal) {
-      //   // For shared goals, only add to sharedGoal collection
-      //   await SharedGoalManager().addTaskToSharedGoal(
-      //     sharedID: widget.sharedID,
-      //     taskData: taskData,
-      //     context: context,
-      //   );
-      // } else {
-      //   // For personal goals, add to user's goals collection
-      //   final userRef =
-      //       FirebaseFirestore.instance.collection('Users').doc(user.uid);
-      //   await userRef
-      //       .collection('goals')
-      //       .doc(widget.goalName)
-      //       .collection('tasks')
-      //       .add(taskData);
+        //   if (widget.sharedGoal) {
+        //   // For shared goals, only add to sharedGoal collection
+        //   await SharedGoalManager().addTaskToSharedGoal(
+        //     sharedID: widget.sharedID,
+        //     taskData: taskData,
+        //     context: context,
+        //   );
+        // } else {
+        //   // For personal goals, add to user's goals collection
+        //   final userRef =
+        //       FirebaseFirestore.instance.collection('Users').doc(user.uid);
+        //   await userRef
+        //       .collection('goals')
+        //       .doc(widget.goalName)
+        //       .collection('tasks')
+        //       .add(taskData);
 
-      //   // await userRef.collection('goals').doc(widget.goalName).update({
-      //   //   'notasks': FieldValue.increment(1),
-      //   // });
-      // }
+        //   // await userRef.collection('goals').doc(widget.goalName).update({
+        //   //   'notasks': FieldValue.increment(1),
+        //   // });
+        // }
         LocalNotification.scheduleTaskDueNotification(
           taskName: _taskNameController.text,
           dueDate: _selectedDate!.add(

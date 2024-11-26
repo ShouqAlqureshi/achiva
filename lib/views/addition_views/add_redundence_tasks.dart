@@ -62,7 +62,7 @@ class RecurringTaskManager {
           location ?? 'Unknown location', // Provide a default value
           recurrenceType ?? 'None', // Provide a default value for recurrence
           description ?? '', // Provide an empty string if description is null
-          goalName, //will be a sharedid incase of sharedgoal
+          goalName,
           calcDuration(startTime, endTime),
           usergoallistrefrence,
           isSharedGoal,

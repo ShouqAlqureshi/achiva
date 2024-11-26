@@ -16,7 +16,7 @@ class AddTaskIndependentlyPage extends StatefulWidget {
   final DateTime goalDate;
   final bool goalVisibility;
   final bool isSharedGoal;
-  final String? sharedkey; 
+  final String? sharedkey;
   const AddTaskIndependentlyPage({
     super.key,
     required this.goalName, //incase of sharedgoal it will be the sharedID
@@ -93,7 +93,7 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
         userDocRef = userSnapshot.docs.first.reference;
       }
       CollectionReference goalsCollectionRef = widget.isSharedGoal
-          ? userDocRef.collection('sharedGoal')
+          ? FirebaseFirestore.instance.collection('sharedGoal')
           : userDocRef.collection('goals');
 
       DocumentSnapshot goalSnapshot = widget.isSharedGoal
@@ -143,7 +143,7 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
             usergoallistrefrence: goalsCollectionRef,
             goalDate: widget.goalDate,
             isSharedGoal: widget.isSharedGoal,
-            sharedkey:widget.sharedkey ?? "");
+            sharedkey: widget.sharedkey ?? "");
 
         if (createdTasks.isNotEmpty) {
           log("Recurring tasks created successfully");
@@ -158,7 +158,6 @@ class _AddTaskIndependentlyPageState extends State<AddTaskIndependentlyPage> {
         }
       } else {
         if (widget.isSharedGoal) {
-          // widget.goalName is the sharedid
           await SharedGoalManager().addTaskToSharedGoal(
             sharedID: widget.sharedkey ?? "",
             taskData: taskData,
