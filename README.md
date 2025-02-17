@@ -1,8 +1,7 @@
 # Achiva 🚀
 
 Achiva is a social productivity platform that revolutionizes personal and professional development by combining goal tracking with social networking features. The platform helps users maintain consistency in pursuing their goals while connecting with like-minded individuals for support and motivation.
-![Achiva](achiva/Achiva banner.pdff)
-![Use Case Diagram](usecase.png)
+![Achiva Banner](https://raw.githubusercontent.com/ShouqAlqureshi/achiva/main/Achiva%20banner.png)
 
 ## ✨ Features
 
@@ -19,6 +18,7 @@ Achiva is a social productivity platform that revolutionizes personal and profes
   - Compare productivity through ranking dashboard
 
 - **Smart Features**
+  - collbartion goals with friends 
   - AI-powered task suggestions
   - Goal setting advice via ChatGPT integration
   - Streak tracking and rewards
@@ -95,25 +95,19 @@ Achiva is a social productivity platform that revolutionizes personal and profes
    ```
 
 ## 📄 Documentation
+- Achiva Use Case diagram
+![Achiva Use Case](https://raw.githubusercontent.com/ShouqAlqureshi/achiva/main/achiva%20usecase.drawio.png)
 
 For detailed documentation about the project architecture, database schema, and API integrations, please refer to the following:
 
-- [System Architecture](docs/architecture.md)
-- [Database Schema](docs/database.md)
-- [API Documentation](docs/api.md)
+- [System Documentation](https://github.com/ShouqAlqureshi/achiva/blob/main/Achiva%20Documentation%20.pdf)
 
-## 🤝 Contributing
-
-We welcome contributions to Achiva! Please read our [Contributing Guidelines](CONTRIBUTING.md) before submitting pull requests.
 
 ## 📝 Credits
 
 - No-result icon made by Freepik from www.flaticon.com
 - Chicken icon made by Freepik from www.flaticon.com
 
-## 📜 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🌟 Team
 
@@ -128,4 +122,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [Project Report](docs/final-report.pdf)
 - [Demo Video](https://youtube.com/...)
-- [Presentation Slides](docs/presentation.pdf)
