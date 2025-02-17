@@ -1,6 +1,6 @@
 # Achiva 🚀
 
-Achiva is a social productivity platform that revolutionizes personal and professional development by combining goal tracking with social networking features. The platform helps users maintain consistency in pursuing their goals while connecting with like-minded individuals for support and motivation.
+Achiva is a gamified social productivity app that revolutionizes personal and professional development by combining goal tracking with social networking features. The platform helps users maintain consistency in pursuing their goals while connecting with like-minded individuals for support and motivation.
 ![Achiva Banner](https://raw.githubusercontent.com/ShouqAlqureshi/achiva/main/Achiva%20banner.png)
 
 ## ✨ Features
