@@ -1,0 +1,2 @@
+/Users/shooqalsu/achiva/android/app/.cxx/Debug/4743576t/x86/CMakeFiles/edit_cache.dir
+/Users/shooqalsu/achiva/android/app/.cxx/Debug/4743576t/x86/CMakeFiles/rebuild_cache.dir
