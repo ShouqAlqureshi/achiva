@@ -1,7 +1,7 @@
+import 'package:achiva/views/addition_views/AddTaskPage.dart';
 import 'package:achiva/views/auth/validators.dart';
 import 'package:achiva/views/sharedgoal/sharedgoal.dart';
 import 'package:flutter/material.dart';
-import 'package:achiva/views/addition_views/add_task_page.dart'; // Import the task page
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart'; // Import the intl package for date formatting
@@ -85,9 +85,9 @@ class _AddGoalPageState extends State<AddGoalPage> {
               goalName: _nameController.text,
               goalDate: _selectedDate!,
               goalVisibility: _visibility,
-              sharedGoal: _sharedGoal,
               isSharedGoal: _sharedGoal,
-              sharedID: _sharedID,
+              sharedKey: _sharedID,
+              isIndependent: isValid,
             ),
           ),
         );

@@ -1,4 +1,5 @@
 import 'package:achiva/views/CreatePostPage.dart';
+import 'package:achiva/views/addition_views/AddTaskPage.dart';
 import 'package:achiva/views/addition_views/add_task_%20independently_page%20.dart';
 import 'package:achiva/views/addition_views/editTask.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -10,7 +11,6 @@ import 'package:achiva/utilities/colors.dart';
 import 'package:timelines/timelines.dart';
 import 'package:achiva/views/addition_views/deleteTask.dart';
 import 'sharedgoal/sharedgoal.dart';
-
 
 class GoalTasks extends StatefulWidget {
   final DocumentSnapshot goalDocument;
@@ -63,7 +63,6 @@ class _GoalTasksState extends State<GoalTasks> {
       DateTime goalDate,
       String goalName,
       bool isCompleted) {
-        
     final goalData = widget.goalDocument.data() as Map<String, dynamic>;
     showDialog(
       context: context,
@@ -181,12 +180,12 @@ class _GoalTasksState extends State<GoalTasks> {
                 ),
                 _buildDetailRow(
                     'Location', task['location'], "lib/images/location.png"),
-                    const Divider(
+                const Divider(
                   indent: 20,
                   endIndent: 20,
                 ),
-                    _buildDetailRow('Recurrence', task['recurrence'],"lib/images/recurrence.png"),
-                
+                _buildDetailRow('Recurrence', task['recurrence'],
+                    "lib/images/recurrence.png"),
               ],
             ),
           ),
@@ -203,7 +202,7 @@ class _GoalTasksState extends State<GoalTasks> {
               onPressed: () async {
                 Navigator.of(context).pop(); // Close the details dialog
                 bool wasDeleted =
-                    await TaskOperations.deleteTask(context, taskRef,goalName);
+                    await TaskOperations.deleteTask(context, taskRef, goalName);
                 if (wasDeleted) {
                   Navigator.of(context)
                       .pop(); // Close the parent dialog if deletion was successful
@@ -218,7 +217,6 @@ class _GoalTasksState extends State<GoalTasks> {
 
   void _editTask(BuildContext context, DocumentReference taskRef,
       Map<String, dynamic> taskData, DateTime goalDate, String goalName) {
-    
     final goalData = widget.goalDocument.data() as Map<String, dynamic>;
     showDialog(
       context: context,
@@ -836,8 +834,6 @@ class _GoalTasksState extends State<GoalTasks> {
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     final goalData = widget.goalDocument.data() as Map<String, dynamic>;
@@ -943,8 +939,9 @@ class _GoalTasksState extends State<GoalTasks> {
                                                 IconButton(
                                                   icon: const Icon(Icons.close,
                                                       color: Colors.white),
-                                                  onPressed: () => Navigator.of(context).pop() ,
-
+                                                  onPressed: () =>
+                                                      Navigator.of(context)
+                                                          .pop(),
                                                 ),
                                               ],
                                             ),
@@ -1066,14 +1063,20 @@ class _GoalTasksState extends State<GoalTasks> {
                                                       );
                                                     },
                                                   ),
-                                                Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.of(context).pop(); 
-                          showFriendListDialog(context,goalData['sharedID'], goalData['goalID']);
-                        },
-                                                      
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            16.0),
+                                                    child: InkWell(
+                                                      onTap: () {
+                                                        Navigator.of(context)
+                                                            .pop();
+                                                        showFriendListDialog(
+                                                            context,
+                                                            goalData[
+                                                                'sharedID'],
+                                                            goalData['goalID']);
+                                                      },
                                                       child: Container(
                                                         padding:
                                                             const EdgeInsets
@@ -1405,12 +1408,13 @@ class _GoalTasksState extends State<GoalTasks> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => AddTaskIndependentlyPage(
+                      builder: (context) => AddTaskPage(
                         goalName: goalName,
                         goalDate: goalDate,
                         goalVisibility: visibilty,
                         isSharedGoal: goalData['sharedID'] != null,
-                        sharedkey: goalData['sharedID'],
+                        sharedKey: goalData['sharedID'],
+                        isIndependent: true,
                       ),
                     ),
                   );
@@ -1436,8 +1440,6 @@ class _GoalTasksState extends State<GoalTasks> {
     );
   }
 }
-
-
 
 class ParticipantsDialogContent extends StatelessWidget {
   final String sharedID;
@@ -1508,11 +1510,13 @@ class ParticipantsDialogContent extends StatelessWidget {
 
           // Participants List
           StreamBuilder<DocumentSnapshot>(
-            stream: _firestore.collection('sharedGoal').doc(sharedID).snapshots(),
+            stream:
+                _firestore.collection('sharedGoal').doc(sharedID).snapshots(),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
                 return const Center(
-                  child: Text('Something went wrong', style: TextStyle(color: Colors.white)),
+                  child: Text('Something went wrong',
+                      style: TextStyle(color: Colors.white)),
                 );
               }
 
@@ -1523,7 +1527,8 @@ class ParticipantsDialogContent extends StatelessWidget {
               }
 
               final goalData = snapshot.data!.data() as Map<String, dynamic>;
-              final participants = goalData['participants'] as Map<String, dynamic>? ?? {};
+              final participants =
+                  goalData['participants'] as Map<String, dynamic>? ?? {};
 
               return Flexible(
                 child: Column(
@@ -1536,7 +1541,8 @@ class ParticipantsDialogContent extends StatelessWidget {
                         itemCount: participants.length,
                         itemBuilder: (context, index) {
                           final userId = participants.keys.elementAt(index);
-                          final participantData = participants[userId] as Map<String, dynamic>;
+                          final participantData =
+                              participants[userId] as Map<String, dynamic>;
 
                           return FutureBuilder<Map<String, dynamic>?>(
                             future: _getUserData(userId),
@@ -1563,7 +1569,8 @@ class ParticipantsDialogContent extends StatelessWidget {
                                           ? NetworkImage(userData['photo'])
                                           : null,
                                       child: userData['photo'] == null
-                                          ? const Icon(Icons.person, color: Colors.white)
+                                          ? const Icon(Icons.person,
+                                              color: Colors.white)
                                           : null,
                                       backgroundColor: Colors.grey[700],
                                     ),
