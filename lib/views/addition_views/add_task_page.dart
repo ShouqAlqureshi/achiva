@@ -3,7 +3,7 @@
 import 'dart:developer';
 
 import 'package:achiva/utilities/loading.dart';
-import 'package:achiva/views/addition_views/add_redundence_tasks.dart';
+import 'package:achiva/views/addition_views/RecurringTaskManager.dart';
 import 'package:achiva/views/sharedgoal/sharedgoal.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -131,7 +131,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
         CollectionReference goalsCollectionRef = userDocRef.collection('goals');
         DocumentSnapshot goalSnapshot =
             await goalsCollectionRef.doc(widget.goalName).get();
-
+        //uniqe goal name validation
         if (widget.sharedGoal == false && goalSnapshot.exists) {
           log("The goal name exists, try changing the name");
           Navigator.of(context).pop(); //dismiss loading

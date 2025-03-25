@@ -128,9 +128,6 @@ class _AddGoalPageState extends State<AddGoalPage> {
 
   @override
   Widget build(BuildContext context) {
-    final Uuid uuid = Uuid();
-    // final String sharedID = uuid.v4();
-    // final String goalid = uuid.v4();
     return Scaffold(
       extendBodyBehindAppBar: true, // Extend the body behind the AppBar
       backgroundColor: Colors.transparent, // Transparent background
@@ -147,7 +144,7 @@ class _AddGoalPageState extends State<AddGoalPage> {
       ),
       body: Container(
         height: double
-            .infinity, // Makes the container fill the entire screen height
+            .infinity, 
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -164,7 +161,6 @@ class _AddGoalPageState extends State<AddGoalPage> {
           child: SingleChildScrollView(
             child: Column(
               children: [
-                // Container with Card inside to hold the form fields
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
