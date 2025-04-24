@@ -101,6 +101,7 @@ Achiva is a gamified social productivity app that revolutionizes personal and pr
 For detailed documentation about the project architecture, database schema, and API integrations, please refer to the following:
 
 - [System Documentation](https://github.com/ShouqAlqureshi/achiva/blob/main/Achiva%20Documentation%20.pdf)
+- [System Maintenance phase Documentation](https://github.com/ShouqAlqureshi/achiva/tree/main/Maintenance)
 
 
 ## 📝 Credits
