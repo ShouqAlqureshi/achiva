@@ -113,7 +113,6 @@ For detailed documentation about the project architecture, database schema, and 
 - Shouq Alqureshi [Project manager]
 - Riyam Alsuhaibani
 - Miriam Almogren
-- Amal Alharbi
 - Batool Alsugaih
 - Waad Almutiri
 
